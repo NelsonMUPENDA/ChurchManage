@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annonces - Consolation et Paix Divine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
+        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
+        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
+        [data-bs-theme="dark"] .main-content { background: #0f172a; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
+        .sidebar-backdrop.show { display: block; }
+        .announcement-card { transition: all 0.2s; border-left: 4px solid transparent; }
+        .announcement-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .announcement-card.pinned { border-left-color: #f59e0b; }
+        .announcement-card.published { border-left-color: #10b981; }
+        .announcement-card.draft { border-left-color: #94a3b8; }
+        .status-badge { font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        <nav class="px-3 pb-4" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                        <h5 class="mb-0 fw-semibold">Annonces</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+            <!-- Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
+                                    <i class="bi bi-megaphone fs-4" style="color: #6366f1;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Total Annonces</p>
+                                    <h4 class="mb-0 fw-bold" id="totalAnnouncements">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
+                                    <i class="bi bi-check-circle fs-4" style="color: #10b981;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Publiées</p>
+                                    <h4 class="mb-0 fw-bold" id="publishedCount">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
+                                    <i class="bi bi-pin-angle fs-4" style="color: #f59e0b;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Épinglées</p>
+                                    <h4 class="mb-0 fw-bold" id="pinnedCount">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select bg-light border-0" id="statusFilter">
+                                <option value="">Tous les statuts</option>
+                                <option value="published">Publiées</option>
+                                <option value="draft">Brouillons</option>
+                                <option value="archived">Archivées</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAnnouncementModal">
+                                <i class="bi bi-plus-lg me-2"></i>Nouvelle annonce
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Announcements List -->
+            <div class="row g-3" id="announcementsList">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="text-muted mt-2">Chargement des annonces...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="mt-4" id="paginationNav" style="display: none;">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
+                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
+                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
+                </ul>
+            </nav>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="addAnnouncementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Nouvelle annonce</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="announcementForm">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Titre *</label>
+                                <input type="text" class="form-control" name="title" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Contenu *</label>
+                                <textarea class="form-control" name="content" rows="5" required></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Catégorie</label>
+                                <select class="form-select" name="category">
+                                    <option value="general">Général</option>
+                                    <option value="event">Événement</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="info">Information</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date de publication</label>
+                                <input type="date" class="form-control" name="publish_date">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="is_pinned" id="isPinned">
+                                    <label class="form-check-label" for="isPinned">Épingler en haut</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" name="is_published" id="isPublished" checked>
+                                    <label class="form-check-label" for="isPublished">Publier immédiatement</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="saveBtn">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/toast.js"></script>
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/navigation.js"></script>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchQuery = '';
+        let statusFilter = '';
+        let editingId = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+
+            initUI();
+            loadAnnouncements();
+
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+            document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
+            document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
+            document.getElementById('saveBtn').addEventListener('click', saveAnnouncement);
+            document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
+            document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
+        });
+
+        function initUI() {
+            const user = Auth.state.user;
+            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
+            if (window.Navigation) Navigation.render('sidebarNav', 'announcements');
+            Utils.Theme.init();
+            updateThemeIcon();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            Utils.Theme.toggle();
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+
+        function debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadAnnouncements(); }
+        function handleStatusFilter(e) { statusFilter = e.target.value; currentPage = 1; loadAnnouncements(); }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                loadAnnouncements();
+            }
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const params = { page: currentPage, ordering: '-is_pinned,-created_at' };
+                if (searchQuery) params.search = searchQuery;
+                if (statusFilter) params.status = statusFilter;
+
+                const response = await API.api.get('/api/announcements/', params);
+                const announcements = response.results || response;
+                
+                renderAnnouncements(announcements);
+                updatePagination(response.count, announcements.length);
+                updateStats(response.stats || {});
+            } catch (error) {
+                console.error('Failed to load announcements:', error);
+                Toast.error('Erreur', 'Impossible de charger les annonces');
+            }
+        }
+
+        function renderAnnouncements(announcements) {
+            const container = document.getElementById('announcementsList');
+            
+            if (announcements.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-megaphone fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted">Aucune annonce</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = announcements.map(a => {
+                const statusClass = a.is_pinned ? 'pinned' : (a.is_published ? 'published' : 'draft');
+                const statusBadge = a.is_pinned ? 
+                    '<span class="badge bg-warning text-dark status-badge"><i class="bi bi-pin-angle me-1"></i>Épinglée</span>' :
+                    (a.is_published ? 
+                        '<span class="badge bg-success status-badge">Publiée</span>' : 
+                        '<span class="badge bg-secondary status-badge">Brouillon</span>');
+                
+                return `
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card border-0 shadow-sm announcement-card ${statusClass} h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-dark">${a.category || 'Général'}</span>
+                                    ${statusBadge}
+                                </div>
+                                <h6 class="fw-semibold mb-2">${a.title}</h6>
+                                <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${a.content || ''}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">${Utils.timeAgo(a.created_at)}</small>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" onclick="viewAnnouncement(${a.id})"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="editAnnouncement(${a.id})"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                            ${Auth.isAdmin() ? `<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="#" onclick="deleteAnnouncement(${a.id})"><i class="bi bi-trash me-2"></i>Supprimer</a></li>` : ''}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updatePagination(totalCount, pageSize) {
+            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
+            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
+            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
+            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalAnnouncements').textContent = stats.total || '0';
+            document.getElementById('publishedCount').textContent = stats.published || '0';
+            document.getElementById('pinnedCount').textContent = stats.pinned || '0';
+        }
+
+        async function saveAnnouncement() {
+            const form = document.getElementById('announcementForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            data.is_pinned = formData.has('is_pinned');
+            data.is_published = formData.has('is_published');
+
+            try {
+                if (editingId) {
+                    await API.api.put(`/api/announcements/${editingId}/`, data);
+                    Toast.success('Succès', 'Annonce mise à jour');
+                } else {
+                    await API.api.post('/api/announcements/', data);
+                    Toast.success('Succès', 'Annonce créée');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('addAnnouncementModal')).hide();
+                form.reset();
+                editingId = null;
+                loadAnnouncements();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible d\'enregistrer l\'annonce');
+            }
+        }
+
+        async function editAnnouncement(id) {
+            try {
+                const response = await API.api.get(`/api/announcements/${id}/`);
+                const a = response;
+                
+                const form = document.getElementById('announcementForm');
+                form.elements['title'].value = a.title;
+                form.elements['content'].value = a.content;
+                form.elements['category'].value = a.category;
+                form.elements['is_pinned'].checked = a.is_pinned;
+                form.elements['is_published'].checked = a.is_published;
+                
+                editingId = id;
+                document.querySelector('.modal-title').textContent = 'Modifier l\'annonce';
+                new bootstrap.Modal(document.getElementById('addAnnouncementModal')).show();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de charger l\'annonce');
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
+            try {
+                await API.api.delete(`/api/announcements/${id}/`);
+                Toast.success('Succès', 'Annonce supprimée');
+                loadAnnouncements();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de supprimer');
+            }
+        }
+
+        function viewAnnouncement(id) {
+            window.location.href = `announcement-detail.html?id=${id}`;
+        }
+    </script>
+</body>
+</html>

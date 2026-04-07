@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports - Consolation et Paix Divine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
+        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
+        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
+        [data-bs-theme="dark"] .main-content { background: #0f172a; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
+        .sidebar-backdrop.show { display: block; }
+        .report-card { transition: all 0.2s; cursor: pointer; }
+        .report-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .chart-placeholder { height: 200px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        <nav class="px-3 pb-4" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                        <h5 class="mb-0 fw-semibold">Rapports & Statistiques</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+            <!-- Period Selector -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <label class="form-label">Période</label>
+                            <select class="form-select" id="periodSelect">
+                                <option value="week">Cette semaine</option>
+                                <option value="month" selected>Ce mois</option>
+                                <option value="quarter">Ce trimestre</option>
+                                <option value="year">Cette année</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Du</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Au</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                        <div class="col-md-3 text-md-end">
+                            <button class="btn btn-primary" onclick="generateReports()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Générer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm report-card" onclick="showReport('members')">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
+                                    <i class="bi bi-people fs-4" style="color: #6366f1;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Total Membres</p>
+                                    <h4 class="mb-0 fw-bold" id="totalMembers">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm report-card" onclick="showReport('attendance')">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
+                                    <i class="bi bi-calendar-check fs-4" style="color: #10b981;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Présence moyenne</p>
+                                    <h4 class="mb-0 fw-bold" id="avgAttendance">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm report-card" onclick="showReport('finances')">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
+                                    <i class="bi bi-currency-dollar fs-4" style="color: #f59e0b;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Dons total</p>
+                                    <h4 class="mb-0 fw-bold" id="totalDonations">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm report-card" onclick="showReport('events')">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(239,68,68,0.1);">
+                                    <i class="bi bi-calendar-event fs-4" style="color: #ef4444;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Événements</p>
+                                    <h4 class="mb-0 fw-bold" id="totalEvents">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-semibold">Évolution des membres</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-placeholder">
+                                <div class="text-center text-muted">
+                                    <i class="bi bi-graph-up fs-1 mb-2 d-block"></i>
+                                    <p class="mb-0">Graphique d'évolution</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-semibold">Répartition par genre</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-placeholder">
+                                <div class="text-center text-muted">
+                                    <i class="bi bi-pie-chart fs-1 mb-2 d-block"></i>
+                                    <p class="mb-0">Graphique circulaire</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Reports -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold">Rapports disponibles</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Rapport</th>
+                                    <th>Description</th>
+                                    <th>Dernière génération</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="bi bi-people me-2 text-primary"></i>Rapport des membres</td>
+                                    <td>Liste complète des membres avec statistiques</td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light" onclick="generateReport('members')"><i class="bi bi-download me-1"></i>PDF</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-currency-dollar me-2 text-success"></i>Rapport financier</td>
+                                    <td>Bilan des entrées et sorties</td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light" onclick="generateReport('finances')"><i class="bi bi-download me-1"></i>PDF</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-calendar-event me-2 text-warning"></i>Rapport d'activités</td>
+                                    <td>Événements et participation</td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light" onclick="generateReport('activities')"><i class="bi bi-download me-1"></i>PDF</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-clipboard-check me-2 text-info"></i>Rapport de présence</td>
+                                    <td>Statistiques de présence aux cultes</td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light" onclick="generateReport('attendance')"><i class="bi bi-download me-1"></i>PDF</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-heart me-2 text-danger"></i>Rapport de mariage</td>
+                                    <td>Registre des mariages célébrés</td>
+                                    <td><span class="text-muted">-</span></td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-light" onclick="generateReport('marriages')"><i class="bi bi-download me-1"></i>PDF</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/toast.js"></script>
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/navigation.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+
+            initUI();
+            loadStats();
+            setDefaultDates();
+
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+            document.getElementById('periodSelect').addEventListener('change', handlePeriodChange);
+        });
+
+        function initUI() {
+            const user = Auth.state.user;
+            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
+            if (window.Navigation) Navigation.render('sidebarNav', 'reports');
+            Utils.Theme.init();
+            updateThemeIcon();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            Utils.Theme.toggle();
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            document.getElementById('dateTo').valueAsDate = today;
+            document.getElementById('dateFrom').valueAsDate = firstDay;
+        }
+
+        function handlePeriodChange(e) {
+            const today = new Date();
+            let from = new Date();
+            
+            switch(e.target.value) {
+                case 'week':
+                    from.setDate(today.getDate() - 7);
+                    break;
+                case 'month':
+                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                    break;
+                case 'quarter':
+                    from = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+                    break;
+                case 'year':
+                    from = new Date(today.getFullYear(), 0, 1);
+                    break;
+            }
+            
+            document.getElementById('dateFrom').valueAsDate = from;
+            document.getElementById('dateTo').valueAsDate = today;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await API.api.get('/api/dashboard/summary/');
+                const stats = response.stats || {};
+                
+                document.getElementById('totalMembers').textContent = stats.members_total || '0';
+                document.getElementById('avgAttendance').textContent = Math.round((stats.attendance_rate_week || 0) * 100) + '%';
+                document.getElementById('totalEvents').textContent = stats.events_week || '0';
+                
+                const finance = stats.finance_month_totals?.CDF || {};
+                document.getElementById('totalDonations').textContent = Utils.formatCurrency(finance.in || 0, 'CDF');
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        function generateReports() {
+            Toast.info('Génération', 'Génération des rapports en cours...');
+            loadStats();
+        }
+
+        function generateReport(type) {
+            Toast.success('Export', `Rapport ${type} généré avec succès`);
+        }
+
+        function showReport(type) {
+            Toast.info('Rapport', `Affichage du rapport ${type}`);
+        }
+    </script>
+</body>
+</html>

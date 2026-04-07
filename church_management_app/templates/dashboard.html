@@ -1,0 +1,547 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Consolation et Paix Divine</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <style>
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: white;
+            border-right: 1px solid var(--cpd-gray-200);
+            z-index: 1040;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        [data-bs-theme="dark"] .sidebar {
+            background: #0f172a;
+            border-right-color: #334155;
+        }
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        [data-bs-theme="dark"] .main-content {
+            background: #0f172a;
+        }
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1035;
+        }
+        .sidebar-backdrop.show {
+            display: block;
+        }
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            padding: 1rem 1.25rem 0.5rem;
+        }
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        [data-bs-theme="dark"] .stat-value {
+            color: #f8fafc;
+        }
+        .welcome-card {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        
+        <nav class="px-3 pb-4" id="sidebarNav">
+            <!-- Nav items will be injected by JS -->
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        <h5 class="mb-0 fw-semibold">Tableau de bord</h5>
+                    </div>
+                    
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Notifications -->
+                        <div class="dropdown">
+                            <button class="btn btn-light position-relative" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-bell"></i>
+                                <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger" id="notificationBadge" style="display: none;">
+                                    0
+                                </span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" id="notificationMenu">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-muted">Aucune notification</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Theme Toggle -->
+                        <button class="btn btn-light" id="themeToggle" title="Changer de thème">
+                            <i class="bi bi-moon" id="themeIcon"></i>
+                        </button>
+                        
+                        <!-- User Menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-light d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" id="userAvatar">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="account.html"><i class="bi bi-person me-2"></i>Mon compte</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" id="logoutBtn"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Dashboard Content -->
+        <div class="container-fluid p-4">
+            <!-- Welcome Card -->
+            <div class="welcome-card mb-4" id="welcomeCard">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h4 class="mb-2 fw-bold">Bienvenue sur votre tableau de bord</h4>
+                        <p class="mb-0 opacity-75">Voici un aperçu de l'activité de l'église aujourd'hui.</p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                        <span class="badge bg-white text-primary fs-6 px-3 py-2" id="todayDate">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="row g-4 mb-4" id="statsRow">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
+                                    <i class="bi bi-people fs-4" style="color: #6366f1;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-1 small">Total Membres</p>
+                                    <h3 class="stat-value mb-0" id="statMembers">-</h3>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-success"><i class="bi bi-arrow-up"></i> <span id="statMembersChange">0</span> cette semaine</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
+                                    <i class="bi bi-calendar-event fs-4" style="color: #10b981;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-1 small">Événements</p>
+                                    <h3 class="stat-value mb-0" id="statEvents">-</h3>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted"><span id="statUpcoming">0</span> à venir</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6" id="financeCard">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
+                                    <i class="bi bi-currency-dollar fs-4" style="color: #f59e0b;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-1 small">Dons du Mois</p>
+                                    <h3 class="stat-value mb-0" id="statDonations">-</h3>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">Entrées ce mois</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6" id="attendanceCard">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-3 p-3 me-3" style="background: rgba(239,68,68,0.1);">
+                                    <i class="bi bi-heart fs-4" style="color: #ef4444;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-1 small">Présence</p>
+                                    <h3 class="stat-value mb-0" id="statAttendance">-</h3>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">Semaine: <span id="statPresent">0</span> / <span id="statTotal">0</span></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Grid -->
+            <div class="row g-4">
+                <!-- Alerts Column -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Alertes & Rappels</h6>
+                        </div>
+                        <div class="card-body" id="alertsContainer">
+                            <div class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm mb-2"></div>
+                                <p class="mb-0 small">Chargement...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions Column -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning me-2"></i>Actions Rapides</h6>
+                        </div>
+                        <div class="card-body" id="quickActionsContainer">
+                            <div class="d-grid gap-2">
+                                <a href="members.html?action=add" class="btn btn-outline-primary d-flex align-items-center gap-2 justify-content-start">
+                                    <i class="bi bi-person-plus"></i>
+                                    Ajouter un membre
+                                </a>
+                                <a href="events.html?action=create" class="btn btn-outline-success d-flex align-items-center gap-2 justify-content-start">
+                                    <i class="bi bi-calendar-plus"></i>
+                                    Créer un événement
+                                </a>
+                                <a href="reports.html" class="btn btn-outline-info d-flex align-items-center gap-2 justify-content-start">
+                                    <i class="bi bi-graph-up"></i>
+                                    Voir les rapports
+                                </a>
+                                <a href="announcements.html" class="btn btn-outline-warning d-flex align-items-center gap-2 justify-content-start">
+                                    <i class="bi bi-megaphone"></i>
+                                    Nouvelle annonce
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity Column -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Activité Récente</h6>
+                        </div>
+                        <div class="card-body p-0" id="activityContainer">
+                            <div class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm mb-2"></div>
+                                <p class="mb-0 small">Chargement...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/toast.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script src="{% static 'js/navigation.js' %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check authentication
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = '/login/';
+                    return;
+                }
+            }
+            
+            // Initialize UI
+            initUI();
+            loadDashboardData();
+            
+            // Sidebar toggle
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('show');
+                document.getElementById('sidebarBackdrop').classList.toggle('show');
+            });
+            
+            document.getElementById('sidebarBackdrop').addEventListener('click', function() {
+                document.getElementById('sidebar').classList.remove('show');
+                document.getElementById('sidebarBackdrop').classList.remove('show');
+            });
+            
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', function() {
+                const newTheme = Utils.Theme.toggle();
+                updateThemeIcon(newTheme);
+            });
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                Auth.logout();
+            });
+        });
+        
+        function initUI() {
+            const user = Auth.state.user;
+            
+            // Set user role
+            const roleText = user?.is_superuser ? 'Super Admin' : 
+                           user?.is_staff ? 'Admin' : 
+                           user?.role || 'Utilisateur';
+            document.getElementById('userRole').textContent = roleText;
+            
+            // Set user avatar
+            if (user?.photo) {
+                const photoUrl = user.photo.startsWith('http') ? user.photo : API.baseUrl + user.photo;
+                document.getElementById('userAvatar').innerHTML = `<img src="${photoUrl}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">`;
+            } else if (user?.username) {
+                document.getElementById('userAvatar').innerHTML = `<span class="fw-bold">${user.username[0].toUpperCase()}</span>`;
+            }
+            
+            // Set today's date
+            const today = new Date();
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('fr-FR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Update theme icon
+            updateThemeIcon(Utils.Theme.get());
+            
+            // Initialize navigation
+            if (window.Navigation) {
+                Navigation.render('sidebarNav', 'dashboard');
+            }
+        }
+        
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+        
+        async function loadDashboardData() {
+            try {
+                const summary = await API.api.get('/api/dashboard/summary/');
+                updateStats(summary.stats);
+                updateAlerts(summary.alerts);
+                updateActivity(summary.recent_activity);
+                updatePermissions(summary.permissions);
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+                Toast.error('Erreur', 'Impossible de charger le tableau de bord');
+            }
+        }
+        
+        function updateStats(stats) {
+            if (!stats) return;
+            
+            // Members
+            if (stats.members_total !== undefined) {
+                document.getElementById('statMembers').textContent = stats.members_total;
+                document.getElementById('statMembersChange').textContent = '+' + (stats.members_new_week || 0);
+            }
+            
+            // Events
+            if (stats.events_week !== undefined) {
+                document.getElementById('statEvents').textContent = stats.events_week;
+                document.getElementById('statUpcoming').textContent = stats.events_upcoming || 0;
+            }
+            
+            // Finance
+            if (stats.finance_month_totals) {
+                const currency = Object.keys(stats.finance_month_totals)[0] || 'CDF';
+                const amount = stats.finance_month_totals[currency]?.in || 0;
+                document.getElementById('statDonations').textContent = Utils.formatCurrency(amount, currency);
+            } else {
+                document.getElementById('financeCard').style.display = 'none';
+            }
+            
+            // Attendance
+            if (stats.attendance_rate_week !== undefined) {
+                const rate = Math.round(stats.attendance_rate_week * 100);
+                document.getElementById('statAttendance').textContent = rate + '%';
+                document.getElementById('statPresent').textContent = stats.attendance_present_week || 0;
+                document.getElementById('statTotal').textContent = stats.attendance_rows_week || 0;
+            } else {
+                document.getElementById('attendanceCard').style.display = 'none';
+            }
+        }
+        
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-check-circle fs-1 mb-2 d-block"></i>
+                        <p class="mb-0">Aucune alerte pour le moment</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = alerts.slice(0, 5).map(alert => `
+                <div class="d-flex align-items-start gap-3 mb-3 pb-3 border-bottom last-border-0">
+                    <div class="rounded-circle p-2 ${getAlertColorClass(alert.type)}" style="width: 40px; height: 40px;">
+                        <i class="bi ${getAlertIcon(alert.type)}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-semibold">${alert.title || 'Programme'}</h6>
+                        <p class="mb-1 small text-muted">${alert.message || ''}</p>
+                        <small class="text-muted">${alert.date || ''} ${alert.time || ''}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateActivity(activities) {
+            const container = document.getElementById('activityContainer');
+            
+            if (!activities || activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <p class="mb-0">Aucune activité récente</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = activities.slice(0, 5).map(activity => `
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                    <div class="rounded-circle bg-light p-2">
+                        <i class="bi bi-arrow-right-circle text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <p class="mb-0 small">${activity.description || activity.action || 'Action'}</p>
+                        <small class="text-muted">${Utils.timeAgo(activity.created_at)}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updatePermissions(permissions) {
+            // Show/hide elements based on permissions
+            if (!permissions?.finance) {
+                document.getElementById('financeCard').style.display = 'none';
+            }
+            if (!permissions?.attendance) {
+                document.getElementById('attendanceCard').style.display = 'none';
+            }
+        }
+        
+        function getAlertColorClass(type) {
+            const colors = {
+                'event': 'bg-primary bg-opacity-10 text-primary',
+                'birthday': 'bg-success bg-opacity-10 text-success',
+                'announcement': 'bg-warning bg-opacity-10 text-warning',
+                'urgent': 'bg-danger bg-opacity-10 text-danger'
+            };
+            return colors[type] || 'bg-info bg-opacity-10 text-info';
+        }
+        
+        function getAlertIcon(type) {
+            const icons = {
+                'event': 'bi-calendar-event',
+                'birthday': 'bi-gift',
+                'announcement': 'bi-megaphone',
+                'urgent': 'bi-exclamation-triangle'
+            };
+            return icons[type] || 'bi-info-circle';
+        }
+    </script>
+</body>
+</html>

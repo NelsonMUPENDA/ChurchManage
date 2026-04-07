@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Évangélisation - Consolation et Paix Divine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
+        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
+        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
+        [data-bs-theme="dark"] .main-content { background: #0f172a; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
+        .sidebar-backdrop.show { display: block; }
+        .activity-card { transition: all 0.2s; }
+        .activity-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        <nav class="px-3 pb-4" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                        <h5 class="mb-0 fw-semibold"><i class="bi bi-megaphone me-2"></i>Évangélisation</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+            <!-- Stats Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3" style="background: rgba(99,102,241,0.1);">
+                                    <i class="bi bi-calendar-event fs-4" style="color: #6366f1;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Activités</p>
+                                    <h4 class="mb-0 fw-bold" id="totalActivities">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3" style="background: rgba(16,185,129,0.1);">
+                                    <i class="bi bi-people fs-4" style="color: #10b981;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Personnes touchées</p>
+                                    <h4 class="mb-0 fw-bold" id="totalReached">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3" style="background: rgba(245,158,11,0.1);">
+                                    <i class="bi bi-heart fs-4" style="color: #f59e0b;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Conversions</p>
+                                    <h4 class="mb-0 fw-bold" id="totalConversions">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon me-3" style="background: rgba(239,68,68,0.1);">
+                                    <i class="bi bi-geo-alt fs-4" style="color: #ef4444;"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small">Zones couvertes</p>
+                                    <h4 class="mb-0 fw-bold" id="totalZones">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select bg-light border-0" id="typeFilter">
+                                <option value="">Tous les types</option>
+                                <option value="door_to_door">Porte-à-porte</option>
+                                <option value="street">Rue/Espace public</option>
+                                <option value="campaign">Campagne</option>
+                                <option value="media">Médias</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5 text-md-end">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addActivityModal">
+                                <i class="bi bi-plus-lg me-2"></i>Nouvelle activité
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities Grid -->
+            <div class="row g-3" id="activitiesGrid">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="text-muted mt-2">Chargement...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <nav class="mt-4" id="paginationNav" style="display: none;">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
+                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
+                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
+                </ul>
+            </nav>
+        </div>
+    </main>
+
+    <!-- Add Activity Modal -->
+    <div class="modal fade" id="addActivityModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Nouvelle activité d'évangélisation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="activityForm">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Titre *</label>
+                                <input type="text" class="form-control" name="title" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control" name="date" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Type *</label>
+                                <select class="form-select" name="activity_type" required>
+                                    <option value="door_to_door">Porte-à-porte</option>
+                                    <option value="street">Rue/Espace public</option>
+                                    <option value="campaign">Campagne</option>
+                                    <option value="media">Médias</option>
+                                    <option value="other">Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Lieu/Zone</label>
+                                <input type="text" class="form-control" name="location" placeholder="Ex: Quartier Matete">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Personnes touchées</label>
+                                <input type="number" class="form-control" name="people_reached" min="0" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Conversions</label>
+                                <input type="number" class="form-control" name="conversions" min="0" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Baptêmes</label>
+                                <input type="number" class="form-control" name="baptisms" min="0" value="0">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Participants</label>
+                                <input type="text" class="form-control" name="participants" placeholder="Noms des participants séparés par des virgules">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="saveActivity()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/toast.js"></script>
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/navigation.js"></script>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchQuery = '';
+        let typeFilter = '';
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+
+            initUI();
+            loadActivities();
+            loadStats();
+
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+            document.getElementById('searchInput').addEventListener('input', debounce(() => { searchQuery = document.getElementById('searchInput').value; currentPage = 1; loadActivities(); }, 300));
+            document.getElementById('typeFilter').addEventListener('change', () => { typeFilter = document.getElementById('typeFilter').value; currentPage = 1; loadActivities(); });
+            document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; loadActivities(); } });
+            document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; loadActivities(); } });
+
+            document.querySelector('input[name="date"]').valueAsDate = new Date();
+        });
+
+        function initUI() {
+            const user = Auth.state.user;
+            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
+            if (window.Navigation) Navigation.render('sidebarNav', 'evangelisation');
+            Utils.Theme.init();
+            updateThemeIcon();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            Utils.Theme.toggle();
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+
+        function debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        async function loadStats() {
+            try {
+                const response = await API.api.get('/api/evangelism-activities/stats/');
+                document.getElementById('totalActivities').textContent = response.total_activities || 0;
+                document.getElementById('totalReached').textContent = response.total_reached || 0;
+                document.getElementById('totalConversions').textContent = response.total_conversions || 0;
+                document.getElementById('totalZones').textContent = response.total_zones || 0;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadActivities() {
+            try {
+                const params = { page: currentPage, ordering: '-date' };
+                if (searchQuery) params.search = searchQuery;
+                if (typeFilter) params.activity_type = typeFilter;
+
+                const response = await API.api.get('/api/evangelism-activities/', params);
+                const activities = response.results || response;
+                
+                renderActivities(activities);
+                updatePagination(response.count, activities.length);
+            } catch (error) {
+                console.error('Failed to load activities:', error);
+                document.getElementById('activitiesGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
+            }
+        }
+
+        function renderActivities(activities) {
+            const container = document.getElementById('activitiesGrid');
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-megaphone fs-1 text-muted mb-3 d-block"></i><p class="text-muted">Aucune activité</p></div>';
+                return;
+            }
+
+            const typeIcons = {
+                door_to_door: 'bi-house-door',
+                street: 'bi-shop',
+                campaign: 'bi-bullseye',
+                media: 'bi-broadcast',
+                other: 'bi-circle'
+            };
+
+            const typeLabels = {
+                door_to_door: 'Porte-à-porte',
+                street: 'Rue',
+                campaign: 'Campagne',
+                media: 'Médias',
+                other: 'Autre'
+            };
+
+            container.innerHTML = activities.map(a => `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm activity-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                                    <i class="bi ${typeIcons[a.activity_type] || 'bi-circle'} fs-4" style="color: #6366f1;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-semibold mb-1">${a.title}</h6>
+                                    <p class="text-muted small mb-0">${typeLabels[a.activity_type] || a.activity_type}</p>
+                                </div>
+                            </div>
+                            <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${a.description || 'Pas de description'}</p>
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark"><i class="bi bi-geo-alt me-1"></i>${a.location || 'N/A'}</span>
+                                <span class="badge bg-light text-dark"><i class="bi bi-calendar me-1"></i>${Utils.formatDateShort(a.date)}</span>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                        <div class="fw-bold text-primary">${a.people_reached || 0}</div>
+                                        <small class="text-muted">Touchés</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                        <div class="fw-bold text-success">${a.conversions || 0}</div>
+                                        <small class="text-muted">Convertis</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                        <div class="fw-bold text-warning">${a.baptisms || 0}</div>
+                                        <small class="text-muted">Baptêmes</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewActivity(${a.id})"><i class="bi bi-eye me-1"></i>Voir</button>
+                                ${Auth.isAdmin() || Auth.isEvangelismHead() ? `<button class="btn btn-sm btn-light" onclick="deleteActivity(${a.id})"><i class="bi bi-trash text-danger"></i></button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePagination(totalCount, pageSize) {
+            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
+            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
+            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
+            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
+        }
+
+        async function saveActivity() {
+            const form = document.getElementById('activityForm');
+            const data = Object.fromEntries(new FormData(form));
+            data.people_reached = parseInt(data.people_reached) || 0;
+            data.conversions = parseInt(data.conversions) || 0;
+            data.baptisms = parseInt(data.baptisms) || 0;
+
+            try {
+                await API.api.post('/api/evangelism-activities/', data);
+                Toast.success('Succès', 'Activité enregistrée');
+                bootstrap.Modal.getInstance(document.getElementById('addActivityModal')).hide();
+                form.reset();
+                document.querySelector('input[name="date"]').valueAsDate = new Date();
+                loadActivities();
+                loadStats();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible d\'enregistrer');
+            }
+        }
+
+        async function deleteActivity(id) {
+            if (!confirm('Supprimer cette activité ?')) return;
+            try {
+                await API.api.delete(`/api/evangelism-activities/${id}/`);
+                Toast.success('Succès', 'Activité supprimée');
+                loadActivities();
+                loadStats();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de supprimer');
+            }
+        }
+
+        function viewActivity(id) {
+            Toast.info('Info', 'Détail à implémenter');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Consolation et Paix Divine</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <style>
+        .login-page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+        @media (min-width: 992px) {
+            .login-page {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .login-hero {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            display: none;
+            position: relative;
+            overflow: hidden;
+            padding: 3rem;
+        }
+        @media (min-width: 992px) {
+            .login-hero {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+        }
+        .login-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -30%;
+            width: 100%;
+            height: 150%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+        }
+        .login-form-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            position: relative;
+        }
+        .login-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .feature-card {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .error-alert {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: none;
+            color: white;
+            padding: 0.875rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+        .logo-circle {
+            width: 3.5rem;
+            height: 3.5rem;
+            background: white;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .input-group-login {
+            position: relative;
+        }
+        .input-group-login .form-control {
+            padding-left: 2.75rem;
+            padding-right: 2.75rem;
+            height: 3rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+        .input-group-login .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-page">
+        <!-- Hero Section -->
+        <div class="login-hero text-white">
+            <div class="position-relative">
+                <div class="d-inline-flex align-items-center gap-2 rounded-pill px-3 py-2 mb-4" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    <span class="small fw-semibold">Gestion & Église Consolation et Paix Divine</span>
+                </div>
+                
+                <h1 class="display-5 fw-bold mb-3">Consolation et Paix Divine</h1>
+                <p class="lead opacity-75 mb-5">Une plateforme moderne pour servir l'Église, organiser les activités, suivre les membres et gérer les ressources avec excellence.</p>
+                
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="feature-card">
+                            <div class="rounded-3 p-2 mb-2 d-inline-flex" style="background: rgba(255,255,255,0.15);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <h6 class="fw-bold mb-1">Gestion des membres</h6>
+                            <p class="small opacity-75 mb-0">Profils, présence, départements, suivi.</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="feature-card">
+                            <div class="rounded-3 p-2 mb-2 d-inline-flex" style="background: rgba(255,255,255,0.15);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 3v18h18"/>
+                                    <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+                                </svg>
+                            </div>
+                            <h6 class="fw-bold mb-1">Gestion & rapports</h6>
+                            <p class="small opacity-75 mb-0">Suivi, statistiques, exports & PDF.</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="feature-card">
+                            <div class="rounded-3 p-2 mb-2 d-inline-flex" style="background: rgba(255,255,255,0.15);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                            </div>
+                            <h6 class="fw-bold mb-1">Service & amour</h6>
+                            <p class="small opacity-75 mb-0">Unité, édification et impact.</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="feature-card">
+                            <div class="rounded-3 p-2 mb-2 d-inline-flex" style="background: rgba(255,255,255,0.15);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                            </div>
+                            <h6 class="fw-bold mb-1">Excellence</h6>
+                            <p class="small opacity-75 mb-0">Clarté, sécurité et simplicité.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="position-relative small opacity-75 mb-0">
+                « Tout ce que vous faites, faites-le de bon cœur, comme pour le Seigneur. »
+            </p>
+        </div>
+        
+        <!-- Login Form -->
+        <div class="login-form-container">
+            <div class="login-card cpd-animate-fade-in">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="logo-circle">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-semibold">Consolation et Paix Divine</h5>
+                        <p class="text-muted small mb-0">Connexion</p>
+                    </div>
+                </div>
+                
+                <div id="error-container"></div>
+                
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Nom d'utilisateur</label>
+                        <div class="input-group-login">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <input type="text" class="form-control" id="username" placeholder="ex: admin" required autocomplete="username">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Mot de passe</label>
+                        <div class="input-group-login">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <input type="password" class="form-control" id="password" placeholder="••••••••" required autocomplete="current-password">
+                            <button type="button" class="password-toggle" id="toggle-password" title="Afficher/Masquer">
+                                <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg id="eye-slash-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-login w-100 mb-3" id="submit-btn">
+                        <span id="btn-text">Se connecter</span>
+                        <span id="btn-spinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+                    </button>
+                    
+                    <a href="index.html" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        Retour à l'accueil
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/toast.js' %}"></script>
+    <script src="{% static 'js/auth.js' %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('login-form');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const errorContainer = document.getElementById('error-container');
+            const togglePassword = document.getElementById('toggle-password');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon');
+            
+            // Toggle password visibility
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                eyeIcon.style.display = type === 'password' ? 'block' : 'none';
+                eyeSlashIcon.style.display = type === 'password' ? 'none' : 'block';
+            });
+            
+            // Form submission
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                errorContainer.innerHTML = '';
+                
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+                
+                console.log('🔍 Login attempt:', { username, apiUrl: window.API?.baseUrl });
+                
+                if (!username || !password) {
+                    showError('Veuillez remplir tous les champs.');
+                    return;
+                }
+                
+                // Loading state
+                submitBtn.disabled = true;
+                btnText.textContent = 'Connexion...';
+                btnSpinner.style.display = 'inline-block';
+                
+                try {
+                    // Vérifier que window.API est disponible
+                    if (!window.API || !window.API.apiLogin) {
+                        console.error('❌ window.API ou window.API.apiLogin est undefined!');
+                        console.error('window.API:', window.API);
+                        showError('Erreur de chargement API. Rechargez la page (Ctrl+F5).');
+                        return;
+                    }
+                    
+                    console.log('📡 Calling Auth.login...');
+                    console.log('window.API:', window.API);
+                    const loginResult = await Auth.login({ username, password });
+                    console.log('✅ Login successful! Result:', loginResult);
+                    console.log('Auth.state:', Auth.state);
+                    Toast.success('Connexion réussie', 'Bienvenue !');
+                    
+                    // Redirect based on role
+                    const homePath = Auth.getHomePath();
+                    console.log('🔄 Redirecting to:', homePath);
+                    window.location.href = homePath;
+                    
+                } catch (error) {
+                    console.error('❌ Login error:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        response: error.response,
+                        data: error.data,
+                        code: error.code
+                    });
+                    
+                    let message = 'Impossible de se connecter.';
+                    
+                    if (!error.response && error.code === 'ERR_NETWORK') {
+                        const host = window.location.hostname;
+                        message = `API injoignable. Vérifie que le backend tourne sur http://${host}:8000`;
+                    } else if (error.response?.status === 401) {
+                        message = error.data?.detail || 'Identifiants incorrects. Essayez admin / admin123';
+                    } else if (error.response?.status === 429) {
+                        message = 'Trop de tentatives. Veuillez patienter.';
+                    } else if (error.data?.detail) {
+                        message = error.data.detail;
+                    }
+                    
+                    showError(message);
+                    Toast.error('Connexion échouée', message);
+                    
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Se connecter';
+                    btnSpinner.style.display = 'none';
+                }
+            });
+            
+            function showError(message) {
+                errorContainer.innerHTML = `
+                    <div class="error-alert">
+                        <div class="fw-semibold text-danger mb-1">Connexion refusée</div>
+                        <div class="text-danger small">${message}</div>
+                    </div>
+                `;
+            }
+            
+            // Check if already logged in
+            Auth.subscribe(function(state) {
+                if (state.isAuthenticated && state.user) {
+                    const homePath = Auth.getHomePath();
+                    if (window.location.pathname !== homePath) {
+                        window.location.href = homePath;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

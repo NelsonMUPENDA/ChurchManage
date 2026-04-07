@@ -1,0 +1,83 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+media/
+
+# Environnement virtuel
+venv/
+env/
+ENV/
+.venv/
+
+# Fichiers d'environnement
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers de migration (optionnel - décommentez si vous ne voulez pas les versionner)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Fichiers de cache
+.cache/
+*.cache
+
+# Fichiers de test et coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Distribution / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Node modules (si vous utilisez npm/yarn)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Fichiers temporaires
+tmp/
+temp/
+*.tmp
+
+# Fichiers de configuration locaux
+*.local
+
+# Fichiers de logs
+tailwindcss
+*.log
+logs/
+
+# Certificats et clés
+*.pem
+*.key
+*.crt
+
+# Autres
+.python-version
+.pylintrc
+.mypy_cache/
+.dmypy.json
+.dmypy.sock

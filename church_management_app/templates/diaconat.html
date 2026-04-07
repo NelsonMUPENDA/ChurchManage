@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diaconat - Consolation et Paix Divine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
+        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
+        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
+        [data-bs-theme="dark"] .main-content { background: #0f172a; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
+        .sidebar-backdrop.show { display: block; }
+        .presence-present { background: rgba(16,185,129,0.1); color: #10b981; }
+        .presence-absent { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .presence-late { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        <nav class="px-3 pb-4" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                        <h5 class="mb-0 fw-semibold">Diaconat</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4">
+            <!-- Tabs -->
+            <ul class="nav nav-pills mb-4" id="diaconatTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#pointage" data-bs-toggle="tab">
+                        <i class="bi bi-clipboard-check me-2"></i>Pointage
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#logistique" data-bs-toggle="tab">
+                        <i class="bi bi-box-seam me-2"></i>Logistique
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Pointage Tab -->
+                <div class="tab-pane fade show active" id="pointage">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">Événement</label>
+                                    <select class="form-select" id="eventSelect">
+                                        <option value="">Sélectionner un événement...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="attendanceDate">
+                                </div>
+                                <div class="col-md-5 text-md-end">
+                                    <button class="btn btn-primary" onclick="loadAttendance()">
+                                        <i class="bi bi-search me-2"></i>Charger
+                                    </button>
+                                    <button class="btn btn-success" onclick="saveAttendance()">
+                                        <i class="bi bi-save me-2"></i>Enregistrer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-lg-4">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h6 class="mb-0 fw-semibold">Statistiques</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center py-2">
+                                        <span class="text-muted">Présents</span>
+                                        <span class="badge bg-success" id="statPresent">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-2">
+                                        <span class="text-muted">Absents</span>
+                                        <span class="badge bg-danger" id="statAbsent">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center py-2">
+                                        <span class="text-muted">Retards</span>
+                                        <span class="badge bg-warning" id="statLate">0</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between align-items-center py-2">
+                                        <span class="fw-semibold">Total</span>
+                                        <span class="fw-bold" id="statTotal">0</span>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 8px;">
+                                        <div class="progress-bar bg-success" id="progressBar" style="width: 0%"></div>
+                                    </div>
+                                    <p class="text-muted small text-center mt-2 mb-0">
+                                        Taux de présence: <span id="presenceRate">0%</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-white py-3">
+                                    <h6 class="mb-0 fw-semibold">Liste de présence</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive" style="max-height: 500px;">
+                                        <table class="table table-hover mb-0">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th>Membre</th>
+                                                    <th>Statut</th>
+                                                    <th>Heure d'arrivée</th>
+                                                    <th>Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="attendanceTable">
+                                                <tr><td colspan="4" class="text-center py-4 text-muted">Sélectionnez un événement pour voir la liste</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logistique Tab -->
+                <div class="tab-pane fade" id="logistique">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                                        <input type="text" class="form-control border-0 bg-light" id="itemSearch" placeholder="Rechercher un article...">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select class="form-select bg-light border-0" id="categoryFilter">
+                                        <option value="">Toutes catégories</option>
+                                        <option value="furniture">Mobilier</option>
+                                        <option value="equipment">Équipement</option>
+                                        <option value="consumable">Consommable</option>
+                                        <option value="other">Autre</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                                        <i class="bi bi-plus-lg me-2"></i>Ajouter un article
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3" id="itemsGrid">
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                            <p class="text-muted mt-2">Chargement...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Item Modal -->
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Nouvel article</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="itemForm">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nom *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Catégorie *</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="furniture">Mobilier</option>
+                                    <option value="equipment">Équipement</option>
+                                    <option value="consumable">Consommable</option>
+                                    <option value="other">Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Quantité *</label>
+                                <input type="number" class="form-control" name="quantity" min="0" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="saveItem()">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/toast.js"></script>
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/navigation.js"></script>
+
+    <script>
+        let currentAttendance = [];
+        let members = [];
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+
+            initUI();
+            loadEvents();
+            loadItems();
+
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+            document.getElementById('itemSearch').addEventListener('input', debounce(loadItems, 300));
+            document.getElementById('categoryFilter').addEventListener('change', loadItems);
+
+            // Set today
+            document.getElementById('attendanceDate').valueAsDate = new Date();
+        });
+
+        function initUI() {
+            const user = Auth.state.user;
+            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
+            if (window.Navigation) Navigation.render('sidebarNav', 'diaconat');
+            Utils.Theme.init();
+            updateThemeIcon();
+
+            // Check for tab param
+            const params = Utils.getUrlParams();
+            if (params.tab === 'logistique') {
+                document.querySelector('[href="#logistique"]').click();
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            Utils.Theme.toggle();
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+
+        function debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        async function loadEvents() {
+            try {
+                const response = await API.api.get('/api/events/', { upcoming: 'true' });
+                const events = response.results || response;
+                
+                const options = events.map(e => `<option value="${e.id}">${e.title} - ${Utils.formatDateShort(e.date)}</option>`).join('');
+                document.getElementById('eventSelect').innerHTML = '<option value="">Sélectionner un événement...</option>' + options;
+            } catch (error) {
+                console.error('Failed to load events:', error);
+            }
+        }
+
+        async function loadAttendance() {
+            const eventId = document.getElementById('eventSelect').value;
+            const date = document.getElementById('attendanceDate').value;
+
+            if (!eventId) {
+                Toast.warning('Attention', 'Veuillez sélectionner un événement');
+                return;
+            }
+
+            try {
+                const response = await API.api.get('/api/attendance/', { event: eventId, date });
+                currentAttendance = response.results || response;
+                
+                renderAttendance();
+                updateStats();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de charger la liste');
+            }
+        }
+
+        function renderAttendance() {
+            const tbody = document.getElementById('attendanceTable');
+            
+            if (currentAttendance.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Aucune donnée</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = currentAttendance.map((a, index) => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-medium">${a.member_name || 'Membre #' + a.member}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" style="width: auto;" onchange="updateStatus(${index}, this.value)">
+                            <option value="present" ${a.status === 'present' ? 'selected' : ''} class="presence-present">Présent</option>
+                            <option value="absent" ${a.status === 'absent' ? 'selected' : ''} class="presence-absent">Absent</option>
+                            <option value="late" ${a.status === 'late' ? 'selected' : ''} class="presence-late">Retard</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="time" class="form-control form-control-sm" value="${a.arrival_time || ''}" onchange="updateArrivalTime(${index}, this.value)">
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" value="${a.notes || ''}" placeholder="Notes..." onchange="updateNotes(${index}, this.value)">
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            const present = currentAttendance.filter(a => a.status === 'present').length;
+            const absent = currentAttendance.filter(a => a.status === 'absent').length;
+            const late = currentAttendance.filter(a => a.status === 'late').length;
+            const total = currentAttendance.length;
+            const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+            document.getElementById('statPresent').textContent = present;
+            document.getElementById('statAbsent').textContent = absent;
+            document.getElementById('statLate').textContent = late;
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('presenceRate').textContent = rate + '%';
+            document.getElementById('progressBar').style.width = rate + '%';
+        }
+
+        function updateStatus(index, value) {
+            currentAttendance[index].status = value;
+            updateStats();
+        }
+
+        function updateArrivalTime(index, value) {
+            currentAttendance[index].arrival_time = value;
+        }
+
+        function updateNotes(index, value) {
+            currentAttendance[index].notes = value;
+        }
+
+        async function saveAttendance() {
+            try {
+                for (const record of currentAttendance) {
+                    if (record.id) {
+                        await API.api.patch(`/api/attendance/${record.id}/`, record);
+                    } else {
+                        await API.api.post('/api/attendance/', record);
+                    }
+                }
+                Toast.success('Succès', 'Présences enregistrées');
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible d\'enregistrer');
+            }
+        }
+
+        async function loadItems() {
+            try {
+                const search = document.getElementById('itemSearch').value;
+                const category = document.getElementById('categoryFilter').value;
+                
+                const params = {};
+                if (search) params.search = search;
+                if (category) params.category = category;
+
+                const response = await API.api.get('/api/logistics-items/', params);
+                const items = response.results || response;
+                
+                renderItems(items);
+            } catch (error) {
+                console.error('Failed to load items:', error);
+                document.getElementById('itemsGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
+            }
+        }
+
+        function renderItems(items) {
+            const container = document.getElementById('itemsGrid');
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted py-4">Aucun article</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-light text-dark">${getCategoryLabel(item.category)}</span>
+                                <span class="badge ${item.quantity > 0 ? 'bg-success' : 'bg-danger'}">${item.quantity} en stock</span>
+                            </div>
+                            <h6 class="fw-semibold mb-2">${item.name}</h6>
+                            <p class="text-muted small mb-3">${item.description || 'Pas de description'}</p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-light" onclick="editItem(${item.id})"><i class="bi bi-pencil"></i></button>
+                                ${Auth.isAdmin() ? `<button class="btn btn-sm btn-light text-danger" onclick="deleteItem(${item.id})"><i class="bi bi-trash"></i></button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getCategoryLabel(cat) {
+            const labels = { furniture: 'Mobilier', equipment: 'Équipement', consumable: 'Consommable', other: 'Autre' };
+            return labels[cat] || cat;
+        }
+
+        async function saveItem() {
+            const form = document.getElementById('itemForm');
+            const data = Object.fromEntries(new FormData(form));
+            data.quantity = parseInt(data.quantity);
+
+            try {
+                await API.api.post('/api/logistics-items/', data);
+                Toast.success('Succès', 'Article ajouté');
+                bootstrap.Modal.getInstance(document.getElementById('addItemModal')).hide();
+                form.reset();
+                loadItems();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible d\'ajouter');
+            }
+        }
+
+        async function deleteItem(id) {
+            if (!confirm('Supprimer cet article ?')) return;
+            try {
+                await API.api.delete(`/api/logistics-items/${id}/`);
+                Toast.success('Succès', 'Article supprimé');
+                loadItems();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de supprimer');
+            }
+        }
+
+        function editItem(id) {
+            Toast.info('Info', 'Fonctionnalité à implémenter');
+        }
+    </script>
+</body>
+</html>

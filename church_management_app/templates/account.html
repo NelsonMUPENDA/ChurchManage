@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Compte - Consolation et Paix Divine</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="static/css/main.css">
+    <style>
+        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
+        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
+        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
+        [data-bs-theme="dark"] .main-content { background: #0f172a; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
+        .sidebar-backdrop.show { display: block; }
+        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .profile-header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 60px 0 80px; margin-bottom: -60px; }
+        .profile-card { margin-top: -40px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="p-4 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </div>
+        </div>
+        <div class="p-3">
+            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
+                <small class="text-muted d-block">Connecté en tant que</small>
+                <span class="fw-semibold" id="userRole">Utilisateur</span>
+            </div>
+        </div>
+        <nav class="px-3 pb-4" id="sidebarNav"></nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+                        <h5 class="mb-0 fw-semibold">Mon Compte</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="profile-header"></div>
+
+        <div class="container-fluid px-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <!-- Profile Card -->
+                    <div class="card border-0 shadow-sm profile-card mb-4">
+                        <div class="card-body p-4">
+                            <div class="text-center mb-4">
+                                <div class="position-relative d-inline-block">
+                                    <img src="" alt="Photo de profil" class="profile-avatar" id="profilePhoto">
+                                    <button class="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0" style="width: 36px; height: 36px;" onclick="changePhoto()">
+                                        <i class="bi bi-camera"></i>
+                                    </button>
+                                </div>
+                                <h4 class="fw-bold mt-3 mb-1" id="profileName">-</h4>
+                                <p class="text-muted mb-0" id="profileRole">-</p>
+                            </div>
+
+                            <form id="profileForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Prénom</label>
+                                        <input type="text" class="form-control" name="first_name" id="firstName">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nom</label>
+                                        <input type="text" class="form-control" name="last_name" id="lastName">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email" id="email">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Téléphone</label>
+                                        <input type="tel" class="form-control" name="phone" id="phone">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Biographie</label>
+                                        <textarea class="form-control" name="bio" id="bio" rows="3"></textarea>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <hr class="my-4">
+
+                            <h6 class="fw-semibold mb-3">Changer le mot de passe</h6>
+                            <form id="passwordForm">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <input type="password" class="form-control" name="current_password" placeholder="Mot de passe actuel">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="password" class="form-control" name="new_password" placeholder="Nouveau mot de passe">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="password" class="form-control" name="confirm_password" placeholder="Confirmer">
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="d-flex gap-2 mt-4">
+                                <button class="btn btn-primary" onclick="saveProfile()">
+                                    <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="resetPassword()">
+                                    <i class="bi bi-key me-2"></i>Changer le mot de passe
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preferences -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-semibold"><i class="bi bi-gear me-2"></i>Préférences</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <h6 class="mb-1">Mode sombre</h6>
+                                    <p class="text-muted small mb-0">Activer le thème sombre</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="darkModeSwitch" onchange="toggleThemePreference()">
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <h6 class="mb-1">Notifications email</h6>
+                                    <p class="text-muted small mb-0">Recevoir les notifications par email</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="emailNotifSwitch" checked>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <h6 class="mb-1">Langue</h6>
+                                    <p class="text-muted small mb-0">Langue de l'interface</p>
+                                </div>
+                                <select class="form-select" style="width: auto;">
+                                    <option value="fr">Français</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="static/js/api.js"></script>
+    <script src="static/js/utils.js"></script>
+    <script src="static/js/toast.js"></script>
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/navigation.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!Auth.state.isAuthenticated) {
+                await Auth.refreshMe();
+                if (!Auth.state.isAuthenticated) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+            }
+
+            initUI();
+            loadProfile();
+
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+        });
+
+        function initUI() {
+            const user = Auth.state.user;
+            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
+            if (window.Navigation) Navigation.render('sidebarNav', 'account');
+            Utils.Theme.init();
+            updateThemeIcon();
+            
+            document.getElementById('darkModeSwitch').checked = Utils.Theme.get() === 'dark';
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        }
+
+        function toggleTheme() {
+            const theme = Utils.Theme.toggle();
+            updateThemeIcon();
+            document.getElementById('darkModeSwitch').checked = theme === 'dark';
+        }
+
+        function toggleThemePreference() {
+            const isDark = document.getElementById('darkModeSwitch').checked;
+            Utils.Theme.set(isDark ? 'dark' : 'light');
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+
+        function loadProfile() {
+            const user = Auth.state.user;
+            if (!user) return;
+
+            document.getElementById('profileName').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
+            document.getElementById('profileRole').textContent = user.role || 'Utilisateur';
+            document.getElementById('firstName').value = user.first_name || '';
+            document.getElementById('lastName').value = user.last_name || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('bio').value = user.bio || '';
+
+            if (user.photo) {
+                const photoUrl = user.photo.startsWith('http') ? user.photo : API.baseUrl + user.photo;
+                document.getElementById('profilePhoto').src = photoUrl;
+            } else {
+                document.getElementById('profilePhoto').src = 'https://via.placeholder.com/120';
+            }
+        }
+
+        async function saveProfile() {
+            const form = document.getElementById('profileForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            try {
+                await API.api.patch('/api/me/', data);
+                await Auth.refreshMe();
+                loadProfile();
+                Toast.success('Succès', 'Profil mis à jour');
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de mettre à jour le profil');
+            }
+        }
+
+        async function resetPassword() {
+            const form = document.getElementById('passwordForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            if (data.new_password !== data.confirm_password) {
+                Toast.error('Erreur', 'Les mots de passe ne correspondent pas');
+                return;
+            }
+
+            try {
+                await API.api.post('/api/me/change-password/', {
+                    current_password: data.current_password,
+                    new_password: data.new_password
+                });
+                Toast.success('Succès', 'Mot de passe changé');
+                form.reset();
+            } catch (error) {
+                Toast.error('Erreur', 'Impossible de changer le mot de passe');
+            }
+        }
+
+        function changePhoto() {
+            Toast.info('Info', 'Fonctionnalité à implémenter');
+        }
+    </script>
+</body>
+</html>
