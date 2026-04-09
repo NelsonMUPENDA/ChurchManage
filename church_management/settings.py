@@ -1,6 +1,3 @@
-"""
-Django settings for church_management project.
-"""
 import os
 from pathlib import Path
 
@@ -16,18 +13,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-me-in-production')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() in ['true', '1', 'yes']
+DEBUG = False
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'consolationetpaixdivine.org',
-    'www.consolationetpaixdivine.org',
-    '*'
+ALLOWED_HOSTS = ['consolationetpaixdivine.org', 'www.consolationetpaixdivine.org'
 ]
 
-# Application definition
+CSRF_TRUSTED_ORIGINS = ['https://consolationetpaixdivine.org', 'https://www.consolationetpaixdivine.org']
+
 INSTALLED_APPS = [
     'corsheaders',
     'django.contrib.admin',
@@ -38,7 +30,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'drf_spectacular',
-    'church_management_app',  # Notre application
+    'church_management_app',
+    'whitenoise'
 ]
 
 MIDDLEWARE = [
@@ -50,6 +43,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'church_management.urls'
@@ -57,7 +51,7 @@ ROOT_URLCONF = 'church_management.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # Templates are in church_management_app/templates
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,14 +110,13 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'church_management_app' / 'static',
-]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -192,8 +185,6 @@ if REDIS_URL:
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
     "https://consolationetpaixdivine.org",
     "https://www.consolationetpaixdivine.org",
 ]
