@@ -116,4 +116,5 @@ urlpatterns = [
     # Pages publiques
     path('about/', views.public_about, name='about'),
     path('contact/', views.contact, name='contact'),
+    path('calendar/', views.public_events, name='public-events'),
 ]

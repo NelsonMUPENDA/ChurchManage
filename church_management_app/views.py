@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib import messages
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
+from django.core.paginator import Paginator
 from datetime import timedelta
 
 from .models import (
@@ -94,29 +95,115 @@ def contact(request):
     return render(request, 'contact.html', {'form': form})
 
 
+def public_events(request):
+    """Page publique des événements"""
+    today = timezone.now().date()
+    
+    events = Event.objects.filter(
+        is_published=True
+    ).order_by('date', 'time')
+    
+    upcoming_events = events.filter(date__gte=today)
+    past_events = events.filter(date__lt=today)
+    
+    event_type = request.GET.get('type', '')
+    if event_type:
+        upcoming_events = upcoming_events.filter(event_type=event_type)
+        past_events = past_events.filter(event_type=event_type)
+    
+    return render(request, 'public-events.html', {
+        'upcoming_events': upcoming_events,
+        'past_events': past_events,
+        'event_type': event_type,
+    })
+
+
 # ============================================================
 # Tableau de bord
 # ============================================================
 
 @login_required
 def dashboard(request):
-    """Tableau de bord admin"""
+    """Tableau de bord admin avec statistiques complètes"""
     user = request.user
     
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
+    month_start = today.replace(day=1)
+    
+    # Statistiques membres
+    total_members = Member.objects.count()
+    new_members_week = Member.objects.filter(created_at__date__gte=week_ago).count()
+    new_members_month = Member.objects.filter(created_at__date__gte=month_start).count()
+    
+    # Statistiques événements
+    upcoming_events = Event.objects.filter(date__gte=today, is_published=True).count()
+    events_this_week = Event.objects.filter(date__gte=week_ago, date__lte=today).count()
+    events_this_month = Event.objects.filter(date__month=today.month, date__year=today.year).count()
+    
+    # Événements à venir (liste)
+    upcoming_events_list = Event.objects.filter(
+        date__gte=today, is_published=True
+    ).order_by('date', 'time')[:5]
+    
+    # Derniers événements passés
+    recent_events = Event.objects.filter(
+        date__lt=today
+    ).order_by('-date')[:3]
+    
+    # Statistiques finances
+    total_in_month = FinancialTransaction.objects.filter(
+        direction='in', date__gte=month_start
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    total_out_month = FinancialTransaction.objects.filter(
+        direction='out', date__gte=month_start
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Statistiques présences
+    attendance_week = Attendance.objects.filter(
+        event__date__gte=week_ago, attended=True
+    ).count()
+    
+    # Annonces actives
+    active_announcements = Announcement.objects.filter(is_active=True).count()
+    recent_announcements = Announcement.objects.filter(
+        is_active=True
+    ).order_by('-created_at')[:5]
+    
+    # Anniversaires du mois
+    from django.db.models.functions import ExtractMonth, ExtractDay
+    birthdays_this_month = Member.objects.annotate(
+        birth_month=ExtractMonth('birth_date'),
+        birth_day=ExtractDay('birth_date')
+    ).filter(birth_month=today.month).order_by('birth_day')
     
     context = {
-        'total_members': Member.objects.count(),
-        'new_members_week': Member.objects.filter(created_at__date__gte=week_ago).count(),
-        'upcoming_events': Event.objects.filter(date__gte=today).count(),
-        'recent_announcements': Announcement.objects.filter(
-            is_active=True
-        ).order_by('-created_at')[:5],
-        'total_in': FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
-        'total_out': FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
+        'user': user,
+        'today': today,
+        # Membres
+        'total_members': total_members,
+        'new_members_week': new_members_week,
+        'new_members_month': new_members_month,
+        # Événements
+        'upcoming_events': upcoming_events,
+        'events_this_week': events_this_week,
+        'events_this_month': events_this_month,
+        'upcoming_events_list': upcoming_events_list,
+        'recent_events': recent_events,
+        # Finances
+        'total_in_month': total_in_month,
+        'total_out_month': total_out_month,
+        'balance_month': total_in_month - total_out_month,
+        # Présences
+        'attendance_week': attendance_week,
+        # Annonces
+        'active_announcements': active_announcements,
+        'recent_announcements': recent_announcements,
+        # Anniversaires
+        'birthdays_this_month': birthdays_this_month,
     }
-    return render(request, 'dashboard.html', context)
+    return render(request, 'dashboard/dashboard.html', context)
 
 
 # ============================================================
@@ -125,7 +212,7 @@ def dashboard(request):
 
 @login_required
 def member_list(request):
-    """Liste des membres"""
+    """Liste des membres avec pagination"""
     members = Member.objects.select_related('user').all()
     
     search = request.GET.get('q', '')
@@ -137,9 +224,16 @@ def member_list(request):
             Q(member_number__icontains=search)
         )
     
-    return render(request, 'members.html', {
-        'members': members,
-        'search': search
+    # Pagination
+    paginator = Paginator(members, 20)  # 20 membres par page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'dashboard/members.html', {
+        'members': page_obj,
+        'search': search,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages()
     })
 
 
@@ -151,7 +245,7 @@ def member_detail(request, pk):
         member=member
     ).order_by('-event__date')[:10]
     
-    return render(request, 'member-detail.html', {
+    return render(request, 'dashboard/member-detail.html', {
         'member': member,
         'attendance_history': attendance_history
     })
@@ -169,7 +263,7 @@ def member_create(request):
     else:
         form = MemberForm()
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'action': 'Créer'
     })
@@ -189,7 +283,7 @@ def member_edit(request, pk):
     else:
         form = MemberForm(instance=member)
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'member': member,
         'action': 'Modifier'
@@ -206,7 +300,7 @@ def member_delete(request, pk):
         messages.success(request, 'Membre supprimé avec succès!')
         return redirect('member-list')
     
-    return render(request, 'members.html', {'member': member, 'delete_confirm': True})
+    return render(request, 'dashboard/members.html', {'member': member, 'delete_confirm': True})
 
 
 # ============================================================
@@ -217,7 +311,7 @@ def member_delete(request, pk):
 def family_list(request):
     """Liste des familles"""
     families = Family.objects.all().prefetch_related('members')
-    return render(request, 'members.html', {'families': families, 'view': 'families'})
+    return render(request, 'dashboard/members.html', {'families': families, 'view': 'families'})
 
 
 @login_required
@@ -232,7 +326,7 @@ def family_create(request):
     else:
         form = FamilyForm()
     
-    return render(request, 'members.html', {'form': form, 'action': 'Créer', 'view': 'family_form'})
+    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'family_form'})
 
 
 @login_required
@@ -249,7 +343,7 @@ def family_edit(request, pk):
     else:
         form = FamilyForm(instance=family)
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'family': family,
         'action': 'Modifier',
@@ -267,7 +361,7 @@ def family_delete(request, pk):
         messages.success(request, 'Famille supprimée avec succès!')
         return redirect('family-list')
     
-    return render(request, 'members.html', {'family': family, 'delete_confirm': True, 'view': 'families'})
+    return render(request, 'dashboard/members.html', {'family': family, 'delete_confirm': True, 'view': 'families'})
 
 
 # ============================================================
@@ -278,7 +372,7 @@ def family_delete(request, pk):
 def homegroup_list(request):
     """Liste des groupes de maison"""
     homegroups = HomeGroup.objects.all().select_related('leader')
-    return render(request, 'members.html', {'homegroups': homegroups, 'view': 'homegroups'})
+    return render(request, 'dashboard/members.html', {'homegroups': homegroups, 'view': 'homegroups'})
 
 
 @login_required
@@ -293,7 +387,7 @@ def homegroup_create(request):
     else:
         form = HomeGroupForm()
     
-    return render(request, 'members.html', {'form': form, 'action': 'Créer', 'view': 'homegroup_form'})
+    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'homegroup_form'})
 
 
 @login_required
@@ -310,7 +404,7 @@ def homegroup_edit(request, pk):
     else:
         form = HomeGroupForm(instance=homegroup)
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'homegroup': homegroup,
         'action': 'Modifier',
@@ -328,7 +422,7 @@ def homegroup_delete(request, pk):
         messages.success(request, 'Groupe de maison supprimé avec succès!')
         return redirect('homegroup-list')
     
-    return render(request, 'members.html', {'homegroup': homegroup, 'delete_confirm': True, 'view': 'homegroups'})
+    return render(request, 'dashboard/members.html', {'homegroup': homegroup, 'delete_confirm': True, 'view': 'homegroups'})
 
 
 # ============================================================
@@ -339,7 +433,7 @@ def homegroup_delete(request, pk):
 def department_list(request):
     """Liste des départements"""
     departments = Department.objects.all().select_related('head')
-    return render(request, 'members.html', {'departments': departments, 'view': 'departments'})
+    return render(request, 'dashboard/members.html', {'departments': departments, 'view': 'departments'})
 
 
 @login_required
@@ -354,7 +448,7 @@ def department_create(request):
     else:
         form = DepartmentForm()
     
-    return render(request, 'members.html', {'form': form, 'action': 'Créer', 'view': 'department_form'})
+    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'department_form'})
 
 
 @login_required
@@ -371,7 +465,7 @@ def department_edit(request, pk):
     else:
         form = DepartmentForm(instance=department)
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'department': department,
         'action': 'Modifier',
@@ -389,7 +483,7 @@ def department_delete(request, pk):
         messages.success(request, 'Département supprimé avec succès!')
         return redirect('department-list')
     
-    return render(request, 'members.html', {'department': department, 'delete_confirm': True, 'view': 'departments'})
+    return render(request, 'dashboard/members.html', {'department': department, 'delete_confirm': True, 'view': 'departments'})
 
 
 # ============================================================
@@ -400,7 +494,7 @@ def department_delete(request, pk):
 def ministry_list(request):
     """Liste des ministères"""
     ministries = Ministry.objects.all().select_related('leader')
-    return render(request, 'members.html', {'ministries': ministries, 'view': 'ministries'})
+    return render(request, 'dashboard/members.html', {'ministries': ministries, 'view': 'ministries'})
 
 
 @login_required
@@ -415,7 +509,7 @@ def ministry_create(request):
     else:
         form = MinistryForm()
     
-    return render(request, 'members.html', {'form': form, 'action': 'Créer', 'view': 'ministry_form'})
+    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'ministry_form'})
 
 
 @login_required
@@ -432,7 +526,7 @@ def ministry_edit(request, pk):
     else:
         form = MinistryForm(instance=ministry)
     
-    return render(request, 'members.html', {
+    return render(request, 'dashboard/members.html', {
         'form': form,
         'ministry': ministry,
         'action': 'Modifier',
@@ -450,7 +544,7 @@ def ministry_delete(request, pk):
         messages.success(request, 'Ministère supprimé avec succès!')
         return redirect('ministry-list')
     
-    return render(request, 'members.html', {'ministry': ministry, 'delete_confirm': True, 'view': 'ministries'})
+    return render(request, 'dashboard/members.html', {'ministry': ministry, 'delete_confirm': True, 'view': 'ministries'})
 
 
 # ============================================================
@@ -459,16 +553,23 @@ def ministry_delete(request, pk):
 
 @login_required
 def event_list(request):
-    """Liste des événements"""
+    """Liste des événements avec pagination"""
     events = Event.objects.all().order_by('-date', '-time')
     
     event_type = request.GET.get('type', '')
     if event_type:
         events = events.filter(event_type=event_type)
     
-    return render(request, 'events.html', {
-        'events': events,
-        'event_type': event_type
+    # Pagination
+    paginator = Paginator(events, 15)  # 15 événements par page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'dashboard/events.html', {
+        'events': page_obj,
+        'event_type': event_type,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages()
     })
 
 
@@ -478,7 +579,7 @@ def event_detail(request, pk):
     event = get_object_or_404(Event, pk=pk)
     attendance_list = Attendance.objects.filter(event=event).select_related('member')
     
-    return render(request, 'event-detail.html', {
+    return render(request, 'dashboard/event-detail.html', {
         'event': event,
         'attendance_list': attendance_list,
         'total_attendance': attendance_list.count(),
@@ -498,7 +599,7 @@ def event_create(request):
     else:
         form = EventForm()
     
-    return render(request, 'events.html', {'form': form, 'action': 'Créer', 'view': 'event_form'})
+    return render(request, 'dashboard/events.html', {'form': form, 'action': 'Créer', 'view': 'event_form'})
 
 
 @login_required
@@ -515,7 +616,7 @@ def event_edit(request, pk):
     else:
         form = EventForm(instance=event)
     
-    return render(request, 'events.html', {
+    return render(request, 'dashboard/events.html', {
         'form': form,
         'event': event,
         'action': 'Modifier',
@@ -533,7 +634,7 @@ def event_delete(request, pk):
         messages.success(request, 'Événement supprimé avec succès!')
         return redirect('event-list')
     
-    return render(request, 'events.html', {'event': event, 'delete_confirm': True})
+    return render(request, 'dashboard/events.html', {'event': event, 'delete_confirm': True})
 
 
 # ============================================================
@@ -544,7 +645,7 @@ def event_delete(request, pk):
 def attendance_list(request):
     """Liste des présences"""
     attendances = Attendance.objects.all().select_related('event', 'member').order_by('-event__date')
-    return render(request, 'diaconat.html', {'attendances': attendances, 'view': 'attendance_list'})
+    return render(request, 'dashboard/diaconat.html', {'attendances': attendances, 'view': 'attendance_list'})
 
 
 @login_required
@@ -563,7 +664,7 @@ def attendance_event(request, event_pk):
     
     attendance_list = Attendance.objects.filter(event=event).select_related('member')
     
-    return render(request, 'diaconat.html', {
+    return render(request, 'dashboard/diaconat.html', {
         'event': event,
         'form': form,
         'attendance_list': attendance_list,
@@ -600,7 +701,7 @@ def transaction_create(request):
     else:
         form = FinancialTransactionForm()
     
-    return render(request, 'finances.html', {'form': form, 'action': 'Créer', 'view': 'transaction_form'})
+    return render(request, 'dashboard/finances.html', {'form': form, 'action': 'Créer', 'view': 'transaction_form'})
 
 
 @login_required
@@ -617,7 +718,7 @@ def transaction_edit(request, pk):
     else:
         form = FinancialTransactionForm(instance=transaction)
     
-    return render(request, 'finances.html', {
+    return render(request, 'dashboard/finances.html', {
         'form': form,
         'transaction': transaction,
         'action': 'Modifier',
@@ -635,14 +736,14 @@ def transaction_delete(request, pk):
         messages.success(request, 'Transaction supprimée avec succès!')
         return redirect('finance-list')
     
-    return render(request, 'finances.html', {'transaction': transaction, 'delete_confirm': True})
+    return render(request, 'dashboard/finances.html', {'transaction': transaction, 'delete_confirm': True})
 
 
 @login_required
 def category_list(request):
     """Liste des catégories financières"""
     categories = FinancialCategory.objects.all()
-    return render(request, 'finances.html', {'categories': categories, 'view': 'category_list'})
+    return render(request, 'dashboard/finances.html', {'categories': categories, 'view': 'category_list'})
 
 
 @login_required
@@ -657,7 +758,7 @@ def category_create(request):
     else:
         form = FinancialCategoryForm()
     
-    return render(request, 'finances.html', {'form': form, 'action': 'Créer', 'view': 'category_form'})
+    return render(request, 'dashboard/finances.html', {'form': form, 'action': 'Créer', 'view': 'category_form'})
 
 
 @login_required
@@ -674,7 +775,7 @@ def category_edit(request, pk):
     else:
         form = FinancialCategoryForm(instance=category)
     
-    return render(request, 'finances.html', {
+    return render(request, 'dashboard/finances.html', {
         'form': form,
         'category': category,
         'action': 'Modifier',
@@ -692,7 +793,7 @@ def category_delete(request, pk):
         messages.success(request, 'Catégorie supprimée avec succès!')
         return redirect('category-list')
     
-    return render(request, 'finances.html', {'category': category, 'delete_confirm': True, 'view': 'category_list'})
+    return render(request, 'dashboard/finances.html', {'category': category, 'delete_confirm': True, 'view': 'category_list'})
 
 
 # ============================================================
@@ -717,7 +818,7 @@ def reports(request):
             'total_out': FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
         }
     }
-    return render(request, 'reports.html', context)
+    return render(request, 'dashboard/reports.html', context)
 
 
 # ============================================================
@@ -728,7 +829,7 @@ def reports(request):
 def announcement_list(request):
     """Liste des annonces"""
     announcements = Announcement.objects.all().order_by('-created_at')
-    return render(request, 'announcements.html', {
+    return render(request, 'dashboard/announcements.html', {
         'announcements': announcements,
         'published_count': announcements.filter(is_active=True).count()
     })
@@ -738,7 +839,7 @@ def announcement_list(request):
 def announcement_detail(request, pk):
     """Détail d'une annonce"""
     announcement = get_object_or_404(Announcement, pk=pk)
-    return render(request, 'announcements.html', {'announcement': announcement, 'view': 'detail'})
+    return render(request, 'dashboard/announcements.html', {'announcement': announcement, 'view': 'detail'})
 
 
 @login_required
@@ -755,7 +856,7 @@ def announcement_create(request):
     else:
         form = AnnouncementForm()
     
-    return render(request, 'announcements.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+    return render(request, 'dashboard/announcements.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -772,7 +873,7 @@ def announcement_edit(request, pk):
     else:
         form = AnnouncementForm(instance=announcement)
     
-    return render(request, 'announcements.html', {
+    return render(request, 'dashboard/announcements.html', {
         'form': form,
         'announcement': announcement,
         'action': 'Modifier',
@@ -790,7 +891,7 @@ def announcement_delete(request, pk):
         messages.success(request, 'Annonce supprimée avec succès!')
         return redirect('announcement-list')
     
-    return render(request, 'announcements.html', {'announcement': announcement, 'delete_confirm': True})
+    return render(request, 'dashboard/announcements.html', {'announcement': announcement, 'delete_confirm': True})
 
 
 # ============================================================
@@ -807,7 +908,7 @@ def diaconat(request):
         'events': upcoming_events,
         'logistics_items': LogisticsItem.objects.all()[:20]
     }
-    return render(request, 'diaconat.html', context)
+    return render(request, 'dashboard/diaconat.html', context)
 
 
 @login_required
@@ -815,7 +916,7 @@ def diaconat_attendance(request):
     """Pointage pour le diaconat"""
     today = timezone.now().date()
     events = Event.objects.filter(date=today).order_by('time')
-    return render(request, 'diaconat.html', {'events': events, 'view': 'diaconat_attendance'})
+    return render(request, 'dashboard/diaconat.html', {'events': events, 'view': 'diaconat_attendance'})
 
 
 # ============================================================
@@ -826,7 +927,7 @@ def diaconat_attendance(request):
 def logistics_list(request):
     """Liste des éléments logistiques"""
     items = LogisticsItem.objects.all().select_related('responsible')
-    return render(request, 'diaconat.html', {'items': items, 'view': 'logistics_list'})
+    return render(request, 'dashboard/diaconat.html', {'items': items, 'view': 'logistics_list'})
 
 
 @login_required
@@ -841,7 +942,7 @@ def logistics_create(request):
     else:
         form = LogisticsItemForm()
     
-    return render(request, 'diaconat.html', {'form': form, 'action': 'Créer', 'view': 'logistics_form'})
+    return render(request, 'dashboard/diaconat.html', {'form': form, 'action': 'Créer', 'view': 'logistics_form'})
 
 
 @login_required
@@ -858,7 +959,7 @@ def logistics_edit(request, pk):
     else:
         form = LogisticsItemForm(instance=item)
     
-    return render(request, 'diaconat.html', {
+    return render(request, 'dashboard/diaconat.html', {
         'form': form,
         'item': item,
         'action': 'Modifier',
@@ -876,7 +977,7 @@ def logistics_delete(request, pk):
         messages.success(request, 'Élément supprimé avec succès!')
         return redirect('logistics-list')
     
-    return render(request, 'diaconat.html', {'item': item, 'delete_confirm': True, 'view': 'logistics_list'})
+    return render(request, 'dashboard/diaconat.html', {'item': item, 'delete_confirm': True, 'view': 'logistics_list'})
 
 
 # ============================================================
@@ -887,7 +988,7 @@ def logistics_delete(request, pk):
 def evangelisation_list(request):
     """Liste des activités d'évangélisation"""
     activities = EvangelismActivity.objects.all().order_by('-date', '-time')
-    return render(request, 'evangelisation.html', {'activities': activities})
+    return render(request, 'dashboard/evangelisation.html', {'activities': activities})
 
 
 @login_required
@@ -902,7 +1003,7 @@ def evangelisation_create(request):
     else:
         form = EvangelismActivityForm()
     
-    return render(request, 'evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+    return render(request, 'dashboard/evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -919,7 +1020,7 @@ def evangelisation_edit(request, pk):
     else:
         form = EvangelismActivityForm(instance=activity)
     
-    return render(request, 'evangelisation.html', {
+    return render(request, 'dashboard/evangelisation.html', {
         'form': form,
         'activity': activity,
         'action': 'Modifier',
@@ -937,7 +1038,7 @@ def evangelisation_delete(request, pk):
         messages.success(request, 'Activité supprimée avec succès!')
         return redirect('evangelisation-list')
     
-    return render(request, 'evangelisation.html', {'activity': activity, 'delete_confirm': True})
+    return render(request, 'dashboard/evangelisation.html', {'activity': activity, 'delete_confirm': True})
 
 
 # ============================================================
@@ -948,7 +1049,7 @@ def evangelisation_delete(request, pk):
 def training_list(request):
     """Liste des formations"""
     trainings = TrainingEvent.objects.all().order_by('-date', '-time')
-    return render(request, 'evangelisation.html', {'trainings': trainings, 'view': 'trainings'})
+    return render(request, 'dashboard/evangelisation.html', {'trainings': trainings, 'view': 'trainings'})
 
 
 @login_required
@@ -963,7 +1064,7 @@ def training_create(request):
     else:
         form = TrainingEventForm()
     
-    return render(request, 'evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'training_form'})
+    return render(request, 'dashboard/evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'training_form'})
 
 
 @login_required
@@ -980,7 +1081,7 @@ def training_edit(request, pk):
     else:
         form = TrainingEventForm(instance=training)
     
-    return render(request, 'evangelisation.html', {
+    return render(request, 'dashboard/evangelisation.html', {
         'form': form,
         'training': training,
         'action': 'Modifier',
@@ -998,7 +1099,7 @@ def training_delete(request, pk):
         messages.success(request, 'Formation supprimée avec succès!')
         return redirect('training-list')
     
-    return render(request, 'evangelisation.html', {'training': training, 'delete_confirm': True, 'view': 'trainings'})
+    return render(request, 'dashboard/evangelisation.html', {'training': training, 'delete_confirm': True, 'view': 'trainings'})
 
 
 # ============================================================
@@ -1009,14 +1110,14 @@ def training_delete(request, pk):
 def marriage_list(request):
     """Liste des registres de mariage"""
     marriages = MarriageRecord.objects.all().select_related('groom', 'bride').order_by('-planned_date')
-    return render(request, 'mariage.html', {'marriages': marriages})
+    return render(request, 'dashboard/mariage.html', {'marriages': marriages})
 
 
 @login_required
 def marriage_detail(request, pk):
     """Détail d'un registre de mariage"""
     marriage = get_object_or_404(MarriageRecord, pk=pk)
-    return render(request, 'mariage.html', {'marriage': marriage, 'view': 'detail'})
+    return render(request, 'dashboard/mariage.html', {'marriage': marriage, 'view': 'detail'})
 
 
 @login_required
@@ -1031,7 +1132,7 @@ def marriage_create(request):
     else:
         form = MarriageRecordForm()
     
-    return render(request, 'mariage.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+    return render(request, 'dashboard/mariage.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -1048,7 +1149,7 @@ def marriage_edit(request, pk):
     else:
         form = MarriageRecordForm(instance=marriage)
     
-    return render(request, 'mariage.html', {
+    return render(request, 'dashboard/mariage.html', {
         'form': form,
         'marriage': marriage,
         'action': 'Modifier',
@@ -1066,7 +1167,7 @@ def marriage_delete(request, pk):
         messages.success(request, 'Registre de mariage supprimé avec succès!')
         return redirect('marriage-list')
     
-    return render(request, 'mariage.html', {'marriage': marriage, 'delete_confirm': True})
+    return render(request, 'dashboard/mariage.html', {'marriage': marriage, 'delete_confirm': True})
 
 
 # ============================================================
@@ -1077,7 +1178,7 @@ def marriage_delete(request, pk):
 def document_list(request):
     """Liste des documents"""
     documents = Document.objects.all().order_by('-uploaded_at')
-    return render(request, 'account.html', {'documents': documents, 'view': 'documents'})
+    return render(request, 'dashboard/account.html', {'documents': documents, 'view': 'documents'})
 
 
 @login_required
@@ -1094,7 +1195,7 @@ def document_create(request):
     else:
         form = DocumentForm()
     
-    return render(request, 'account.html', {'form': form, 'action': 'Uploader', 'view': 'document_form'})
+    return render(request, 'dashboard/account.html', {'form': form, 'action': 'Uploader', 'view': 'document_form'})
 
 
 @login_required
@@ -1107,7 +1208,7 @@ def document_delete(request, pk):
         messages.success(request, 'Document supprimé avec succès!')
         return redirect('document-list')
     
-    return render(request, 'account.html', {'document': document, 'delete_confirm': True, 'view': 'documents'})
+    return render(request, 'dashboard/account.html', {'document': document, 'delete_confirm': True, 'view': 'documents'})
 
 
 # ============================================================
@@ -1117,7 +1218,7 @@ def document_delete(request, pk):
 @login_required
 def account(request):
     """Profil utilisateur"""
-    return render(request, 'account.html', {'user': request.user})
+    return render(request, 'dashboard/account.html', {'user': request.user})
 
 
 @login_required
@@ -1132,4 +1233,4 @@ def account_edit(request):
     else:
         form = UserUpdateForm(instance=request.user)
     
-    return render(request, 'account.html', {'form': form, 'view': 'edit'})
+    return render(request, 'dashboard/account.html', {'form': form, 'view': 'edit'})

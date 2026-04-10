@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr" data-bs-theme="light">
 <head>
@@ -7,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="static/css/main.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
     <style>
         .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
         [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
@@ -30,6 +31,7 @@
     </style>
 </head>
 <body>
+    {% include 'includes/messages.html' %}
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <aside class="sidebar" id="sidebar">
         <div class="p-4 border-bottom">
@@ -62,7 +64,7 @@
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
                     </div>
                 </div>
             </div>
@@ -261,7 +263,6 @@
             document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
             document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
             document.getElementById('typeFilter').addEventListener('change', handleTypeFilter);
             document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
@@ -440,4 +441,29 @@
         }
     </script>
 </body>
+
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-semibold">
+                    <i class="bi bi-box-arrow-right text-danger me-2"></i>
+                    Confirmer la déconnexion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'logout' %}" class="btn btn-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i>
+                    Se déconnecter
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 </html>

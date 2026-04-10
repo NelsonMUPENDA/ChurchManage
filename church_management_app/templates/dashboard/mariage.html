@@ -57,7 +57,7 @@
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn"><i class="bi bi-box-arrow-right"></i></button>
+                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
                     </div>
                 </div>
             </div>
@@ -250,7 +250,6 @@
             document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
             document.getElementById('searchInput').addEventListener('input', debounce(() => { searchQuery = document.getElementById('searchInput').value; currentPage = 1; loadMarriages(); }, 300));
             document.getElementById('yearFilter').addEventListener('change', () => { yearFilter = document.getElementById('yearFilter').value; currentPage = 1; loadMarriages(); });
             document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; loadMarriages(); } });
@@ -415,5 +414,30 @@
             Toast.info('Info', 'Détail à implémenter');
         }
     </script>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
+                        Confirmer la déconnexion
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <a href="{% url 'logout' %}" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Se déconnecter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

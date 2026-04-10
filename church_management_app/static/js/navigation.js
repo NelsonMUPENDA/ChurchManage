@@ -121,7 +121,7 @@
     const PUBLIC_NAV_ITEMS = [
         { to: '/', icon: 'bi-house', label: 'Accueil' },
         { to: '/about/', icon: 'bi-info-circle', label: 'À Propos' },
-        { to: '/events/', icon: 'bi-calendar-event', label: 'Événements' },
+        { to: '/calendar/', icon: 'bi-calendar-event', label: 'Événements' },
         { to: '/contact/', icon: 'bi-envelope', label: 'Contact' }
     ];
 
@@ -153,8 +153,11 @@
         const btn = document.getElementById('authButton');
         if (!btn) return;
 
-        if (Auth.state.isAuthenticated) {
-            const homePath = Auth.getHomePath();
+        // Check if Auth module is loaded (not available on public pages)
+        const isAuthenticated = typeof Auth !== 'undefined' && Auth.state && Auth.state.isAuthenticated;
+
+        if (isAuthenticated) {
+            const homePath = Auth.getHomePath ? Auth.getHomePath() : '/dashboard/';
             btn.innerHTML = `
                 <a href="${homePath}" class="btn btn-primary">
                     <i class="bi bi-grid me-1"></i>

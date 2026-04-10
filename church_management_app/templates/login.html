@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Consolation et Paix Divine</title>
+    <title>Connexion</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts - Inter -->
@@ -218,9 +218,21 @@
                     </div>
                 </div>
                 
-                <div id="error-container"></div>
+                {% if form.errors %}
+                <div class="error-alert">
+                    <div class="d-flex align-items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span class="text-danger small">Nom d'utilisateur ou mot de passe incorrect.</span>
+                    </div>
+                </div>
+                {% endif %}
                 
-                <form id="login-form">
+                <form method="post" action="{% url 'login' %}">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label class="form-label fw-medium">Nom d'utilisateur</label>
                         <div class="input-group-login">
@@ -228,7 +240,7 @@
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                 <circle cx="12" cy="7" r="4"/>
                             </svg>
-                            <input type="text" class="form-control" id="username" placeholder="ex: admin" required autocomplete="username">
+                            {{ form.username }}
                         </div>
                     </div>
                     
@@ -239,7 +251,7 @@
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                             </svg>
-                            <input type="password" class="form-control" id="password" placeholder="••••••••" required autocomplete="current-password">
+                            {{ form.password }}
                             <button type="button" class="password-toggle" id="toggle-password" title="Afficher/Masquer">
                                 <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -272,123 +284,36 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/api.js' %}"></script>
-    <script src="{% static 'js/utils.js' %}"></script>
-    <script src="{% static 'js/toast.js' %}"></script>
-    <script src="{% static 'js/auth.js' %}"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('login-form');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const submitBtn = document.getElementById('submit-btn');
-            const btnText = document.getElementById('btn-text');
-            const btnSpinner = document.getElementById('btn-spinner');
-            const errorContainer = document.getElementById('error-container');
+            const passwordInput = document.getElementById('id_password');
             const togglePassword = document.getElementById('toggle-password');
             const eyeIcon = document.getElementById('eye-icon');
             const eyeSlashIcon = document.getElementById('eye-slash-icon');
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const form = document.querySelector('form');
             
             // Toggle password visibility
-            togglePassword.addEventListener('click', function() {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                eyeIcon.style.display = type === 'password' ? 'block' : 'none';
-                eyeSlashIcon.style.display = type === 'password' ? 'none' : 'block';
-            });
-            
-            // Form submission
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                errorContainer.innerHTML = '';
-                
-                const username = usernameInput.value.trim();
-                const password = passwordInput.value;
-                
-                console.log('🔍 Login attempt:', { username, apiUrl: window.API?.baseUrl });
-                
-                if (!username || !password) {
-                    showError('Veuillez remplir tous les champs.');
-                    return;
-                }
-                
-                // Loading state
-                submitBtn.disabled = true;
-                btnText.textContent = 'Connexion...';
-                btnSpinner.style.display = 'inline-block';
-                
-                try {
-                    // Vérifier que window.API est disponible
-                    if (!window.API || !window.API.apiLogin) {
-                        console.error('❌ window.API ou window.API.apiLogin est undefined!');
-                        console.error('window.API:', window.API);
-                        showError('Erreur de chargement API. Rechargez la page (Ctrl+F5).');
-                        return;
-                    }
-                    
-                    console.log('📡 Calling Auth.login...');
-                    console.log('window.API:', window.API);
-                    const loginResult = await Auth.login({ username, password });
-                    console.log('✅ Login successful! Result:', loginResult);
-                    console.log('Auth.state:', Auth.state);
-                    Toast.success('Connexion réussie', 'Bienvenue !');
-                    
-                    // Redirect based on role
-                    const homePath = Auth.getHomePath();
-                    console.log('🔄 Redirecting to:', homePath);
-                    window.location.href = homePath;
-                    
-                } catch (error) {
-                    console.error('❌ Login error:', error);
-                    console.error('Error details:', {
-                        message: error.message,
-                        response: error.response,
-                        data: error.data,
-                        code: error.code
-                    });
-                    
-                    let message = 'Impossible de se connecter.';
-                    
-                    if (!error.response && error.code === 'ERR_NETWORK') {
-                        const host = window.location.hostname;
-                        message = `API injoignable. Vérifie que le backend tourne sur http://${host}:8000`;
-                    } else if (error.response?.status === 401) {
-                        message = error.data?.detail || 'Identifiants incorrects. Essayez admin / admin123';
-                    } else if (error.response?.status === 429) {
-                        message = 'Trop de tentatives. Veuillez patienter.';
-                    } else if (error.data?.detail) {
-                        message = error.data.detail;
-                    }
-                    
-                    showError(message);
-                    Toast.error('Connexion échouée', message);
-                    
-                } finally {
-                    submitBtn.disabled = false;
-                    btnText.textContent = 'Se connecter';
-                    btnSpinner.style.display = 'none';
-                }
-            });
-            
-            function showError(message) {
-                errorContainer.innerHTML = `
-                    <div class="error-alert">
-                        <div class="fw-semibold text-danger mb-1">Connexion refusée</div>
-                        <div class="text-danger small">${message}</div>
-                    </div>
-                `;
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', function() {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    if (eyeIcon) eyeIcon.style.display = type === 'password' ? 'block' : 'none';
+                    if (eyeSlashIcon) eyeSlashIcon.style.display = type === 'password' ? 'none' : 'block';
+                });
             }
             
-            // Check if already logged in
-            Auth.subscribe(function(state) {
-                if (state.isAuthenticated && state.user) {
-                    const homePath = Auth.getHomePath();
-                    if (window.location.pathname !== homePath) {
-                        window.location.href = homePath;
-                    }
-                }
-            });
+            // Loading state on form submit
+            if (form) {
+                form.addEventListener('submit', function() {
+                    if (submitBtn) submitBtn.disabled = true;
+                    if (btnText) btnText.textContent = 'Connexion...';
+                    if (btnSpinner) btnSpinner.style.display = 'inline-block';
+                });
+            }
         });
     </script>
 </body>

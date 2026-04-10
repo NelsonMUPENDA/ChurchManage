@@ -25,13 +25,15 @@ class LoginForm(AuthenticationForm):
     username = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Nom d\'utilisateur'
+            'placeholder': 'Nom d\'utilisateur',
+            'id': 'id_username'
         })
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Mot de passe'
+            'placeholder': 'Mot de passe',
+            'id': 'id_password'
         })
     )
 

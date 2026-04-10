@@ -1,0 +1,242 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Événements - {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/public.css' %}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top cpd-navbar">
+        <div class="container">
+            <a class="cpd-navbar-brand" href="{% url 'home' %}">
+                <div class="logo-icon">
+                    {% if church_settings and church_settings.logo %}
+                    <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                    {% else %}
+                    <i class="bi bi-layers"></i>
+                    {% endif %}
+                </div>
+                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="publicNav">
+                <ul class="navbar-nav ms-auto align-items-center cpd-nav-container" id="navContainer">
+                    <!-- Nav items injected by JS -->
+                </ul>
+                <div class="ms-lg-3 mt-2 mt-lg-0 d-flex align-items-center gap-2">
+                    <!-- Theme Toggle -->
+                    <button class="cpd-theme-toggle" id="themeToggle" type="button" aria-label="Changer le thème">
+                        <i class="bi bi-sun" id="themeIconLight"></i>
+                        <i class="bi bi-moon" id="themeIconDark" style="display: none;"></i>
+                    </button>
+                    <div id="authButton">
+                        <!-- Auth button injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="cpd-page-header">
+        <div class="container cpd-page-header-content">
+            <h1>Nos Événements</h1>
+            <p>Découvrez nos programmes et activités à venir</p>
+        </div>
+    </section>
+
+    <!-- Filter Section -->
+    <section class="cpd-section py-4" style="background: var(--cpd-surface-2);">
+        <div class="container">
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <a href="{% url 'public-events' %}" class="cpd-filter-btn {% if not event_type %}active{% endif %}">
+                    <i class="bi bi-grid-3x3-gap"></i> Tous
+                </a>
+                <a href="?type=service" class="cpd-filter-btn {% if event_type == 'service' %}active{% endif %}">
+                    <i class="bi bi-book"></i> Cultes
+                </a>
+                <a href="?type=prayer" class="cpd-filter-btn {% if event_type == 'prayer' %}active{% endif %}">
+                    <i class="bi bi-praying-hands"></i> Prières
+                </a>
+                <a href="?type=bible_study" class="cpd-filter-btn {% if event_type == 'bible_study' %}active{% endif %}">
+                    <i class="bi bi-journal-bookmark"></i> Études
+                </a>
+                <a href="?type=conference" class="cpd-filter-btn {% if event_type == 'conference' %}active{% endif %}">
+                    <i class="bi bi-mic"></i> Conférences
+                </a>
+                <a href="?type=concert" class="cpd-filter-btn {% if event_type == 'concert' %}active{% endif %}">
+                    <i class="bi bi-music-note-beamed"></i> Concerts
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upcoming Events -->
+    <section class="cpd-section">
+        <div class="container">
+            <h2 class="cpd-section-title">
+                <i class="bi bi-calendar-check text-success me-2"></i>Événements à venir
+            </h2>
+            
+            {% if upcoming_events %}
+            <div class="row g-4">
+                {% for event in upcoming_events %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="cpd-event-card">
+                        <div class="cpd-event-date">
+                            <span class="day">{{ event.date|date:"d" }}</span>
+                            <span class="month">{{ event.date|date:"M" }}</span>
+                        </div>
+                        <div class="cpd-event-content">
+                            <div class="cpd-event-meta">
+                                <span class="badge bg-{{ event.event_type|default:'primary' }}">
+                                    {{ event.get_event_type_display }}
+                                </span>
+                                <span class="time"><i class="bi bi-clock"></i> {{ event.time|time:"H:i" }}</span>
+                            </div>
+                            <h5 class="cpd-event-title">{{ event.title }}</h5>
+                            {% if event.description %}
+                            <p class="cpd-event-description">{{ event.description|truncatewords:20 }}</p>
+                            {% endif %}
+                            {% if event.location %}
+                            <div class="cpd-event-location">
+                                <i class="bi bi-geo-alt"></i> {{ event.location }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="cpd-empty-state">
+                    <i class="bi bi-calendar-x" style="font-size: 3rem; color: var(--cpd-text-tertiary);"></i>
+                    <p class="mt-3 text-secondary">Aucun événement à venir pour le moment.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Past Events -->
+    {% if past_events %}
+    <section class="cpd-section cpd-section-alt">
+        <div class="container">
+            <h2 class="cpd-section-title">
+                <i class="bi bi-archive text-secondary me-2"></i>Événements passés
+            </h2>
+            <div class="row g-4">
+                {% for event in past_events|slice:":6" %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="cpd-event-card cpd-event-card-past">
+                        <div class="cpd-event-date">
+                            <span class="day">{{ event.date|date:"d" }}</span>
+                            <span class="month">{{ event.date|date:"M" }}</span>
+                        </div>
+                        <div class="cpd-event-content">
+                            <div class="cpd-event-meta">
+                                <span class="badge bg-secondary">
+                                    {{ event.get_event_type_display }}
+                                </span>
+                                <span class="time text-secondary"><i class="bi bi-clock"></i> {{ event.time|time:"H:i" }}</span>
+                            </div>
+                            <h5 class="cpd-event-title">{{ event.title }}</h5>
+                            {% if event.location %}
+                            <div class="cpd-event-location text-secondary">
+                                <i class="bi bi-geo-alt"></i> {{ event.location }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="cpd-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="cpd-footer-brand">
+                        <div class="cpd-footer-logo">
+                            {% if church_settings and church_settings.logo %}
+                            <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                            {% else %}
+                            <i class="bi bi-layers"></i>
+                            {% endif %}
+                        </div>
+                        <span>{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+                    </div>
+                    <p class="cpd-footer-description">
+                        {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service.{% endif %}
+                    </p>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h6 class="cpd-footer-title">Liens rapides</h6>
+                    <ul class="cpd-footer-links">
+                        <li><a href="{% url 'home' %}"><i class="bi bi-chevron-right"></i>Accueil</a></li>
+                        <li><a href="{% url 'about' %}"><i class="bi bi-chevron-right"></i>À Propos</a></li>
+                        <li><a href="{% url 'public-events' %}"><i class="bi bi-chevron-right"></i>Événements</a></li>
+                        <li><a href="{% url 'contact' %}"><i class="bi bi-chevron-right"></i>Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6 class="cpd-footer-title">Contact</h6>
+                    <ul class="cpd-footer-contact">
+                        {% if church_settings and church_settings.address %}
+                        <li><i class="bi bi-geo-alt"></i>{{ church_settings.address }}</li>
+                        {% endif %}
+                        {% if church_settings and church_settings.phone %}
+                        <li><i class="bi bi-telephone"></i>{{ church_settings.phone }}</li>
+                        {% endif %}
+                        {% if church_settings and church_settings.email %}
+                        <li><i class="bi bi-envelope"></i>{{ church_settings.email }}</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6 class="cpd-footer-title">Suivez-nous</h6>
+                    <div class="cpd-social-links">
+                        {% if church_settings and church_settings.facebook_url %}
+                        <a href="{{ church_settings.facebook_url }}" class="cpd-social-link" target="_blank"><i class="bi bi-facebook"></i></a>
+                        {% endif %}
+                        {% if church_settings and church_settings.youtube_url %}
+                        <a href="{{ church_settings.youtube_url }}" class="cpd-social-link" target="_blank"><i class="bi bi-youtube"></i></a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="cpd-footer-bottom">
+                <p>&copy; {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/navigation.js' %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize navigation
+            if (window.Navigation) {
+                Navigation.renderPublic('navContainer', '/calendar/');
+                Navigation.updateAuthButton();
+            }
+        });
+    </script>
+</body>
+</html>
