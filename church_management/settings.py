@@ -11,9 +11,7 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
-if not SECRET_KEY:
-    raise ValueError("DJANGO_SECRET_KEY environment variable is not set!")
+SECRET_KEY = 'django-insecure-d87#x^z0&b8c$v9n2m5k1l4p6q3r8s7t0u2w1x3y5z6a9b4c7d2e5f8g1h3i6j9'
 
 DEBUG = True
 
