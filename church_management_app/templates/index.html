@@ -60,7 +60,7 @@
                         {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service. Rejoignez-nous pour vivre une expérience de foi authentique.{% endif %}
                     </p>
                     <div class="d-flex flex-wrap gap-3 cpd-animate-delay-3">
-                        <a href="{% url 'events' %}" class="cpd-btn-hero cpd-btn-hero-light">
+                        <a href="{% url 'event-list' %}" class="cpd-btn-hero cpd-btn-hero-light">
                             <i class="bi bi-calendar-event"></i>Nos Programmes
                         </a>
                         <a href="{% url 'contact' %}" class="cpd-btn-hero cpd-btn-hero-outline">
@@ -154,7 +154,7 @@
                         </div>
                     </div>
                     <div class="text-center mt-4">
-                        <a href="{% url 'events' %}" class="btn btn-outline-primary">
+                        <a href="{% url 'event-list' %}" class="btn btn-outline-primary">
                             Voir tous les événements <i class="bi bi-arrow-right ms-2"></i>
                         </a>
                     </div>
@@ -204,7 +204,7 @@
                     <ul class="cpd-footer-links">
                         <li><a href="{% url 'home' %}">Accueil</a></li>
                         <li><a href="{% url 'about' %}">À Propos</a></li>
-                        <li><a href="{% url 'events' %}">Événements</a></li>
+                        <li><a href="{% url 'event-list' %}">Événements</a></li>
                         <li><a href="{% url 'contact' %}">Contact</a></li>
                     </ul>
                 </div>

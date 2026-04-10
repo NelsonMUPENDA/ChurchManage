@@ -17,21 +17,18 @@ if not SECRET_KEY:
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['consolationetpaixdivine.org', 'www.consolationetpaixdivine.org'
+ALLOWED_HOSTS = ['*', 'consolationetpaixdivine.org', 'www.consolationetpaixdivine.org'
 ]
 
 CSRF_TRUSTED_ORIGINS = ['https://consolationetpaixdivine.org', 'https://www.consolationetpaixdivine.org']
 
 INSTALLED_APPS = [
-    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    'drf_spectacular',
     'church_management_app',
     'whitenoise'
 ]
@@ -39,7 +36,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -129,29 +125,6 @@ AUTH_USER_MODEL = 'church_management_app.User'
 # Login URL
 LOGIN_URL = '/login/'
 
-# Django REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/minute',
-        'user': '1000/minute',
-        'login': '100/minute',
-        'register': '10/hour',
-    },
-}
-
 # Email Configuration
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', '')
@@ -160,14 +133,6 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() in ['1', 'true', 'yes', 'on']
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@cpd.local')
-
-# API Documentation
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Consolation et Paix Divine API',
-    'DESCRIPTION': 'API REST pour la gestion de l\'église Consolation et Paix Divine.',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-}
 
 # Cache
 CACHES = {
@@ -184,13 +149,6 @@ if REDIS_URL:
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': REDIS_URL,
     }
-
-# CORS
-CORS_ALLOWED_ORIGINS = [
-    "https://consolationetpaixdivine.org",
-    "https://www.consolationetpaixdivine.org",
-]
-CORS_ALLOW_CREDENTIALS = True
 
 # Security
 SESSION_COOKIE_SECURE = not DEBUG
