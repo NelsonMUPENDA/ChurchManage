@@ -12,3 +12,5 @@ ENV/
 tmp/
 temp/
 *.tmp
+
+staticfiles/
