@@ -1,70 +1,20 @@
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Évangélisation - Consolation et Paix Divine</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="static/css/main.css">
-    <style>
-        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
-        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
-        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
-        [data-bs-theme="dark"] .main-content { background: #0f172a; }
-        @media (max-width: 991.98px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.show { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-        }
-        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
-        .sidebar-backdrop.show { display: block; }
-        .activity-card { transition: all 0.2s; }
-        .activity-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-    </style>
-</head>
-<body>
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="p-4 border-bottom">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
-                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
-                </div>
-                <div>
-                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
-                    <small class="text-muted">Plateforme de gestion</small>
-                </div>
-            </div>
-        </div>
-        <div class="p-3">
-            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
-                <small class="text-muted d-block">Connecté en tant que</small>
-                <span class="fw-semibold" id="userRole">Utilisateur</span>
-            </div>
-        </div>
-        <nav class="px-3 pb-4" id="sidebarNav"></nav>
-    </aside>
+{% extends 'dashboard/base.html' %}
+{% load static %}
 
-    <main class="main-content">
-        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
-            <div class="container-fluid py-3 px-4">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-                        <h5 class="mb-0 fw-semibold"><i class="bi bi-megaphone me-2"></i>Évangélisation</h5>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-        </header>
+{% block title %}Évangélisation{% endblock %}
 
-        <div class="container-fluid p-4">
+{% block page_title %}<i class="bi bi-megaphone me-2"></i>Évangélisation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .activity-card { transition: all 0.2s; }
+    .activity-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
             <!-- Stats Row -->
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
@@ -240,243 +190,196 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="static/js/api.js"></script>
-    <script src="static/js/utils.js"></script>
-    <script src="static/js/toast.js"></script>
-    <script src="static/js/auth.js"></script>
-    <script src="static/js/navigation.js"></script>
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/toast.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
+<script src="{% static 'js/navigation.js' %}"></script>
 
-    <script>
-        let currentPage = 1;
-        let totalPages = 1;
-        let searchQuery = '';
-        let typeFilter = '';
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentFilter = 'all';
 
-        document.addEventListener('DOMContentLoaded', async function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+        if (!Auth.state.isAuthenticated) {
+            await Auth.refreshMe();
             if (!Auth.state.isAuthenticated) {
-                await Auth.refreshMe();
-                if (!Auth.state.isAuthenticated) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-            }
-
-            initUI();
-            loadActivities();
-            loadStats();
-
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('searchInput').addEventListener('input', debounce(() => { searchQuery = document.getElementById('searchInput').value; currentPage = 1; loadActivities(); }, 300));
-            document.getElementById('typeFilter').addEventListener('change', () => { typeFilter = document.getElementById('typeFilter').value; currentPage = 1; loadActivities(); });
-            document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; loadActivities(); } });
-            document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; loadActivities(); } });
-
-            document.querySelector('input[name="date"]').valueAsDate = new Date();
-        });
-
-        function initUI() {
-            const user = Auth.state.user;
-            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
-            if (window.Navigation) Navigation.render('sidebarNav', 'evangelisation');
-            Utils.Theme.init();
-            updateThemeIcon();
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.getElementById('sidebarBackdrop').classList.toggle('show');
-        }
-
-        function toggleTheme() {
-            Utils.Theme.toggle();
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-        }
-
-        function debounce(fn, delay) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fn.apply(this, args), delay);
-            };
-        }
-
-        async function loadStats() {
-            try {
-                const response = await API.api.get('/api/evangelism-activities/stats/');
-                document.getElementById('totalActivities').textContent = response.total_activities || 0;
-                document.getElementById('totalReached').textContent = response.total_reached || 0;
-                document.getElementById('totalConversions').textContent = response.total_conversions || 0;
-                document.getElementById('totalZones').textContent = response.total_zones || 0;
-            } catch (error) {
-                console.error('Failed to load stats:', error);
-            }
-        }
-
-        async function loadActivities() {
-            try {
-                const params = { page: currentPage, ordering: '-date' };
-                if (searchQuery) params.search = searchQuery;
-                if (typeFilter) params.activity_type = typeFilter;
-
-                const response = await API.api.get('/api/evangelism-activities/', params);
-                const activities = response.results || response;
-                
-                renderActivities(activities);
-                updatePagination(response.count, activities.length);
-            } catch (error) {
-                console.error('Failed to load activities:', error);
-                document.getElementById('activitiesGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
-            }
-        }
-
-        function renderActivities(activities) {
-            const container = document.getElementById('activitiesGrid');
-            
-            if (activities.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-megaphone fs-1 text-muted mb-3 d-block"></i><p class="text-muted">Aucune activité</p></div>';
+                window.location.href = 'login.html';
                 return;
             }
+        }
 
-            const typeIcons = {
-                door_to_door: 'bi-house-door',
-                street: 'bi-shop',
-                campaign: 'bi-bullseye',
-                media: 'bi-broadcast',
-                other: 'bi-circle'
-            };
+        initUI();
+        loadStats();
+        loadActivities();
 
-            const typeLabels = {
-                door_to_door: 'Porte-à-porte',
-                street: 'Rue',
-                campaign: 'Campagne',
-                media: 'Médias',
-                other: 'Autre'
-            };
+        document.getElementById('saveActivityBtn').addEventListener('click', saveActivity);
+        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
+        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
 
-            container.innerHTML = activities.map(a => `
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm activity-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-start gap-3 mb-3">
-                                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi ${typeIcons[a.activity_type] || 'bi-circle'} fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h6 class="fw-semibold mb-1">${a.title}</h6>
-                                    <p class="text-muted small mb-0">${typeLabels[a.activity_type] || a.activity_type}</p>
+        // Set default date
+        document.querySelector('input[name="date"]').valueAsDate = new Date();
+    });
+
+    function initUI() {
+        if (window.Navigation) Navigation.render('sidebarNav', 'evangelisation');
+    }
+
+    function debounce(fn, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    async function loadStats() {
+        try {
+            const response = await API.api.get('/api/evangelism-activities/stats/');
+            document.getElementById('totalActivities').textContent = response.total_activities || 0;
+            document.getElementById('totalReached').textContent = response.total_reached || 0;
+            document.getElementById('totalConversions').textContent = response.total_conversions || 0;
+            document.getElementById('totalZones').textContent = response.total_zones || 0;
+        } catch (error) {
+            console.error('Failed to load stats:', error);
+        }
+    }
+
+    async function loadActivities() {
+        try {
+            const params = { page: currentPage, ordering: '-date' };
+            if (searchQuery) params.search = searchQuery;
+            if (typeFilter) params.activity_type = typeFilter;
+
+            const response = await API.api.get('/api/evangelism-activities/', params);
+            const activities = response.results || response;
+            
+            renderActivities(activities);
+            updatePagination(response.count, activities.length);
+        } catch (error) {
+            console.error('Failed to load activities:', error);
+            document.getElementById('activitiesGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
+        }
+    }
+
+    function renderActivities(activities) {
+        const container = document.getElementById('activitiesGrid');
+        
+        if (activities.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-megaphone fs-1 text-muted mb-3 d-block"></i><p class="text-muted">Aucune activité</p></div>';
+            return;
+        }
+
+        const typeIcons = {
+            door_to_door: 'bi-house-door',
+            street: 'bi-shop',
+            campaign: 'bi-bullseye',
+            media: 'bi-broadcast',
+            other: 'bi-circle'
+        };
+
+        const typeLabels = {
+            door_to_door: 'Porte-à-porte',
+            street: 'Rue',
+            campaign: 'Campagne',
+            media: 'Médias',
+            other: 'Autre'
+        };
+
+        container.innerHTML = activities.map(a => `
+            <div class="col-md-6 col-xl-4">
+                <div class="card border-0 shadow-sm activity-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
+                                <i class="bi ${typeIcons[a.activity_type] || 'bi-circle'} fs-4" style="color: #6366f1;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-semibold mb-1">${a.title}</h6>
+                                <p class="text-muted small mb-0">${typeLabels[a.activity_type] || a.activity_type}</p>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${a.description || 'Pas de description'}</p>
+                        <div class="d-flex gap-2 mb-3">
+                            <span class="badge bg-light text-dark"><i class="bi bi-geo-alt me-1"></i>${a.location || 'N/A'}</span>
+                            <span class="badge bg-light text-dark"><i class="bi bi-calendar me-1"></i>${Utils.formatDateShort(a.date)}</span>
+                        </div>
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                    <div class="fw-bold text-primary">${a.people_reached || 0}</div>
+                                    <small class="text-muted">Touchés</small>
                                 </div>
                             </div>
-                            <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${a.description || 'Pas de description'}</p>
-                            <div class="d-flex gap-2 mb-3">
-                                <span class="badge bg-light text-dark"><i class="bi bi-geo-alt me-1"></i>${a.location || 'N/A'}</span>
-                                <span class="badge bg-light text-dark"><i class="bi bi-calendar me-1"></i>${Utils.formatDateShort(a.date)}</span>
-                            </div>
-                            <div class="row g-2 text-center">
-                                <div class="col-4">
-                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
-                                        <div class="fw-bold text-primary">${a.people_reached || 0}</div>
-                                        <small class="text-muted">Touchés</small>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
-                                        <div class="fw-bold text-success">${a.conversions || 0}</div>
-                                        <small class="text-muted">Convertis</small>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="p-2 rounded-2" style="background: #f1f5f9;">
-                                        <div class="fw-bold text-warning">${a.baptisms || 0}</div>
-                                        <small class="text-muted">Baptêmes</small>
-                                    </div>
+                            <div class="col-4">
+                                <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                    <div class="fw-bold text-success">${a.conversions || 0}</div>
+                                    <small class="text-muted">Convertis</small>
                                 </div>
                             </div>
-                            <div class="d-flex gap-2 mt-3">
-                                <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewActivity(${a.id})"><i class="bi bi-eye me-1"></i>Voir</button>
-                                ${Auth.isAdmin() || Auth.isEvangelismHead() ? `<button class="btn btn-sm btn-light" onclick="deleteActivity(${a.id})"><i class="bi bi-trash text-danger"></i></button>` : ''}
+                            <div class="col-4">
+                                <div class="p-2 rounded-2" style="background: #f1f5f9;">
+                                    <div class="fw-bold text-warning">${a.baptisms || 0}</div>
+                                    <small class="text-muted">Baptêmes</small>
+                                </div>
                             </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewActivity(${a.id})"><i class="bi bi-eye me-1"></i>Voir</button>
+                            ${Auth.isAdmin() || Auth.isEvangelismHead() ? `<button class="btn btn-sm btn-light" onclick="deleteActivity(${a.id})"><i class="bi bi-trash text-danger"></i></button>` : ''}
                         </div>
                     </div>
                 </div>
-            `).join('');
-        }
-
-        function updatePagination(totalCount, pageSize) {
-            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-        }
-
-        async function saveActivity() {
-            const form = document.getElementById('activityForm');
-            const data = Object.fromEntries(new FormData(form));
-            data.people_reached = parseInt(data.people_reached) || 0;
-            data.conversions = parseInt(data.conversions) || 0;
-            data.baptisms = parseInt(data.baptisms) || 0;
-
-            try {
-                await API.api.post('/api/evangelism-activities/', data);
-                Toast.success('Succès', 'Activité enregistrée');
-                bootstrap.Modal.getInstance(document.getElementById('addActivityModal')).hide();
-                form.reset();
-                document.querySelector('input[name="date"]').valueAsDate = new Date();
-                loadActivities();
-                loadStats();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible d\'enregistrer');
-            }
-        }
-
-        async function deleteActivity(id) {
-            if (!confirm('Supprimer cette activité ?')) return;
-            try {
-                await API.api.delete(`/api/evangelism-activities/${id}/`);
-                Toast.success('Succès', 'Activité supprimée');
-                loadActivities();
-                loadStats();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de supprimer');
-            }
-        }
-
-        function viewActivity(id) {
-            Toast.info('Info', 'Détail à implémenter');
-        }
-    </script>
-
-    <!-- Logout Confirmation Modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-semibold">
-                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
-                        Confirmer la déconnexion
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                    <a href="{% url 'logout' %}" class="btn btn-danger">
-                        <i class="bi bi-box-arrow-right me-1"></i>
-                        Se déconnecter
-                    </a>
-                </div>
             </div>
-        </div>
-    </div>
-</body>
-</html>
+        `).join('');
+    }
+
+    function updatePagination(totalCount, pageSize) {
+        totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
+        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
+        document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
+        document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
+        document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
+    }
+
+    async function saveActivity() {
+        const form = document.getElementById('activityForm');
+        const data = Object.fromEntries(new FormData(form));
+        data.people_reached = parseInt(data.people_reached) || 0;
+        data.conversions = parseInt(data.conversions) || 0;
+        data.baptisms = parseInt(data.baptisms) || 0;
+
+        try {
+            await API.api.post('/api/evangelism-activities/', data);
+            Toast.success('Succès', 'Activité enregistrée');
+            bootstrap.Modal.getInstance(document.getElementById('addActivityModal')).hide();
+            form.reset();
+            document.querySelector('input[name="date"]').valueAsDate = new Date();
+            loadActivities();
+            loadStats();
+        } catch (error) {
+            Toast.error('Erreur', 'Impossible d\'enregistrer');
+        }
+    }
+
+    async function deleteActivity(id) {
+        if (!confirm('Supprimer cette activité ?')) return;
+        try {
+            await API.api.delete(`/api/evangelism-activities/${id}/`);
+            Toast.success('Succès', 'Activité supprimée');
+            loadActivities();
+            loadStats();
+        } catch (error) {
+            Toast.error('Erreur', 'Impossible de supprimer');
+        }
+    }
+
+    function viewActivity(id) {
+        Toast.info('Info', 'Détail à implémenter');
+    }
+</script>
+{% endblock %}

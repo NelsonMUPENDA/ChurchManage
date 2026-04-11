@@ -184,6 +184,12 @@ def dashboard(request):
         birth_day=ExtractDay('birth_date')
     ).filter(birth_month=today.month).order_by('birth_day')
     
+    # Paramètres de l'église
+    try:
+        church_settings = ChurchSettings.objects.first()
+    except:
+        church_settings = None
+    
     context = {
         'user': user,
         'today': today,
@@ -208,6 +214,8 @@ def dashboard(request):
         'recent_announcements': recent_announcements,
         # Anniversaires
         'birthdays_this_month': birthdays_this_month,
+        # Paramètres de l'église
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/dashboard.html', context)
 

@@ -1,76 +1,24 @@
+{% extends 'dashboard/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Événements - Consolation et Paix Divine</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-    <style>
-        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
-        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
-        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
-        [data-bs-theme="dark"] .main-content { background: #0f172a; }
-        @media (max-width: 991.98px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.show { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-        }
-        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
-        .sidebar-backdrop.show { display: block; }
-        .event-card { transition: all 0.2s; border-left: 4px solid transparent; }
-        .event-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .event-card.upcoming { border-left-color: #10b981; }
-        .event-card.past { border-left-color: #94a3b8; }
-        .event-date { width: 60px; text-align: center; }
-        .event-date-day { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-        .event-date-month { font-size: 0.75rem; text-transform: uppercase; }
-    </style>
-</head>
-<body>
-    {% include 'includes/messages.html' %}
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="p-4 border-bottom">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
-                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
-                </div>
-                <div>
-                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
-                    <small class="text-muted">Plateforme de gestion</small>
-                </div>
-            </div>
-        </div>
-        <div class="p-3">
-            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
-                <small class="text-muted d-block">Connecté en tant que</small>
-                <span class="fw-semibold" id="userRole">Utilisateur</span>
-            </div>
-        </div>
-        <nav class="px-3 pb-4" id="sidebarNav"></nav>
-    </aside>
 
-    <main class="main-content">
-        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
-            <div class="container-fluid py-3 px-4">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-                        <h5 class="mb-0 fw-semibold">Programmes & Activités</h5>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
-                    </div>
-                </div>
-            </div>
-        </header>
+{% block title %}Programmes & Activités{% endblock %}
 
-        <div class="container-fluid p-4">
+{% block page_title %}Programmes & Activités{% endblock %}
+
+{% block extra_css %}
+<style>
+    .event-card { transition: all 0.2s; border-left: 4px solid transparent; }
+    .event-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .event-card.upcoming { border-left-color: #10b981; }
+    .event-card.past { border-left-color: #94a3b8; }
+    .event-date { width: 60px; text-align: center; }
+    .event-date-day { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    .event-date-month { font-size: 0.75rem; text-transform: uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
             <!-- Stats -->
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
@@ -180,7 +128,7 @@
                 </ul>
             </nav>
         </div>
-    </main>
+    </div>
 
     <!-- Add Event Modal -->
     <div class="modal fade" id="addEventModal" tabindex="-1">
@@ -233,237 +181,191 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="static/js/api.js"></script>
-    <script src="static/js/utils.js"></script>
-    <script src="static/js/toast.js"></script>
-    <script src="static/js/auth.js"></script>
-    <script src="static/js/navigation.js"></script>
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/toast.js' %}"></script>
+<script src="{% static 'js/auth.js' %}"></script>
+<script src="{% static 'js/navigation.js' %}"></script>
 
-    <script>
-        let currentPage = 1;
-        let totalPages = 1;
-        let searchQuery = '';
-        let typeFilter = '';
-        let statusFilter = '';
+<script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let searchQuery = '';
+    let typeFilter = '';
+    let statusFilter = '';
 
-        document.addEventListener('DOMContentLoaded', async function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+        if (!Auth.state.isAuthenticated) {
+            await Auth.refreshMe();
             if (!Auth.state.isAuthenticated) {
-                await Auth.refreshMe();
-                if (!Auth.state.isAuthenticated) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-            }
-
-            initUI();
-            loadEvents();
-
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
-            document.getElementById('typeFilter').addEventListener('change', handleTypeFilter);
-            document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
-            document.getElementById('saveEventBtn').addEventListener('click', saveEvent);
-            document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
-            document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
-        });
-
-        function initUI() {
-            const user = Auth.state.user;
-            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
-            if (window.Navigation) Navigation.render('sidebarNav', 'events');
-            Utils.Theme.init();
-            updateThemeIcon();
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.getElementById('sidebarBackdrop').classList.toggle('show');
-        }
-
-        function toggleTheme() {
-            Utils.Theme.toggle();
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-        }
-
-        function debounce(fn, delay) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fn.apply(this, args), delay);
-            };
-        }
-
-        function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadEvents(); }
-        function handleTypeFilter(e) { typeFilter = e.target.value; currentPage = 1; loadEvents(); }
-        function handleStatusFilter(e) { statusFilter = e.target.value; currentPage = 1; loadEvents(); }
-
-        function changePage(delta) {
-            const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                loadEvents();
-            }
-        }
-
-        async function loadEvents() {
-            try {
-                const params = { page: currentPage };
-                if (searchQuery) params.search = searchQuery;
-                if (typeFilter) params.event_type = typeFilter;
-                if (statusFilter) params.status = statusFilter;
-
-                const response = await API.api.get('/api/events/', params);
-                const events = response.results || response;
-                
-                renderEvents(events);
-                updatePagination(response.count, events.length);
-                updateStats(response.stats || { total: events.length });
-            } catch (error) {
-                console.error('Failed to load events:', error);
-                Toast.error('Erreur', 'Impossible de charger les événements');
-            }
-        }
-
-        function renderEvents(events) {
-            const container = document.getElementById('eventsList');
-            
-            if (events.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-calendar-x fs-1 text-muted mb-3 d-block"></i>
-                        <p class="text-muted">Aucun événement trouvé</p>
-                    </div>
-                `;
+                window.location.href = 'login.html';
                 return;
             }
+        }
 
-            container.innerHTML = events.map(event => {
-                const eventDate = new Date(event.date);
-                const isPast = eventDate < new Date();
-                const statusClass = isPast ? 'past' : 'upcoming';
-                const statusBadge = isPast ? 
-                    '<span class="badge bg-secondary">Passé</span>' : 
-                    '<span class="badge bg-success">À venir</span>';
-                
-                return `
-                    <div class="p-4 border-bottom event-card ${statusClass}">
-                        <div class="d-flex gap-4">
-                            <div class="event-date rounded-3 p-2 ${isPast ? 'bg-light' : 'bg-success bg-opacity-10'}">
-                                <div class="event-date-day ${isPast ? 'text-muted' : 'text-success'}">${eventDate.getDate()}</div>
-                                <div class="event-date-month ${isPast ? 'text-muted' : 'text-success'}">${eventDate.toLocaleDateString('fr-FR', { month: 'short' })}</div>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <h6 class="mb-1 fw-semibold">${event.title}</h6>
-                                        <p class="text-muted small mb-2">${event.description || 'Pas de description'}</p>
-                                        <div class="d-flex gap-3 small text-muted">
-                                            <span><i class="bi bi-clock me-1"></i>${event.time || 'Heure non définie'}</span>
-                                            <span><i class="bi bi-geo-alt me-1"></i>${event.location || 'Lieu non défini'}</span>
-                                            <span><i class="bi bi-tag me-1"></i>${getEventTypeLabel(event.event_type)}</span>
-                                        </div>
+        initUI();
+        loadEvents();
+
+        document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
+        document.getElementById('typeFilter').addEventListener('change', handleTypeFilter);
+        document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
+        document.getElementById('saveEventBtn').addEventListener('click', saveEvent);
+        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
+        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
+    });
+
+    function initUI() {
+        if (window.Navigation) Navigation.render('sidebarNav', 'events');
+    }
+
+    function debounce(fn, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadEvents(); }
+    function handleTypeFilter(e) { typeFilter = e.target.value; currentPage = 1; loadEvents(); }
+    function handleStatusFilter(e) { statusFilter = e.target.value; currentPage = 1; loadEvents(); }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadEvents();
+        }
+    }
+
+    async function loadEvents() {
+        try {
+            const params = { page: currentPage };
+            if (searchQuery) params.search = searchQuery;
+            if (typeFilter) params.event_type = typeFilter;
+            if (statusFilter) params.status = statusFilter;
+
+            const response = await API.api.get('/api/events/', params);
+            const events = response.results || response;
+            
+            renderEvents(events);
+            updatePagination(response.count, events.length);
+            updateStats(response.stats || { total: events.length });
+        } catch (error) {
+            console.error('Failed to load events:', error);
+            Toast.error('Erreur', 'Impossible de charger les événements');
+        }
+    }
+
+    function renderEvents(events) {
+        const container = document.getElementById('eventsList');
+        
+        if (events.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x fs-1 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">Aucun événement trouvé</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = events.map(event => {
+            const eventDate = new Date(event.date);
+            const isPast = eventDate < new Date();
+            const statusClass = isPast ? 'past' : 'upcoming';
+            const statusBadge = isPast ? 
+                '<span class="badge bg-secondary">Passé</span>' : 
+                '<span class="badge bg-success">À venir</span>';
+            
+            return `
+                <div class="p-4 border-bottom event-card ${statusClass}">
+                    <div class="d-flex gap-4">
+                        <div class="event-date rounded-3 p-2 ${isPast ? 'bg-light' : 'bg-success bg-opacity-10'}">
+                            <div class="event-date-day ${isPast ? 'text-muted' : 'text-success'}">${eventDate.getDate()}</div>
+                            <div class="event-date-month ${isPast ? 'text-muted' : 'text-success'}">${eventDate.toLocaleDateString('fr-FR', { month: 'short' })}</div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1 fw-semibold">${event.title}</h6>
+                                    <p class="text-muted small mb-2">${event.description || 'Pas de description'}</p>
+                                    <div class="d-flex gap-3 small text-muted">
+                                        <span><i class="bi bi-clock me-1"></i>${event.time || 'Heure non définie'}</span>
+                                        <span><i class="bi bi-geo-alt me-1"></i>${event.location || 'Lieu non défini'}</span>
+                                        <span><i class="bi bi-tag me-1"></i>${getEventTypeLabel(event.event_type)}</span>
                                     </div>
-                                    <div class="d-flex gap-2">
-                                        ${statusBadge}
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" href="event-detail.html?id=${event.id}"><i class="bi bi-eye me-2"></i>Voir</a></li>
-                                                <li><a class="dropdown-item" href="#" onclick="editEvent(${event.id})"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
-                                                ${Auth.isAdmin() ? `<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="#" onclick="deleteEvent(${event.id})"><i class="bi bi-trash me-2"></i>Supprimer</a></li>` : ''}
-                                            </ul>
-                                        </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    ${statusBadge}
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="event-detail.html?id=${event.id}"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="editEvent(${event.id})"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                            ${Auth.isAdmin() ? `<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="#" onclick="deleteEvent(${event.id})"><i class="bi bi-trash me-2"></i>Supprimer</a></li>` : ''}
+                                        </ul>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                `;
-            }).join('');
+                </div>
+            `;
+        }).join('');
+    }
+
+    function getEventTypeLabel(type) {
+        const labels = { 'service': 'Culte', 'meeting': 'Réunion', 'conference': 'Conférence', 'social': 'Social', 'other': 'Autre' };
+        return labels[type] || type;
+    }
+
+    function updatePagination(totalCount, pageSize) {
+        totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
+        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
+        document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
+        document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
+        document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
+    }
+
+    function updateStats(stats) {
+        document.getElementById('totalEvents').textContent = stats.total || '-';
+        document.getElementById('upcomingEvents').textContent = stats.upcoming || '-';
+        document.getElementById('weekEvents').textContent = stats.this_week || '-';
+    }
+
+    async function saveEvent() {
+        const form = document.getElementById('addEventForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        try {
+            await API.api.post('/api/events/', data);
+            Toast.success('Succès', 'Événement créé avec succès');
+            bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
+            form.reset();
+            loadEvents();
+        } catch (error) {
+            Toast.error('Erreur', 'Impossible de créer l\'événement');
         }
+    }
 
-        function getEventTypeLabel(type) {
-            const labels = { 'service': 'Culte', 'meeting': 'Réunion', 'conference': 'Conférence', 'social': 'Social', 'other': 'Autre' };
-            return labels[type] || type;
+    async function deleteEvent(id) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
+        try {
+            await API.api.delete(`/api/events/${id}/`);
+            Toast.success('Succès', 'Événement supprimé');
+            loadEvents();
+        } catch (error) {
+            Toast.error('Erreur', 'Impossible de supprimer');
         }
+    }
 
-        function updatePagination(totalCount, pageSize) {
-            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-        }
-
-        function updateStats(stats) {
-            document.getElementById('totalEvents').textContent = stats.total || '-';
-            document.getElementById('upcomingEvents').textContent = stats.upcoming || '-';
-            document.getElementById('weekEvents').textContent = stats.this_week || '-';
-        }
-
-        async function saveEvent() {
-            const form = document.getElementById('addEventForm');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-
-            try {
-                await API.api.post('/api/events/', data);
-                Toast.success('Succès', 'Événement créé avec succès');
-                bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
-                form.reset();
-                loadEvents();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de créer l\'événement');
-            }
-        }
-
-        async function deleteEvent(id) {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
-            try {
-                await API.api.delete(`/api/events/${id}/`);
-                Toast.success('Succès', 'Événement supprimé');
-                loadEvents();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de supprimer');
-            }
-        }
-
-        function editEvent(id) {
-            window.location.href = `event-edit.html?id=${id}`;
-        }
-    </script>
-</body>
-
-<!-- Logout Confirmation Modal -->
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-semibold">
-                    <i class="bi bi-box-arrow-right text-danger me-2"></i>
-                    Confirmer la déconnexion
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                <a href="{% url 'logout' %}" class="btn btn-danger">
-                    <i class="bi bi-box-arrow-right me-1"></i>
-                    Se déconnecter
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-</html>
+    function editEvent(id) {
+        window.location.href = `event-edit.html?id=${id}`;
+    }
+</script>
+{% endblock %}
