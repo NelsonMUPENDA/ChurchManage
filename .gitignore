@@ -15,4 +15,9 @@ temp/
 
 staticfiles/
 
+# Bases de données SQLite (ne pas envoyer en production)
 db.sqlite3
+*.sqlite3
+*.db
+*.sqlite
+*.sqlite3-journal

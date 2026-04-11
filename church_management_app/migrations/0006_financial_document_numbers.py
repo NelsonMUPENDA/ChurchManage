@@ -35,7 +35,7 @@ def backwards(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('church_management_app', '0005_create_default_admin'),
+        ('church_management_app', '0004_financialtransaction_receipts_and_proofs'),
     ]
 
     operations = [
