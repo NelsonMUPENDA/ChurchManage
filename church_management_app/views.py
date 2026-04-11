@@ -12,7 +12,7 @@ from .models import (
     Member, Family, HomeGroup, Department, Ministry, Event, Attendance,
     EvangelismActivity, TrainingEvent, MarriageRecord,
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
-    ChurchBiography, Contact
+    ChurchBiography, Contact, ChurchSettings
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
@@ -33,6 +33,12 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     
+    # Récupérer les paramètres de l'église
+    try:
+        church_settings = ChurchSettings.objects.first()
+    except:
+        church_settings = None
+    
     if request.method == 'POST':
         form = LoginForm(request, data=request.POST)
         if form.is_valid():
@@ -46,7 +52,7 @@ def login_view(request):
     else:
         form = LoginForm()
     
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'login.html', {'form': form, 'church_settings': church_settings})
 
 
 def logout_view(request):
