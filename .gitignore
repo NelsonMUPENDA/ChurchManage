@@ -16,5 +16,3 @@ temp/
 staticfiles/
 
 db.sqlite3
-
-db.sqlite3
