@@ -1,0 +1,309 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permissions_tags %}
+
+{% block title %}Pointage - {{ event.title }}{% endblock %}
+{% block page_title %}Pointage des Présences{% endblock %}
+{% block page_subtitle %}{{ event.title }} - {{ event.date|date:"d/m/Y" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-card {
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: all 0.3s ease;
+    }
+    .attendance-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    .member-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .member-item:hover {
+        background: #f8fafc;
+    }
+    .member-item.present {
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .member-item.absent {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .check-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border: 2px solid #e2e8f0;
+        background: white;
+    }
+    .check-btn.present {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    .check-btn.absent {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .search-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .progress-ring {
+        width: 120px;
+        height: 120px;
+        position: relative;
+    }
+    .progress-ring svg {
+        transform: rotate(-90deg);
+    }
+    .progress-ring-bg {
+        fill: none;
+        stroke: #e2e8f0;
+        stroke-width: 8;
+    }
+    .progress-ring-fill {
+        fill: none;
+        stroke: #10b981;
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+        <i class="bi bi-info-circle me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <!-- Left Column - Stats & Info -->
+    <div class="col-lg-4">
+        <!-- Event Info -->
+        <div class="card attendance-card mb-4">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">{{ event.title }}</h6>
+                <p class="text-muted small mb-3">{{ event.description|truncatewords:30|default:"Aucune description" }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-calendar me-1"></i>{{ event.date|date:"d/m/Y" }}
+                    </span>
+                    <span class="badge bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-clock me-1"></i>{{ event.time|time:"H:i" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Ring -->
+        <div class="card attendance-card mb-4">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold">Taux de présence</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="progress-ring mx-auto mb-3">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                        <circle class="progress-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="progress-ring-fill" cx="60" cy="60" r="52"
+                                stroke-dasharray="326.73"
+                                stroke-dashoffset="{{ attendance_offset|default:326.73 }}"/>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="h3 fw-bold text-success">{{ attendance_rate|default:"0" }}%</span>
+                        <small class="text-muted d-block">présents</small>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center gap-3">
+                    <div class="text-center">
+                        <span class="badge bg-success">{{ present_count|default:"0" }}</span>
+                        <small class="text-muted d-block">Présents</small>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge bg-danger">{{ absent_count|default:"0" }}</span>
+                        <small class="text-muted d-block">Absents</small>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge bg-secondary">{{ not_marked_count|default:total_members }}</span>
+                        <small class="text-muted d-block">Non pointés</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="d-grid gap-2">
+            <form method="post" action="{% url 'attendance-event' event.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_all_present">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-check-all me-2"></i>Tous présents
+                </button>
+            </form>
+            <form method="post" action="{% url 'attendance-event' event.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reset">
+                <button type="submit" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                </button>
+            </form>
+            <a href="{% url 'event-detail' event.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-2"></i>Retour à l'événement
+            </a>
+        </div>
+    </div>
+
+    <!-- Right Column - Attendance List -->
+    <div class="col-lg-8">
+        <div class="card attendance-card">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2"></i>Liste des membres</h6>
+                <div class="d-flex gap-2">
+                    <span class="stat-pill bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check-circle"></i>{{ present_count|default:"0" }} Présents
+                    </span>
+                    <span class="stat-pill bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-x-circle"></i>{{ absent_count|default:"0" }} Absents
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="card-body pt-0 pb-3">
+                <div class="search-box mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-transparent border-0" id="memberSearch" 
+                               placeholder="Rechercher un membre..." onkeyup="filterMembers()">
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="d-flex gap-2 mb-3">
+                    <button class="btn btn-sm btn-outline-primary active" onclick="filterByStatus('all')" id="filter-all">Tous</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="filterByStatus('present')" id="filter-present">Présents</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="filterByStatus('absent')" id="filter-absent">Absents</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="filterByStatus('pending')" id="filter-pending">Non pointés</button>
+                </div>
+            </div>
+
+            <!-- Members List -->
+            <div class="card-body pt-0" style="max-height: 600px; overflow-y: auto;">
+                <form method="post" action="{% url 'attendance-event' event.pk %}">
+                    {% csrf_token %}
+                    <div class="vstack gap-2" id="membersList">
+                        {% for member in members %}
+                        {% with attendance=member_attendance|get_item:member.pk %}
+                        <div class="member-item {% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% endif %}" 
+                             data-member-id="{{ member.pk }}"
+                             data-status="{% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% else %}pending{% endif %}">
+                            <div class="d-flex align-items-center flex-grow-1">
+                                {% if member.photo %}
+                                <img src="{{ member.photo.url }}" class="rounded-circle me-3" width="48" height="48" alt="">
+                                {% else %}
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                                    <i class="bi bi-person text-primary fs-5"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">{{ member.get_full_name }}</h6>
+                                    <small class="text-muted">{{ member.member_number }}</small>
+                                    {% if attendance and attendance.checked_in_at %}
+                                    <small class="text-success d-block"><i class="bi bi-clock me-1"></i>{{ attendance.checked_in_at|time:"H:i" }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="member_id" value="{{ member.pk }}" name="action" value="present"
+                                        class="check-btn {% if attendance and attendance.attended %}present{% endif %}">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="submit" name="member_id" value="{{ member.pk }}" name="action" value="absent"
+                                        class="check-btn {% if attendance and not attendance.attended %}absent{% endif %}">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% empty %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+                            <p class="text-muted">Aucun membre actif</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterMembers() {
+    const searchTerm = document.getElementById('memberSearch').value.toLowerCase();
+    const items = document.querySelectorAll('.member-item');
+    
+    items.forEach(item => {
+        const name = item.querySelector('h6').textContent.toLowerCase();
+        const number = item.querySelector('small').textContent.toLowerCase();
+        if (name.includes(searchTerm) || number.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function filterByStatus(status) {
+    // Update active button
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('filter-' + status).classList.add('active');
+    
+    // Filter items
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        const itemStatus = item.getAttribute('data-status');
+        if (status === 'all' || itemStatus === status) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock content %}

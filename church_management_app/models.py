@@ -62,14 +62,56 @@ class Member(models.Model):
     is_active = models.BooleanField(default=True)
     inactive_reason = models.CharField(max_length=30, blank=True, null=True)
     archived_date = models.DateTimeField(blank=True, null=True)
+    qr_code = models.ImageField(upload_to='qr_codes/members/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
+        # Générer le numéro de membre si nécessaire
+        is_new = not self.pk
         super().save(*args, **kwargs)
-        if not self.member_number and self.pk:
+        
+        if not self.member_number:
             self.member_number = f"CPD-MEM-{self.pk:06d}"
             super().save(update_fields=['member_number'])
+        
+        # Générer le QR code pour les nouveaux membres ou si absent
+        if is_new or not self.qr_code:
+            self._generate_qr_code()
+            super().save(update_fields=['qr_code'])
+    
+    def _generate_qr_code(self):
+        """Génère un QR code unique pour le membre"""
+        import qrcode
+        from io import BytesIO
+        from django.core.files import File
+        import os
+        
+        # Données à encoder dans le QR code
+        qr_data = f"MEMBER:{self.member_number}|ID:{self.pk}|CHURCH:CPD"
+        
+        # Créer le QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Générer l'image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Sauvegarder dans un buffer
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Créer le fichier Django
+        filename = f"member_{self.member_number.replace('-', '_')}.png"
+        self.qr_code.save(filename, File(buffer), save=False)
+        buffer.close()
 
 class Family(models.Model):
     name = models.CharField(max_length=100)

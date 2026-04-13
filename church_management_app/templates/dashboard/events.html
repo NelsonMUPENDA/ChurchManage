@@ -1,371 +1,548 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
 
-{% block title %}Programmes & Activités{% endblock %}
-
-{% block page_title %}Programmes & Activités{% endblock %}
+{% block title %}{% if view == 'event_form' %}{{ action }} Événement{% else %}Événements & Programmes{% endif %}{% endblock %}
+{% block page_title %}{% if view == 'event_form' %}{{ action }} un Événement{% else %}Événements & Programmes{% endif %}{% endblock %}
+{% block page_subtitle %}{% if view == 'event_form' %}Configurez les détails de l'événement{% else %}Gérez les cultes, réunions et activités de l'église{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .event-card { transition: all 0.2s; border-left: 4px solid transparent; }
-    .event-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-    .event-card.upcoming { border-left-color: #10b981; }
-    .event-card.past { border-left-color: #94a3b8; }
-    .event-date { width: 60px; text-align: center; }
-    .event-date-day { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-    .event-date-month { font-size: 0.75rem; text-transform: uppercase; }
+    /* ===== Event Card Styles ===== */
+    .event-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .event-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
+    }
+    .event-poster {
+        height: 180px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .event-poster-placeholder {
+        height: 180px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    .event-date-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: white;
+        border-radius: 12px;
+        padding: 8px 12px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        min-width: 55px;
+    }
+    .event-date-day {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #6366f1;
+    }
+    .event-date-month {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .event-type-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+    
+    /* ===== Stats Cards ===== */
+    .stat-card-event {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: all 0.3s ease;
+    }
+    .stat-card-event:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    
+    /* ===== Filter Section ===== */
+    .filter-section {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 1.25rem;
+    }
+    
+    /* ===== Team Tags ===== */
+    .team-tag {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: #f1f5f9;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    /* ===== Event Detail Styles ===== */
+    .event-hero {
+        height: 300px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        border-radius: 0 0 24px 24px;
+    }
+    .event-hero::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
+        border-radius: 0 0 24px 24px;
+    }
+    .event-hero-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 2rem;
+        color: white;
+        z-index: 10;
+    }
+    
+    /* ===== Form Sections ===== */
+    .form-section-event {
+        background: #fafafa;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-4">
-            <!-- Stats -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi bi-calendar-event fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Total Événements</p>
-                                    <h4 class="mb-0 fw-bold" id="totalEvents">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
+<!-- ========================================================== -->
+<!-- LISTE DES ÉVÉNEMENTS -->
+<!-- ========================================================== -->
+{% if not view or view == '' %}
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+        <i class="bi bi-info-circle me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card-event">
+            <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-calendar-event fs-4 text-primary"></i>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-calendar-check fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">À venir</p>
-                                    <h4 class="mb-0 fw-bold" id="upcomingEvents">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-calendar-week fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Cette semaine</p>
-                                    <h4 class="mb-0 fw-bold" id="weekEvents">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <p class="text-muted mb-0 small">Total Événements</p>
+                    <h4 class="mb-0 fw-bold">{{ total_events|default:"0" }}</h4>
                 </div>
             </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card-event">
+            <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-calendar-check fs-4 text-success"></i>
+                </div>
+                <div>
+                    <p class="text-muted mb-0 small">À venir</p>
+                    <h4 class="mb-0 fw-bold">{{ upcoming_events|default:"0" }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card-event">
+            <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-calendar-week fs-4 text-warning"></i>
+                </div>
+                <div>
+                    <p class="text-muted mb-0 small">Cette semaine</p>
+                    <h4 class="mb-0 fw-bold">{{ this_week_events|default:"0" }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card-event">
+            <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                    <i class="bi bi-eye fs-4 text-info"></i>
+                </div>
+                <div>
+                    <p class="text-muted mb-0 small">Publiés</p>
+                    <h4 class="mb-0 fw-bold">{{ published_events|default:"0" }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Filters & Actions -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control bg-light border-0" name="q" placeholder="Rechercher un événement..." value="{{ search|default:'' }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select bg-light border-0" name="type" onchange="this.form.submit()">
+                    <option value="">Tous les types</option>
+                    {% for type_value, type_label in event_types %}
+                    <option value="{{ type_value }}" {% if event_type == type_value %}selected{% endif %}>{{ type_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select bg-light border-0" name="status" onchange="this.form.submit()">
+                    <option value="">Tous les statuts</option>
+                    <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>À venir</option>
+                    <option value="past" {% if status_filter == 'past' %}selected{% endif %}>Passés</option>
+                    <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Publiés</option>
+                </select>
+            </div>
+            <div class="col-md-2 text-md-end">
+                <a href="{% url 'event-create' %}" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-lg me-2"></i>Nouveau
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Events Grid -->
+<div class="row g-4">
+    {% for event in events %}
+    <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="card event-card shadow-sm h-100">
+            <!-- Poster or Placeholder -->
+            <div class="position-relative">
+                {% if event.poster_image %}
+                <img src="{{ event.poster_image.url }}" alt="{{ event.title }}" class="event-poster">
+                {% else %}
+                <div class="event-poster-placeholder">
+                    <i class="bi bi-calendar-event fs-1"></i>
+                </div>
+                {% endif %}
+                
+                <!-- Date Badge -->
+                <div class="event-date-badge">
+                    <div class="event-date-day">{{ event.date|date:"d" }}</div>
+                    <div class="event-date-month">{{ event.date|date:"M" }}</div>
+                </div>
+                
+                <!-- Alert Badge -->
+                {% if event.is_alert %}
+                <div class="position-absolute top-0 end-0 m-2">
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Urgent</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card-body">
+                <!-- Type & Time -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary event-type-badge">
+                        {{ event.get_event_type_display }}
+                    </span>
+                    <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ event.time|time:"H:i" }}</small>
+                </div>
+                
+                <!-- Title -->
+                <h5 class="card-title fw-bold mb-2">{{ event.title }}</h5>
+                
+                <!-- Location -->
+                <p class="text-muted small mb-3"><i class="bi bi-geo-alt me-1"></i>{{ event.location|default:"Lieu non défini" }}</p>
+                
+                <!-- Team Info -->
+                <div class="mb-3">
+                    {% if event.preacher %}
+                    <span class="team-tag mb-1"><i class="bi bi-mic"></i> {{ event.preacher }}</span>
+                    {% endif %}
+                    {% if event.choir %}
+                    <span class="team-tag mb-1"><i class="bi bi-music-note-beamed"></i> {{ event.choir }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Status -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    {% if event.is_published %}
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-check-circle me-1"></i>Publié</span>
+                    {% else %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-eye-slash me-1"></i>Brouillon</span>
+                    {% endif %}
+                    <small class="text-muted">{{ event.date|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+            
             <!-- Actions -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-3">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select bg-light border-0" id="typeFilter">
-                                <option value="">Tous les types</option>
-                                <option value="service">Culte</option>
-                                <option value="meeting">Réunion</option>
-                                <option value="conference">Conférence</option>
-                                <option value="social">Social</option>
-                                <option value="other">Autre</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select bg-light border-0" id="statusFilter">
-                                <option value="">Tous</option>
-                                <option value="upcoming">À venir</option>
-                                <option value="past">Passés</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 text-md-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
-                                <i class="bi bi-plus-lg me-2"></i>Nouvel événement
-                            </button>
-                        </div>
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'event-detail' event.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye me-2"></i>Voir détails
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'attendance-event' event.pk %}" class="btn btn-outline-success btn-sm flex-fill" title="Pointage">
+                            <i class="bi bi-clipboard-check"></i> Pointage
+                        </a>
+                        <a href="{% url 'event-edit' event.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'event-delete' event.pk %}" class="btn btn-outline-danger btn-sm" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <!-- Events List -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-semibold">Liste des événements</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div id="eventsList">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary"></div>
-                            <p class="text-muted mt-2">Chargement des événements...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <nav class="mt-4" id="paginationNav" style="display: none;">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
-                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
-                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
-                </ul>
-            </nav>
         </div>
     </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">Aucun événement trouvé</h5>
+            <p class="text-muted">Commencez par créer votre premier événement</p>
+            <a href="{% url 'event-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Créer un événement
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 
-    <!-- Add Event Modal -->
-    <div class="modal fade" id="addEventModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Nouvel événement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if event_type %}&type={{ event_type }}{% endif %}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Précédent</a>
+        </li>
+        {% endif %}
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if event_type %}&type={{ event_type }}{% endif %}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Suivant</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endif %}
+
+<!-- ========================================================== -->
+<!-- FORMULAIRE ÉVÉNEMENT (Créer/Modifier) -->
+<!-- ========================================================== -->
+{% if view == 'event_form' %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent py-4 border-0">
+                <h5 class="mb-1 fw-semibold"><i class="bi bi-calendar-plus me-2 text-primary"></i>{{ action }} un Événement</h5>
+                <p class="text-muted small mb-0">Remplissez les informations pour {{ action|lower }} l'événement</p>
+            </div>
+            <div class="card-body pt-0">
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i><strong>Erreur!</strong> Veuillez corriger les erreurs ci-dessous.
                 </div>
-                <div class="modal-body">
-                    <form id="addEventForm">
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Informations de base -->
+                    <div class="form-section-event">
+                        <h6 class="fw-semibold mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>Informations de base</h6>
                         <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-medium">Titre de l'événement *</label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Type d'événement *</label>
+                                {{ form.event_type }}
+                                {% if form.event_type.errors %}
+                                <div class="invalid-feedback d-block">{{ form.event_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Date *</label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                <div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Heure *</label>
+                                {{ form.time }}
+                                {% if form.time.errors %}
+                                <div class="invalid-feedback d-block">{{ form.time.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Durée</label>
+                                {{ form.duration_type }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Lieu</label>
+                                {{ form.location }}
+                            </div>
                             <div class="col-12">
-                                <label class="form-label">Titre *</label>
-                                <input type="text" class="form-control" name="title" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control" name="date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Heure</label>
-                                <input type="time" class="form-control" name="time">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Type</label>
-                                <select class="form-select" name="event_type">
-                                    <option value="service">Culte</option>
-                                    <option value="meeting">Réunion</option>
-                                    <option value="conference">Conférence</option>
-                                    <option value="social">Social</option>
-                                    <option value="other">Autre</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Lieu</label>
-                                <input type="text" class="form-control" name="location" placeholder="Ex: Salle principale">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control" name="description" rows="3"></textarea>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" id="saveEventBtn">Enregistrer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
-
-<script>
-    let currentPage = 1;
-    let totalPages = 1;
-    let searchQuery = '';
-    let typeFilter = '';
-    let statusFilter = '';
-
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadEvents();
-
-        document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
-        document.getElementById('typeFilter').addEventListener('change', handleTypeFilter);
-        document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
-        document.getElementById('saveEventBtn').addEventListener('click', saveEvent);
-        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
-        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
-    });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'events');
-    }
-
-    function debounce(fn, delay) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fn.apply(this, args), delay);
-        };
-    }
-
-    function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadEvents(); }
-    function handleTypeFilter(e) { typeFilter = e.target.value; currentPage = 1; loadEvents(); }
-    function handleStatusFilter(e) { statusFilter = e.target.value; currentPage = 1; loadEvents(); }
-
-    function changePage(delta) {
-        const newPage = currentPage + delta;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            loadEvents();
-        }
-    }
-
-    async function loadEvents() {
-        try {
-            const params = { page: currentPage };
-            if (searchQuery) params.search = searchQuery;
-            if (typeFilter) params.event_type = typeFilter;
-            if (statusFilter) params.status = statusFilter;
-
-            const response = await API.api.get('/api/events/', params);
-            const events = response.results || response;
-            
-            renderEvents(events);
-            updatePagination(response.count, events.length);
-            updateStats(response.stats || { total: events.length });
-        } catch (error) {
-            console.error('Failed to load events:', error);
-            Toast.error('Erreur', 'Impossible de charger les événements');
-        }
-    }
-
-    function renderEvents(events) {
-        const container = document.getElementById('eventsList');
-        
-        if (events.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-calendar-x fs-1 text-muted mb-3 d-block"></i>
-                    <p class="text-muted">Aucun événement trouvé</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = events.map(event => {
-            const eventDate = new Date(event.date);
-            const isPast = eventDate < new Date();
-            const statusClass = isPast ? 'past' : 'upcoming';
-            const statusBadge = isPast ? 
-                '<span class="badge bg-secondary">Passé</span>' : 
-                '<span class="badge bg-success">À venir</span>';
-            
-            return `
-                <div class="p-4 border-bottom event-card ${statusClass}">
-                    <div class="d-flex gap-4">
-                        <div class="event-date rounded-3 p-2 ${isPast ? 'bg-light' : 'bg-success bg-opacity-10'}">
-                            <div class="event-date-day ${isPast ? 'text-muted' : 'text-success'}">${eventDate.getDate()}</div>
-                            <div class="event-date-month ${isPast ? 'text-muted' : 'text-success'}">${eventDate.toLocaleDateString('fr-FR', { month: 'short' })}</div>
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="mb-1 fw-semibold">${event.title}</h6>
-                                    <p class="text-muted small mb-2">${event.description || 'Pas de description'}</p>
-                                    <div class="d-flex gap-3 small text-muted">
-                                        <span><i class="bi bi-clock me-1"></i>${event.time || 'Heure non définie'}</span>
-                                        <span><i class="bi bi-geo-alt me-1"></i>${event.location || 'Lieu non défini'}</span>
-                                        <span><i class="bi bi-tag me-1"></i>${getEventTypeLabel(event.event_type)}</span>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    ${statusBadge}
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="event-detail.html?id=${event.id}"><i class="bi bi-eye me-2"></i>Voir</a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="editEvent(${event.id})"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
-                                            ${Auth.isAdmin() ? `<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="#" onclick="deleteEvent(${event.id})"><i class="bi bi-trash me-2"></i>Supprimer</a></li>` : ''}
-                                        </ul>
-                                    </div>
-                                </div>
+                                <label class="form-label fw-medium">Description</label>
+                                {{ form.description }}
                             </div>
                         </div>
                     </div>
-                </div>
-            `;
-        }).join('');
-    }
+                    
+                    <!-- Équipe de service -->
+                    <div class="form-section-event">
+                        <h6 class="fw-semibold mb-3"><i class="bi bi-people me-2 text-primary"></i>Équipe de service</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Modérateur</label>
+                                {{ form.moderator }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Prédicateur / Orateur</label>
+                                {{ form.preacher }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Chorale / Groupe de louange</label>
+                                {{ form.choir }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Communicateur / MC</label>
+                                {{ form.communicator }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Équipe de protocole</label>
+                                {{ form.protocol_team }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Équipe technique</label>
+                                {{ form.tech_team }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Responsable</label>
+                                {{ form.responsible }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Département</label>
+                                {{ form.department }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Affichage et Alertes -->
+                    <div class="form-section-event">
+                        <h6 class="fw-semibold mb-3"><i class="bi bi-gear me-2 text-primary"></i>Options d'affichage</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Affiche / Image</label>
+                                {{ form.poster_image }}
+                                {% if event and event.poster_image %}
+                                <div class="mt-2">
+                                    <img src="{{ event.poster_image.url }}" alt="Affiche" style="max-width: 200px; border-radius: 8px;">
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_published }}
+                                    <label class="form-check-label fw-medium">Publier l'événement</label>
+                                    <div class="form-text">L'événement sera visible sur le site public</div>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.is_alert }}
+                                    <label class="form-check-label fw-medium">Marquer comme urgent</label>
+                                </div>
+                                {% if form.is_alert.value %}
+                                <div class="mt-2">
+                                    <label class="form-label fw-medium">Message d'alerte</label>
+                                    {{ form.alert_message }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-2"></i>{{ action }}
+                        </button>
+                        <a href="{% url 'event-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
-    function getEventTypeLabel(type) {
-        const labels = { 'service': 'Culte', 'meeting': 'Réunion', 'conference': 'Conférence', 'social': 'Social', 'other': 'Autre' };
-        return labels[type] || type;
-    }
+<!-- ========================================================== -->
+<!-- CONFIRMATION SUPPRESSION -->
+<!-- ========================================================== -->
+{% if delete_confirm %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white py-4 border-0">
+                <h5 class="mb-0 fw-semibold"><i class="bi bi-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
+            </div>
+            <div class="card-body text-center p-5">
+                <i class="bi bi-calendar-x fs-1 text-danger mb-3 d-block"></i>
+                <h5>Êtes-vous sûr de vouloir supprimer ?</h5>
+                <p class="text-muted">
+                    <strong>{{ event.title }}</strong><br>
+                    <small>{{ event.date|date:"d/m/Y" }} - {{ event.get_event_type_display }}</small>
+                </p>
+                <p class="text-muted small">Cette action est irréversible.</p>
+                
+                <form method="post" class="d-flex gap-2 justify-content-center mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-2"></i>Oui, supprimer
+                    </button>
+                    <a href="{% url 'event-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
-    function updatePagination(totalCount, pageSize) {
-        totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-        document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-        document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-        document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-    }
-
-    function updateStats(stats) {
-        document.getElementById('totalEvents').textContent = stats.total || '-';
-        document.getElementById('upcomingEvents').textContent = stats.upcoming || '-';
-        document.getElementById('weekEvents').textContent = stats.this_week || '-';
-    }
-
-    async function saveEvent() {
-        const form = document.getElementById('addEventForm');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        try {
-            await API.api.post('/api/events/', data);
-            Toast.success('Succès', 'Événement créé avec succès');
-            bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
-            form.reset();
-            loadEvents();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de créer l\'événement');
-        }
-    }
-
-    async function deleteEvent(id) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
-        try {
-            await API.api.delete(`/api/events/${id}/`);
-            Toast.success('Succès', 'Événement supprimé');
-            loadEvents();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de supprimer');
-        }
-    }
-
-    function editEvent(id) {
-        window.location.href = `event-edit.html?id=${id}`;
-    }
-</script>
 {% endblock %}

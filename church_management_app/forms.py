@@ -40,34 +40,171 @@ class LoginForm(AuthenticationForm):
 
 class UserCreateForm(UserCreationForm):
     """Formulaire de création d'utilisateur"""
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(max_length=30, required=True)
-    last_name = forms.CharField(max_length=30, required=True)
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
     role = forms.ChoiceField(
         choices=User.ROLE_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    phone = forms.CharField(max_length=20, required=False)
+    phone = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    photo = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'form-control'})
+    )
+    password1 = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+    password2 = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
     
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'phone', 'password1', 'password2']
+        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'phone', 'photo', 'password1', 'password2']
 
 
 class UserUpdateForm(forms.ModelForm):
-    """Formulaire de mise à jour d'utilisateur"""
-    email = forms.EmailField(required=True)
-    first_name = forms.CharField(max_length=30, required=True)
-    last_name = forms.CharField(max_length=30, required=True)
+    """Formulaire de mise à jour d'utilisateur (avec role - pour admins)"""
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(
+        max_length=30, 
+        required=True,
+        label='Prénom',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=30, 
+        required=True,
+        label='Nom',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    phone = forms.CharField(
+        max_length=20, 
+        required=False,
+        label='Téléphone',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    photo = forms.ImageField(
+        required=False,
+        label='Photo de profil',
+        widget=forms.FileInput(attrs={'class': 'form-control'})
+    )
     role = forms.ChoiceField(
         choices=User.ROLE_CHOICES,
+        required=True,
+        label='Rôle',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    phone = forms.CharField(max_length=20, required=False)
     
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'role', 'phone']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'photo', 'role']
+
+
+class ProfileUpdateForm(forms.ModelForm):
+    """Formulaire d'édition de son propre profil (sans role)"""
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    first_name = forms.CharField(
+        max_length=30, 
+        required=True,
+        label='Prénom',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=30, 
+        required=True,
+        label='Nom',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    phone = forms.CharField(
+        max_length=20, 
+        required=False,
+        label='Téléphone',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    photo = forms.ImageField(
+        required=False,
+        label='Photo de profil',
+        widget=forms.FileInput(attrs={'class': 'form-control'})
+    )
+    
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone', 'photo']
+
+
+class PasswordChangeCustomForm(forms.Form):
+    """Formulaire de changement de mot de passe"""
+    current_password = forms.CharField(
+        label='Mot de passe actuel',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Mot de passe actuel'
+        })
+    )
+    new_password = forms.CharField(
+        label='Nouveau mot de passe',
+        min_length=8,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nouveau mot de passe'
+        })
+    )
+    confirm_password = forms.CharField(
+        label='Confirmer le mot de passe',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirmer le mot de passe'
+        })
+    )
+    
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+    
+    def clean_current_password(self):
+        current = self.cleaned_data.get('current_password')
+        if not self.user.check_password(current):
+            raise forms.ValidationError('Le mot de passe actuel est incorrect.')
+        return current
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        new = cleaned_data.get('new_password')
+        confirm = cleaned_data.get('confirm_password')
+        if new and confirm and new != confirm:
+            raise forms.ValidationError('Les mots de passe ne correspondent pas.')
+        return cleaned_data
+    
+    def save(self):
+        self.user.set_password(self.cleaned_data['new_password'])
+        self.user.save()
+        return self.user
 
 
 # ============================================================
@@ -75,30 +212,102 @@ class UserUpdateForm(forms.ModelForm):
 # ============================================================
 
 class MemberForm(forms.ModelForm):
-    """Formulaire pour créer/modifier un membre"""
+    """Formulaire pour créer/modifier un membre avec données User"""
+    # Champs User
+    first_name = forms.CharField(max_length=30, required=True, label='Prénom',
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=30, required=True, label='Nom',
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=False, label='Email',
+        widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(max_length=20, required=False, label='Téléphone',
+        widget=forms.TextInput(attrs={'class': 'form-control'}))
+    photo = forms.ImageField(required=False, label='Photo',
+        widget=forms.FileInput(attrs={'class': 'form-control'}))
     
     class Meta:
         model = Member
         fields = [
-            'user', 'birth_date', 'place_of_birth', 'gender', 'nationality',
+            'first_name', 'last_name', 'email', 'phone', 'photo',
+            'birth_date', 'place_of_birth', 'gender', 'nationality',
             'marital_status', 'occupation', 'public_function', 'church_position',
             'education_level', 'father_full_name', 'mother_full_name',
             'province', 'city', 'commune', 'quarter', 'avenue', 'house_number',
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
             'baptism_date', 'family', 'home_group', 'department', 'ministry',
-            'is_active', 'inactive_reason'
+            'is_active'
         ]
         widgets = {
             'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'baptism_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
-            'user': forms.Select(attrs={'class': 'form-select'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
+            'nationality': forms.TextInput(attrs={'class': 'form-control'}),
+            'marital_status': forms.Select(attrs={'class': 'form-select'}),
+            'occupation': forms.TextInput(attrs={'class': 'form-control'}),
+            'public_function': forms.TextInput(attrs={'class': 'form-control'}),
+            'church_position': forms.TextInput(attrs={'class': 'form-control'}),
+            'education_level': forms.TextInput(attrs={'class': 'form-control'}),
+            'father_full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'mother_full_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'province': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'commune': forms.TextInput(attrs={'class': 'form-control'}),
+            'quarter': forms.TextInput(attrs={'class': 'form-control'}),
+            'avenue': forms.TextInput(attrs={'class': 'form-control'}),
+            'house_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'emergency_contact_relation': forms.TextInput(attrs={'class': 'form-control'}),
             'family': forms.Select(attrs={'class': 'form-select'}),
             'home_group': forms.Select(attrs={'class': 'form-select'}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'ministry': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pré-remplir les champs User si modification
+        if self.instance and self.instance.pk and self.instance.user:
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['email'].initial = self.instance.user.email
+            self.fields['phone'].initial = self.instance.user.phone
+    
+    def save(self, commit=True):
+        member = super().save(commit=False)
+        
+        # Créer ou mettre à jour l'utilisateur
+        if not member.pk or not member.user:
+            # Création : nouvel utilisateur
+            user = User.objects.create(
+                username=self.cleaned_data['email'] or f"member_{Member.objects.count() + 1}",
+                first_name=self.cleaned_data['first_name'],
+                last_name=self.cleaned_data['last_name'],
+                email=self.cleaned_data['email'] or '',
+                phone=self.cleaned_data['phone'] or '',
+            )
+            if self.cleaned_data.get('photo'):
+                user.photo = self.cleaned_data['photo']
+                user.save()
+            member.user = user
+        else:
+            # Modification : mettre à jour l'utilisateur existant
+            user = member.user
+            user.first_name = self.cleaned_data['first_name']
+            user.last_name = self.cleaned_data['last_name']
+            user.email = self.cleaned_data['email'] or ''
+            user.phone = self.cleaned_data['phone'] or ''
+            if self.cleaned_data.get('photo'):
+                user.photo = self.cleaned_data['photo']
+            user.save()
+        
+        if commit:
+            member.save()
+            self.save_m2m()
+        
+        return member
 
 
 class FamilyForm(forms.ModelForm):
@@ -160,34 +369,45 @@ class MinistryForm(forms.ModelForm):
 # ============================================================
 
 class EventForm(forms.ModelForm):
-    """Formulaire pour créer/modifier un événement"""
-    EVENT_TYPE_CHOICES = [
-        ('service', 'Culte'),
-        ('prayer', 'Prière'),
-        ('meeting', 'Réunion'),
-        ('training', 'Formation'),
-        ('baptism', 'Baptême'),
-        ('wedding', 'Mariage'),
-        ('conference', 'Conférence'),
-        ('other', 'Autre'),
-    ]
-    
-    event_type = forms.ChoiceField(
-        choices=EVENT_TYPE_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
+    """Formulaire complet pour créer/modifier un événement"""
     
     class Meta:
         model = Event
-        fields = ['title', 'description', 'event_type', 'date', 'time', 'location', 'is_published']
+        fields = [
+            'title', 'description', 'event_type', 'duration_type', 'date', 'time',
+            'location', 'moderator', 'preacher', 'choir', 'protocol_team',
+            'tech_team', 'communicator', 'responsible', 'department',
+            'poster_image', 'is_published', 'is_alert', 'alert_message'
+        ]
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Titre de l\'événement'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description détaillée...'}),
+            'event_type': forms.Select(attrs={'class': 'form-select'}),
+            'duration_type': forms.Select(attrs={'class': 'form-select'}),
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
-            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lieu de l\'événement'}),
+            'moderator': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Modérateur'}),
+            'preacher': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Prédicateur / Orateur'}),
+            'choir': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Chorale / Groupe de louange'}),
+            'protocol_team': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Équipe de protocole'}),
+            'tech_team': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Équipe technique'}),
+            'communicator': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Communicateur / MC'}),
+            'responsible': forms.Select(attrs={'class': 'form-select'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'poster_image': forms.FileInput(attrs={'class': 'form-control'}),
             'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_alert': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'alert_message': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Message d\'alerte (si urgent)'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rendre les champs optionnels vides par défaut
+        self.fields['responsible'].empty_label = "-- Sélectionner un responsable --"
+        self.fields['department'].empty_label = "-- Sélectionner un département --"
+        self.fields['responsible'].queryset = Member.objects.filter(is_active=True)
+        self.fields['department'].queryset = Department.objects.all()
 
 
 class AttendanceForm(forms.ModelForm):

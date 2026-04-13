@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Gestion des Membres{% endblock %}
 
@@ -16,384 +17,204 @@
 
 {% block content %}
 <div class="container-fluid p-4">
-            <!-- Stats -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi bi-people fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Total Membres</p>
-                                    <h4 class="mb-0 fw-bold" id="totalMembers">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-person-check fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Actifs</p>
-                                    <h4 class="mb-0 fw-bold" id="activeMembers">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-person-plus fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Nouveaux (ce mois)</p>
-                                    <h4 class="mb-0 fw-bold" id="newMembers">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(239,68,68,0.1);">
-                                    <i class="bi bi-heart fs-4" style="color: #ef4444;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Mariés</p>
-                                    <h4 class="mb-0 fw-bold" id="marriedMembers">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
 
-            <!-- Actions -->
-            <div class="card border-0 shadow-sm mb-4">
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher un membre...">
-                            </div>
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
+                            <i class="bi bi-people fs-4" style="color: #6366f1;"></i>
                         </div>
-                        <div class="col-md-4">
-                            <select class="form-select bg-light border-0" id="statusFilter">
-                                <option value="">Tous les statuts</option>
-                                <option value="active">Actif</option>
-                                <option value="inactive">Inactif</option>
-                                <option value="visitor">Visiteur</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                                <i class="bi bi-plus-lg me-2"></i>Ajouter un membre
-                            </button>
+                        <div>
+                            <p class="text-muted mb-0 small">Total Membres</p>
+                            <h4 class="mb-0 fw-bold">{{ total_members }}</h4>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Members Grid -->
-            <div class="row g-3" id="membersGrid">
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="text-muted mt-2">Chargement des membres...</p>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <nav class="mt-4" id="paginationNav" style="display: none;">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
-                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
-                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
-                </ul>
-            </nav>
         </div>
-    </div>
-
-    <!-- Add Member Modal -->
-    <div class="modal fade" id="addMemberModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Ajouter un membre</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addMemberForm">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Prénom *</label>
-                                <input type="text" class="form-control" name="first_name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" class="form-control" name="last_name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Téléphone</label>
-                                <input type="tel" class="form-control" name="phone">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date de naissance</label>
-                                <input type="date" class="form-control" name="date_of_birth">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Genre</label>
-                                <select class="form-select" name="gender">
-                                    <option value="">Sélectionner</option>
-                                    <option value="M">Masculin</option>
-                                    <option value="F">Féminin</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Statut</label>
-                                <select class="form-select" name="status">
-                                    <option value="active">Actif</option>
-                                    <option value="inactive">Inactif</option>
-                                    <option value="visitor">Visiteur</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Situation matrimoniale</label>
-                                <select class="form-select" name="marital_status">
-                                    <option value="single">Célibataire</option>
-                                    <option value="married">Marié(e)</option>
-                                    <option value="divorced">Divorcé(e)</option>
-                                    <option value="widowed">Veuf/Veuve</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Adresse</label>
-                                <textarea class="form-control" name="address" rows="2"></textarea>
-                            </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
+                            <i class="bi bi-person-check fs-4" style="color: #10b981;"></i>
                         </div>
-                    </form>
+                        <div>
+                            <p class="text-muted mb-0 small">Actifs</p>
+                            <h4 class="mb-0 fw-bold">{{ active_members }}</h4>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" id="saveMemberBtn">Enregistrer</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
+                            <i class="bi bi-person-plus fs-4" style="color: #f59e0b;"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Nouveaux (ce mois)</p>
+                            <h4 class="mb-0 fw-bold">{{ new_members }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(239,68,68,0.1);">
+                            <i class="bi bi-heart fs-4" style="color: #ef4444;"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Mariés</p>
+                            <h4 class="mb-0 fw-bold">{{ married_members }}</h4>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
-
-<script>
-    let currentPage = 1;
-    let totalPages = 1;
-    let searchQuery = '';
-    let statusFilter = '';
-
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadMembers();
-
-        // Event listeners
-        document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
-        document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
-        document.getElementById('saveMemberBtn').addEventListener('click', saveMember);
-        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
-        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
-    });
-
-    function initUI() {
-        const user = Auth.state.user;
-        if (window.Navigation) Navigation.render('sidebarNav', 'members');
-    }
-
-    function debounce(fn, delay) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fn.apply(this, args), delay);
-        };
-    }
-
-    function handleSearch(e) {
-        searchQuery = e.target.value;
-        currentPage = 1;
-        loadMembers();
-    }
-
-    function handleStatusFilter(e) {
-        statusFilter = e.target.value;
-        currentPage = 1;
-        loadMembers();
-    }
-
-    function changePage(delta) {
-        const newPage = currentPage + delta;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            loadMembers();
-        }
-    }
-
-    async function loadMembers() {
-        try {
-            const params = { page: currentPage };
-            if (searchQuery) params.search = searchQuery;
-            if (statusFilter) params.status = statusFilter;
-
-            const response = await API.api.get('/api/members/', params);
-            const members = response.results || response;
-            
-            renderMembers(members);
-            updatePagination(response.count, members.length);
-            updateStats(response.stats);
-        } catch (error) {
-            console.error('Failed to load members:', error);
-            Toast.error('Erreur', 'Impossible de charger les membres');
-        }
-    }
-
-    function renderMembers(members) {
-        const container = document.getElementById('membersGrid');
-        
-        if (members.length === 0) {
-            container.innerHTML = `
-                <div class="col-12 text-center py-5">
-                    <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
-                    <p class="text-muted">Aucun membre trouvé</p>
+    <!-- Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" name="q" placeholder="Rechercher un membre..." value="{{ search|default:'' }}">
+                    </div>
                 </div>
-            `;
-            return;
-        }
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" name="status">
+                        <option value="">Tous les statuts</option>
+                        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Actif</option>
+                        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactif</option>
+                        <option value="visitor" {% if status_filter == 'visitor' %}selected{% endif %}>Visiteur</option>
+                    </select>
+                </div>
+                <div class="col-md-5 text-md-end">
+                    <div class="d-flex gap-2 justify-content-md-end">
+                        {% if user|can_export %}
+                        <a href="{% url 'member-print-list' %}" class="btn btn-outline-secondary" target="_blank" title="Imprimer la liste">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                        <a href="{% url 'member-export' %}" class="btn btn-outline-success" title="Exporter Excel">
+                            <i class="bi bi-file-excel"></i>
+                        </a>
+                        {% endif %}
+                        {% if user|can_create %}
+                        <a href="{% url 'member-create' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-2"></i>Ajouter
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 
-        container.innerHTML = members.map(member => `
+    <!-- Members Grid -->
+    <div class="row g-3">
+        {% if members %}
+            {% for member in members %}
             <div class="col-md-6 col-xl-4">
                 <div class="card border-0 shadow-sm member-card h-100">
                     <div class="card-body">
                         <div class="d-flex align-items-start gap-3">
-                            <img src="${member.photo || 'https://via.placeholder.com/48'}" 
-                                 alt="${member.first_name}" 
+                            <img src="{% if member.user.photo %}{{ member.user.photo.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                                 alt="{{ member.user.first_name }}" 
                                  class="member-avatar">
                             <div class="flex-grow-1 min-w-0">
                                 <div class="d-flex align-items-center gap-2">
-                                    <h6 class="mb-0 fw-semibold text-truncate">${member.first_name} ${member.last_name}</h6>
-                                    <span class="status-badge ${getStatusClass(member.status)}">${getStatusLabel(member.status)}</span>
+                                    <h6 class="mb-0 fw-semibold text-truncate">{{ member.user.first_name }} {{ member.user.last_name }}</h6>
+                                    {% if member.is_active %}
+                                    <span class="status-badge bg-success bg-opacity-10 text-success">Actif</span>
+                                    {% else %}
+                                    <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Inactif</span>
+                                    {% endif %}
                                 </div>
-                                <p class="text-muted small mb-1 text-truncate">${member.email || 'Pas d\'email'}</p>
-                                <p class="text-muted small mb-0"><i class="bi bi-telephone me-1"></i>${member.phone || 'N/A'}</p>
+                                <p class="text-muted small mb-1 text-truncate">{{ member.user.email|default:"Pas d'email" }}</p>
+                                <p class="text-muted small mb-0"><i class="bi bi-telephone me-1"></i>{{ member.user.phone|default:"N/A" }}</p>
                             </div>
                         </div>
                         <div class="d-flex gap-2 mt-3 pt-3 border-top">
-                            <a href="member-detail.html?id=${member.id}" class="btn btn-sm btn-outline-primary flex-fill">
+                            <a href="{% url 'member-detail' member.pk %}" class="btn btn-sm btn-outline-primary flex-fill">
                                 <i class="bi bi-eye me-1"></i>Voir
                             </a>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="editMember(${member.id})">
+                            {% if user|can_edit %}
+                            <a href="{% url 'member-edit' member.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                                 <i class="bi bi-pencil"></i>
-                            </button>
-                            ${Auth.isAdmin() ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteMember(${member.id})">
+                            </a>
+                            {% endif %}
+                            {% if user|can_export %}
+                            <a href="{% url 'member-print-card' member.pk %}" class="btn btn-sm btn-outline-info" target="_blank" title="Carte">
+                                <i class="bi bi-card-text"></i>
+                            </a>
+                            {% endif %}
+                            {% if user|can_delete %}
+                            <a href="{% url 'member-delete' member.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')">
                                 <i class="bi bi-trash"></i>
-                            </button>` : ''}
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
-        `).join('');
-    }
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucun membre trouvé</p>
+            </div>
+        {% endif %}
+    </div>
 
-    function getStatusClass(status) {
-        const classes = {
-            'active': 'bg-success bg-opacity-10 text-success',
-            'inactive': 'bg-secondary bg-opacity-10 text-secondary',
-            'visitor': 'bg-warning bg-opacity-10 text-warning'
-        };
-        return classes[status] || 'bg-secondary bg-opacity-10 text-secondary';
-    }
-
-    function getStatusLabel(status) {
-        const labels = {
-            'active': 'Actif',
-            'inactive': 'Inactif',
-            'visitor': 'Visiteur'
-        };
-        return labels[status] || status;
-    }
-
-    function updatePagination(totalCount, pageSize) {
-        totalPages = Math.ceil(totalCount / pageSize) || 1;
-        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-        document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-        document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-        document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-    }
-
-    function updateStats(stats) {
-        if (!stats) return;
-        document.getElementById('totalMembers').textContent = stats.total || '-';
-        document.getElementById('activeMembers').textContent = stats.active || '-';
-        document.getElementById('newMembers').textContent = stats.new_this_month || '-';
-        document.getElementById('marriedMembers').textContent = stats.married || '-';
-    }
-
-    async function saveMember() {
-        const form = document.getElementById('addMemberForm');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        try {
-            await API.api.post('/api/members/', data);
-            Toast.success('Succès', 'Membre ajouté avec succès');
-            bootstrap.Modal.getInstance(document.getElementById('addMemberModal')).hide();
-            form.reset();
-            loadMembers();
-        } catch (error) {
-            console.error('Failed to save member:', error);
-            Toast.error('Erreur', 'Impossible d\'ajouter le membre');
-        }
-    }
-
-    async function deleteMember(id) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return;
-
-        try {
-            await API.api.delete(`/api/members/${id}/`);
-            Toast.success('Succès', 'Membre supprimé');
-            loadMembers();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de supprimer le membre');
-        }
-    }
-
-    function editMember(id) {
-        window.location.href = `member-edit.html?id=${id}`;
-    }
-</script>
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Précédent</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Précédent</span>
+            </li>
+            {% endif %}
+            
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Suivant</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Suivant</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 {% endblock %}

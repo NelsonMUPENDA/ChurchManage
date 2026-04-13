@@ -1,6 +1,7 @@
-# church_management_app/urls.py - URLs Django traditionnelles (sans API)
+# church_management_app/urls.py - URLs Django
 from django.urls import path
 from . import views
+from .views_user_management import user_management, user_create_admin, user_created_success, user_edit_admin, user_delete_admin, user_toggle_active
 
 urlpatterns = [
     # Page d'accueil
@@ -19,6 +20,9 @@ urlpatterns = [
     path('members/<int:pk>/', views.member_detail, name='member-detail'),
     path('members/<int:pk>/edit/', views.member_edit, name='member-edit'),
     path('members/<int:pk>/delete/', views.member_delete, name='member-delete'),
+    path('members/print/', views.member_print_list, name='member-print-list'),
+    path('members/export/', views.member_export, name='member-export'),
+    path('members/<int:pk>/print-card/', views.member_print_card, name='member-print-card'),
     
     # Familles - CRUD
     path('families/', views.family_list, name='family-list'),
@@ -112,6 +116,14 @@ urlpatterns = [
     # Compte utilisateur
     path('account/', views.account, name='account'),
     path('account/edit/', views.account_edit, name='account-edit'),
+    
+    # Gestion des utilisateurs système (Admin)
+    path('account/users/', user_management, name='user-management'),
+    path('account/users/create/', user_create_admin, name='user-create-admin'),
+    path('account/users/created/', user_created_success, name='user-created-success'),
+    path('account/users/<int:pk>/edit/', user_edit_admin, name='user-edit-admin'),
+    path('account/users/<int:pk>/delete/', user_delete_admin, name='user-delete-admin'),
+    path('account/users/<int:pk>/toggle/', user_toggle_active, name='user-toggle-active'),
     
     # Pages publiques
     path('about/', views.public_about, name='about'),

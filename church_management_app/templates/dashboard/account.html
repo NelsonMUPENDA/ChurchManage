@@ -1,226 +1,918 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
-{% block title %}Mon Compte{% endblock %}
-
-{% block page_title %}Mon Compte{% endblock %}
+{% block title %}{% if view == 'user_management' %}Gestion Utilisateurs{% elif view == 'user_form' %}{{ action }} Utilisateur{% else %}Mon Compte{% endif %}{% endblock %}
+{% block page_title %}{% if view == 'user_management' %}Gestion des Utilisateurs{% elif view == 'user_form' %}{{ action }} un Utilisateur{% else %}Mon Compte{% endif %}{% endblock %}
+{% block page_subtitle %}{% if view == 'user_management' %}Administrer les comptes utilisateurs{% elif view == 'user_form' %}Configuration du compte{% else %}Gérez votre profil et vos préférences{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    .profile-header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 60px 0 80px; margin-bottom: -60px; }
-    .profile-card { margin-top: -40px; }
+    /* ===== Profile Styles ===== */
+    .profile-avatar { 
+        width: 150px; 
+        height: 150px; 
+        border-radius: 50%; 
+        object-fit: cover; 
+        border: 5px solid white; 
+        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3); 
+        transition: transform 0.3s ease;
+    }
+    .profile-avatar:hover {
+        transform: scale(1.02);
+    }
+    .profile-cover {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+        height: 200px;
+        border-radius: 0 0 24px 24px;
+        position: relative;
+        overflow: hidden;
+    }
+    .profile-cover::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .profile-card-wrapper {
+        margin-top: -75px;
+        position: relative;
+        z-index: 10;
+    }
+    
+    /* ===== Card Styles ===== */
+    .card-glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    [data-bs-theme="dark"] .card-glass {
+        background: rgba(30, 41, 59, 0.95);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* ===== Stats Cards ===== */
+    .stat-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    [data-bs-theme="dark"] .stat-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-color: rgba(51, 65, 85, 0.8);
+    }
+    
+    /* ===== Info Rows ===== */
+    .info-row {
+        padding: 1rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        transition: background 0.2s ease;
+    }
+    .info-row:hover {
+        background: rgba(99, 102, 241, 0.02);
+    }
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    [data-bs-theme="dark"] .info-row {
+        border-bottom-color: #334155;
+    }
+    
+    /* ===== Form Styles ===== */
+    .photo-preview {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .form-section {
+        background: #fafafa;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    [data-bs-theme="dark"] .form-section {
+        background: #1e293b;
+    }
+    
+    /* ===== Tab Navigation ===== */
+    .account-tabs {
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    .account-tabs .nav-link {
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #64748b;
+        font-weight: 500;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .account-tabs .nav-link:hover {
+        color: #6366f1;
+        background: rgba(99, 102, 241, 0.05);
+    }
+    .account-tabs .nav-link.active {
+        color: #6366f1;
+        border-bottom-color: #6366f1;
+        background: rgba(99, 102, 241, 0.05);
+    }
+    
+    /* ===== QR Code Button ===== */
+    .qr-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+    }
+    .qr-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    
+    /* ===== User List Styles ===== */
+    .user-avatar-sm {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .user-row {
+        transition: all 0.2s ease;
+    }
+    .user-row:hover {
+        background: rgba(99, 102, 241, 0.05);
+    }
+    
+    /* ===== Credentials Card ===== */
+    .credentials-card {
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        border: 2px dashed #22c55e;
+        border-radius: 16px;
+    }
+    .credential-item {
+        background: white;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="profile-header"></div>
+<!-- ========================================================== -->
+<!-- MON COMPTE (Profil Personnel) -->
+<!-- ========================================================== -->
+{% if not view or view == '' %}
+<!-- Cover Section -->
+<div class="profile-cover mb-0"></div>
 
-<div class="container-fluid px-4">
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <!-- Profile Card -->
-                    <div class="card border-0 shadow-sm profile-card mb-4">
-                        <div class="card-body p-4">
-                            <div class="text-center mb-4">
-                                <div class="position-relative d-inline-block">
-                                    <img src="" alt="Photo de profil" class="profile-avatar" id="profilePhoto">
-                                    <button class="btn btn-light btn-sm rounded-circle position-absolute bottom-0 end-0" style="width: 36px; height: 36px;" onclick="changePhoto()">
-                                        <i class="bi bi-camera"></i>
-                                    </button>
-                                </div>
-                                <h4 class="fw-bold mt-3 mb-1" id="profileName">-</h4>
-                                <p class="text-muted mb-0" id="profileRole">-</p>
+<div class="container-fluid px-4 pb-4">
+    <div class="row g-4">
+        <!-- Left Column - Profile Card -->
+        <div class="col-xl-4">
+            <div class="profile-card-wrapper">
+                <div class="card border-0 shadow-sm card-glass">
+                    <div class="card-body p-4 text-center">
+                        <!-- Photo de profil -->
+                        <div class="position-relative d-inline-block mb-3">
+                            {% if user.photo %}
+                            <img src="{{ user.photo.url }}" alt="{{ user.get_full_name }}" class="profile-avatar">
+                            {% else %}
+                            <div class="profile-avatar bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-person fs-1 text-muted"></i>
                             </div>
-
-                            <form id="profileForm">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Prénom</label>
-                                        <input type="text" class="form-control" name="first_name" id="firstName">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Nom</label>
-                                        <input type="text" class="form-control" name="last_name" id="lastName">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="email" id="email">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Téléphone</label>
-                                        <input type="tel" class="form-control" name="phone" id="phone">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Biographie</label>
-                                        <textarea class="form-control" name="bio" id="bio" rows="3"></textarea>
-                                    </div>
-                                </div>
-                            </form>
-
-                            <hr class="my-4">
-
-                            <h6 class="fw-semibold mb-3">Changer le mot de passe</h6>
-                            <form id="passwordForm">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <input type="password" class="form-control" name="current_password" placeholder="Mot de passe actuel">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="password" class="form-control" name="new_password" placeholder="Nouveau mot de passe">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="password" class="form-control" name="confirm_password" placeholder="Confirmer">
-                                    </div>
-                                </div>
-                            </form>
-
-                            <div class="d-flex gap-2 mt-4">
-                                <button class="btn btn-primary" onclick="saveProfile()">
-                                    <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="resetPassword()">
-                                    <i class="bi bi-key me-2"></i>Changer le mot de passe
-                                </button>
+                            {% endif %}
+                            {% if member and member.qr_code %}
+                            <button class="btn qr-btn position-absolute bottom-0 end-0 p-0 d-flex align-items-center justify-content-center" 
+                                    data-bs-toggle="modal" data-bs-target="#qrModal"
+                                    title="Voir mon QR Code">
+                                <i class="bi bi-qr-code text-primary"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Nom et rôle -->
+                        <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                        <span class="badge bg-primary mb-3 px-3 py-2">{{ user|role_display }}</span>
+                        
+                        <!-- Contact Info -->
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            <div class="d-flex align-items-center justify-content-center gap-2 text-muted">
+                                <i class="bi bi-envelope"></i>
+                                <span>{{ user.email|default:"Email non défini" }}</span>
                             </div>
+                            <div class="d-flex align-items-center justify-content-center gap-2 text-muted">
+                                <i class="bi bi-telephone"></i>
+                                <span>{{ user.phone|default:"Téléphone non défini" }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Membre Info -->
+                        {% if member %}
+                        <div class="alert alert-light border bg-white mb-0">
+                            <small class="d-block text-muted mb-1">Numéro de membre</small>
+                            <span class="fw-bold text-primary fs-5">{{ member.member_number }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Actions rapides -->
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="document.getElementById('edit-profile-tab').click()">
+                                <i class="bi bi-pencil me-2"></i>Modifier mon profil
+                            </button>
+                            {% if member %}
+                            <a href="{% url 'member-print-card' member.pk %}" class="btn btn-outline-primary" target="_blank">
+                                <i class="bi bi-card-text me-2"></i>Ma carte de membre
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
-
-                    <!-- Preferences -->
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold"><i class="bi bi-gear me-2"></i>Préférences</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <h6 class="mb-1">Mode sombre</h6>
-                                    <p class="text-muted small mb-0">Activer le thème sombre</p>
-                                </div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="darkModeSwitch" onchange="toggleThemePreference()">
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <h6 class="mb-1">Notifications email</h6>
-                                    <p class="text-muted small mb-0">Recevoir les notifications par email</p>
-                                </div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="emailNotifSwitch" checked>
+                </div>
+                
+                <!-- Statistiques rapides -->
+                <div class="card border-0 shadow-sm mt-4 card-glass">
+                    <div class="card-header bg-transparent py-3 border-0">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-graph-up me-2 text-primary"></i>Mes statistiques</h6>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="text-primary mb-1"><i class="bi bi-calendar-check fs-4"></i></div>
+                                    <h5 class="fw-bold text-dark mb-0">{{ member_attendance|default:"0" }}</h5>
+                                    <small class="text-muted">Présences</small>
                                 </div>
                             </div>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <h6 class="mb-1">Langue</h6>
-                                    <p class="text-muted small mb-0">Langue de l'interface</p>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="text-success mb-1"><i class="bi bi-calendar-event fs-4"></i></div>
+                                    <h5 class="fw-bold text-dark mb-0">{{ member_events|default:"0" }}</h5>
+                                    <small class="text-muted">Événements</small>
                                 </div>
-                                <select class="form-select" style="width: auto;">
-                                    <option value="fr">Français</option>
-                                    <option value="en">English</option>
-                                </select>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
+        
+        <!-- Right Column - Forms -->
+        <div class="col-xl-8">
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3 shadow-sm" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Tab Navigation -->
+            <div class="card border-0 shadow-sm mb-4 card-glass">
+                <div class="card-body p-0">
+                    <ul class="nav account-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="profile-tab" data-bs-toggle="tab" href="#profile" role="tab">
+                                <i class="bi bi-person me-2"></i>Profil
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="edit-profile-tab" data-bs-toggle="tab" href="#edit-profile" role="tab">
+                                <i class="bi bi-pencil me-2"></i>Modifier
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="security-tab" data-bs-toggle="tab" href="#security" role="tab">
+                                <i class="bi bi-shield-lock me-2"></i>Sécurité
+                            </a>
+                        </li>
+                        {% if member %}
+                        <li class="nav-item">
+                            <a class="nav-link" id="member-tab" data-bs-toggle="tab" href="#member" role="tab">
+                                <i class="bi bi-person-badge me-2"></i>Membre
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <div class="tab-content p-4">
+                        <!-- Tab: Profile View -->
+                        <div class="tab-pane fade show active" id="profile" role="tabpanel">
+                            <h5 class="fw-semibold mb-4"><i class="bi bi-info-circle me-2 text-primary"></i>Informations personnelles</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Nom complet</small>
+                                        <span class="fw-semibold">{{ user.get_full_name|default:"Non défini" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Nom d'utilisateur</small>
+                                        <span class="fw-semibold">{{ user.username }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Email</small>
+                                        <span class="fw-semibold">{{ user.email|default:"Non défini" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Téléphone</small>
+                                        <span class="fw-semibold">{{ user.phone|default:"Non défini" }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Rôle</small>
+                                        <span class="badge bg-primary">{{ user|role_display }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <small class="text-muted d-block mb-1">Membre depuis</small>
+                                        <span class="fw-semibold">{{ user.date_joined|date:"d F Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab: Edit Profile -->
+                        <div class="tab-pane fade" id="edit-profile" role="tabpanel">
+                            {% if profile_form.errors %}
+                            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                                <i class="bi bi-exclamation-triangle me-2"></i><strong>Erreur!</strong> Veuillez corriger les erreurs ci-dessous.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endif %}
+                            
+                            <form method="post" action="{% url 'account-edit' %}" enctype="multipart/form-data" novalidate>
+                                {% csrf_token %}
+                                <input type="hidden" name="form_type" value="profile">
+                                
+                                <div class="form-section">
+                                    <h6 class="fw-semibold mb-3"><i class="bi bi-image me-2 text-primary"></i>Photo de profil</h6>
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if user.photo %}
+                                        <img src="{{ user.photo.url }}" alt="Photo actuelle" class="photo-preview">
+                                        {% else %}
+                                        <div class="photo-preview bg-light d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-person fs-1 text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div class="flex-grow-1">
+                                            {{ profile_form.photo }}
+                                            <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>Formats acceptés: JPG, PNG, GIF. Max 2MB</div>
+                                            {% if profile_form.photo.errors %}
+                                            <div class="invalid-feedback d-block">{{ profile_form.photo.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <h6 class="fw-semibold mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Informations de base</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ profile_form.first_name.label }} *</label>
+                                            {{ profile_form.first_name }}
+                                            {% if profile_form.first_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ profile_form.first_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ profile_form.last_name.label }} *</label>
+                                            {{ profile_form.last_name }}
+                                            {% if profile_form.last_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ profile_form.last_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ profile_form.email.label }} *</label>
+                                            {{ profile_form.email }}
+                                            {% if profile_form.email.errors %}
+                                            <div class="invalid-feedback d-block">{{ profile_form.email.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ profile_form.phone.label }}</label>
+                                            {{ profile_form.phone }}
+                                            {% if profile_form.phone.errors %}
+                                            <div class="invalid-feedback d-block">{{ profile_form.phone.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="bi bi-check-lg me-2"></i>Enregistrer
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('profile-tab').click()">
+                                        Annuler
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Tab: Security -->
+                        <div class="tab-pane fade" id="security" role="tabpanel">
+                            <h5 class="fw-semibold mb-4"><i class="bi bi-shield-lock me-2 text-warning"></i>Changer le mot de passe</h5>
+                            
+                            {% if password_form.non_field_errors %}
+                            <div class="alert alert-danger mb-4">
+                                <i class="bi bi-exclamation-triangle me-2"></i>{{ password_form.non_field_errors.0 }}
+                            </div>
+                            {% endif %}
+                            
+                            <form method="post" action="{% url 'account-edit' %}" novalidate>
+                                {% csrf_token %}
+                                <input type="hidden" name="form_type" value="password">
+                                
+                                <div class="form-section">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label fw-medium">{{ password_form.current_password.label }} *</label>
+                                            {{ password_form.current_password }}
+                                            {% if password_form.current_password.errors %}
+                                            <div class="invalid-feedback d-block">{{ password_form.current_password.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ password_form.new_password.label }} *</label>
+                                            {{ password_form.new_password }}
+                                            <div class="form-text"><i class="bi bi-info-circle me-1"></i>Minimum 8 caractères</div>
+                                            {% if password_form.new_password.errors %}
+                                            <div class="invalid-feedback d-block">{{ password_form.new_password.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium">{{ password_form.confirm_password.label }} *</label>
+                                            {{ password_form.confirm_password }}
+                                            {% if password_form.confirm_password.errors %}
+                                            <div class="invalid-feedback d-block">{{ password_form.confirm_password.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    <div>Après le changement de mot de passe, vous serez déconnecté et devrez vous reconnecter.</div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-warning px-4">
+                                    <i class="bi bi-key me-2"></i>Changer le mot de passe
+                                </button>
+                            </form>
+                        </div>
+                        
+                        {% if member %}
+                        <!-- Tab: Member Info -->
+                        <div class="tab-pane fade" id="member" role="tabpanel">
+                            <h5 class="fw-semibold mb-4"><i class="bi bi-person-badge me-2 text-success"></i>Informations de membre</h5>
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    {% for label, value in member_info.items %}
+                                    <div class="info-row row align-items-center">
+                                        <div class="col-sm-4 text-muted">{{ label }}</div>
+                                        <div class="col-sm-8 fw-medium">{{ value|default:"Non défini" }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <a href="{% url 'member-detail' member.pk %}" class="btn btn-outline-primary">
+                                    <i class="bi bi-eye me-2"></i>Voir mon profil complet de membre
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin: User Management Access -->
+            {% if user|can_manage_users %}
+            <div id="users"></div>
+            <div class="card border-0 shadow-sm card-glass overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="d-flex align-items-center justify-content-between p-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                                <i class="bi bi-people fs-4 text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-semibold mb-1">Gestion des utilisateurs</h6>
+                                <p class="text-muted small mb-0">Ajouter, modifier ou supprimer des utilisateurs système</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'user-management' %}" class="btn btn-primary px-4">
+                            <i class="bi bi-arrow-right me-2"></i>Accéder
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-{% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
+<!-- QR Code Modal -->
+{% if member and member.qr_code %}
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title"><i class="bi bi-qr-code me-2 text-primary"></i>Mon QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <div class="p-3 bg-light rounded-3 mb-3">
+                    <img src="{{ member.qr_code.url }}" alt="QR Code" class="img-fluid" style="max-width: 200px;">
+                </div>
+                <p class="text-muted small mb-3">Ce QR code contient vos informations de membre.<br>Présentez-le lors des événements.</p>
+                <span class="badge bg-primary px-3 py-2">{{ member.member_number }}</span>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
+                <a href="{{ member.qr_code.url }}" download="qr-code-{{ member.member_number }}.png" class="btn btn-primary">
+                    <i class="bi bi-download me-2"></i>Télécharger
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- ========================================================== -->
+<!-- GESTION DES UTILISATEURS SYSTÈME (Admin uniquement) -->
+<!-- ========================================================== -->
+{% if user|can_manage_users %}
+
+<!-- Vue: Liste des utilisateurs -->
+{% if view == 'user_management' %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm card-glass mb-4">
+            <div class="card-header bg-transparent py-4 d-flex align-items-center justify-content-between border-0">
+                <div>
+                    <h5 class="mb-1 fw-semibold"><i class="bi bi-people me-2 text-primary"></i>Utilisateurs du système</h5>
+                    <p class="text-muted small mb-0">Gérez les accès et les rôles des utilisateurs</p>
+                </div>
+                <a href="{% url 'user-create-admin' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>Nouvel utilisateur
+                </a>
+            </div>
+            <div class="card-body pt-0">
+                <!-- Filtres -->
+                <form method="get" class="row g-3 mb-4 bg-light p-3 rounded-3">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0" name="q" placeholder="Rechercher un utilisateur..." value="{{ search|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select bg-white" name="role" onchange="this.form.submit()">
+                            <option value="">Tous les rôles</option>
+                            {% for role_value, role_label in role_choices %}
+                            <option value="{{ role_value }}" {% if role_filter == role_value %}selected{% endif %}>{{ role_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-light w-100 border">
+                            <i class="bi bi-funnel me-2"></i>Filtrer
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Tableau des utilisateurs -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-semibold">Utilisateur</th>
+                                <th class="fw-semibold">Contact</th>
+                                <th class="fw-semibold">Rôle</th>
+                                <th class="fw-semibold">Statut</th>
+                                <th class="fw-semibold text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr class="user-row">
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if u.photo %}
+                                        <img src="{{ u.photo.url }}" alt="{{ u.get_full_name }}" class="user-avatar-sm">
+                                        {% else %}
+                                        <div class="user-avatar-sm bg-light d-flex align-items-center justify-content-center">
+                                            <i class="bi bi-person text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                                            <small class="text-muted">@{{ u.username }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        <div class="text-muted">{{ u.email|default:"-" }}</div>
+                                        {% if u.phone %}<div class="text-muted">{{ u.phone }}</div>{% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-info bg-opacity-10 text-info border border-info">{{ u|role_display }}</span></td>
+                                <td>
+                                    {% if u.is_active %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-check-circle me-1"></i>Actif</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-pause-circle me-1"></i>Inactif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a href="{% url 'user-edit-admin' u.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% if u != user and not u.is_superuser %}
+                                        <a href="{% url 'user-toggle-active' u.pk %}" class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if u.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                            <i class="bi {% if u.is_active %}bi-pause{% else %}bi-play{% endif %}"></i>
+                                        </a>
+                                        <a href="{% url 'user-delete-admin' u.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people fs-1 d-block mb-3 text-muted opacity-50"></i>
+                                    <p>Aucun utilisateur trouvé</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Vue: Formulaire utilisateur (Créer/Modifier) -->
+{% if view == 'user_form' %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card border-0 shadow-sm card-glass mb-4">
+            <div class="card-header bg-transparent py-4 border-0">
+                <h5 class="mb-1 fw-semibold"><i class="bi bi-person-plus me-2 text-primary"></i>{{ action }} un utilisateur</h5>
+                <p class="text-muted small mb-0">{% if action == 'Créer' %}Créez un nouveau compte utilisateur avec un accès immédiat{% else %}Modifiez les informations et le rôle de l'utilisateur{% endif %}</p>
+            </div>
+            <div class="card-body pt-0">
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i><strong>Erreur!</strong> Veuillez corriger les erreurs ci-dessous.
+                </div>
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="form-section">
+                        <h6 class="fw-semibold mb-3"><i class="bi bi-image me-2 text-primary"></i>Photo de profil</h6>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if target_user and target_user.photo %}
+                            <img src="{{ target_user.photo.url }}" alt="Photo actuelle" class="photo-preview">
+                            {% else %}
+                            <div class="photo-preview bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-person fs-1 text-muted"></i>
+                            </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                {{ form.photo }}
+                                <div class="form-text mt-2">Photo optionnelle. Formats: JPG, PNG, GIF</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h6 class="fw-semibold mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Informations de base</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Nom d'utilisateur *</label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                <div class="invalid-feedback d-block">{{ form.username.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Email *</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Prénom *</label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Nom *</label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Téléphone</label>
+                                {{ form.phone }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Rôle *</label>
+                                {{ form.role }}
+                                <div class="form-text">Le rôle détermine les permissions de l'utilisateur</div>
+                                {% if form.role.errors %}
+                                <div class="invalid-feedback d-block">{{ form.role.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if action == 'Créer' %}
+                    <div class="form-section border-warning">
+                        <h6 class="fw-semibold mb-3 text-warning"><i class="bi bi-key me-2"></i>Mot de passe d'accès</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Mot de passe *</label>
+                                {{ form.password1 }}
+                                <div class="form-text">Ce mot de passe sera communiqué à l'utilisateur</div>
+                                {% if form.password1.errors %}
+                                <div class="invalid-feedback d-block">{{ form.password1.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Confirmer le mot de passe *</label>
+                                {{ form.password2 }}
+                                {% if form.password2.errors %}
+                                <div class="invalid-feedback d-block">{{ form.password2.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Important:</strong> Notez ce mot de passe. Il sera affiché une seule fois après la création pour que vous puissiez le communiquer à l'utilisateur.
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-2"></i>{{ action }}
+                        </button>
+                        <a href="{% url 'user-management' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Vue: Confirmation suppression -->
+{% if view == 'user_delete' %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card border-0 shadow-sm card-glass">
+            <div class="card-header bg-danger text-white py-4 border-0">
+                <h5 class="mb-0 fw-semibold"><i class="bi bi-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
+            </div>
+            <div class="card-body text-center p-5">
+                <div class="mb-4">
+                    {% if target_user.photo %}
+                    <img src="{{ target_user.photo.url }}" alt="{{ target_user.get_full_name }}" class="rounded-circle mb-3" style="width: 80px; height: 80px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-person fs-1 text-muted"></i>
+                    </div>
+                    {% endif %}
+                    <h5>{{ target_user.get_full_name }}</h5>
+                    <p class="text-muted mb-0">@{{ target_user.username }} - {{ target_user|role_display }}</p>
+                </div>
+                
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Cette action est irréversible. L'utilisateur sera définitivement supprimé.
+                </div>
+                
+                <form method="post" class="d-flex gap-2 justify-content-center mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash me-2"></i>Oui, supprimer
+                    </button>
+                    <a href="{% url 'user-management' %}" class="btn btn-outline-secondary">Annuler</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- Vue: Credentials Created (Success page after user creation) -->
+{% if view == 'user_created' %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-success text-white py-4 border-0 text-center">
+                <i class="bi bi-check-circle fs-1 mb-2 d-block"></i>
+                <h4 class="mb-0">Utilisateur créé avec succès!</h4>
+            </div>
+            <div class="card-body p-5">
+                <div class="credentials-card p-4 mb-4">
+                    <h6 class="fw-semibold text-success mb-3"><i class="bi bi-key me-2"></i>Informations de connexion à communiquer</h6>
+                    <p class="text-muted small mb-3">Transmettez ces informations à <strong>{{ new_user.get_full_name }}</strong> :</p>
+                    
+                    <div class="vstack gap-2">
+                        <div class="credential-item">
+                            <span class="text-muted">Nom d'utilisateur</span>
+                            <span class="fw-bold">{{ new_user.username }}</span>
+                        </div>
+                        <div class="credential-item border border-warning bg-warning bg-opacity-10">
+                            <span class="text-muted">Mot de passe</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold" id="new-password">{{ new_password }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyPassword()" title="Copier">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="credential-item">
+                            <span class="text-muted">Rôle attribué</span>
+                            <span class="badge bg-primary">{{ new_user|role_display }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Note:</strong> Ces informations ne seront affichées qu'une seule fois. Assurez-vous de les avoir communiquées à l'utilisateur.
+                </div>
+                
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'user-management' %}" class="btn btn-primary px-4">
+                        <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+                    </a>
+                    <a href="{% url 'user-create-admin' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Créer un autre
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadProfile();
-
-        document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-        document.getElementById('changePasswordBtn').addEventListener('click', changePassword);
+function copyPassword() {
+    const password = document.getElementById('new-password').textContent;
+    navigator.clipboard.writeText(password).then(function() {
+        alert('Mot de passe copié dans le presse-papiers!');
     });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'account');
-    }
-
-    function toggleThemePreference() {
-        const isDark = document.getElementById('darkModeSwitch').checked;
-        Utils.Theme.set(isDark ? 'dark' : 'light');
-    }
-
-    function loadProfile() {
-        const user = Auth.state.user;
-        if (!user) return;
-
-        document.getElementById('profileName').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
-        document.getElementById('profileRole').textContent = user.role || 'Utilisateur';
-        document.getElementById('firstName').value = user.first_name || '';
-        document.getElementById('lastName').value = user.last_name || '';
-        document.getElementById('email').value = user.email || '';
-        document.getElementById('phone').value = user.phone || '';
-        document.getElementById('bio').value = user.bio || '';
-
-        if (user.photo) {
-            const photoUrl = user.photo.startsWith('http') ? user.photo : API.baseUrl + user.photo;
-            document.getElementById('profilePhoto').src = photoUrl;
-        } else {
-            document.getElementById('profilePhoto').src = 'https://via.placeholder.com/120';
-        }
-    }
-
-    async function saveProfile() {
-        const form = document.getElementById('profileForm');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        try {
-            await API.api.patch('/api/me/', data);
-            await Auth.refreshMe();
-            loadProfile();
-            Toast.success('Succès', 'Profil mis à jour');
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de mettre à jour le profil');
-        }
-    }
-
-    async function resetPassword() {
-        const form = document.getElementById('passwordForm');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        if (data.new_password !== data.confirm_password) {
-            Toast.error('Erreur', 'Les mots de passe ne correspondent pas');
-            return;
-        }
-
-        try {
-            await API.api.post('/api/me/change-password/', {
-                current_password: data.current_password,
-                new_password: data.new_password
-            });
-            Toast.success('Succès', 'Mot de passe changé');
-            form.reset();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de changer le mot de passe');
-        }
-    }
-
-    function changePhoto() {
-        Toast.info('Info', 'Fonctionnalité à implémenter');
-    }
+}
 </script>
+{% endif %}
+
 {% endblock %}

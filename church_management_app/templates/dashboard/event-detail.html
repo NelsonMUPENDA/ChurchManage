@@ -1,358 +1,303 @@
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Détail Événement - Consolation et Paix Divine</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="static/css/main.css">
-    <style>
-        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
-        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
-        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
-        [data-bs-theme="dark"] .main-content { background: #0f172a; }
-        @media (max-width: 991.98px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.show { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-        }
-        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
-        .sidebar-backdrop.show { display: block; }
-        .event-hero { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; padding: 40px; border-radius: 1rem; margin-bottom: 2rem; }
-        .stat-card { text-align: center; padding: 1.5rem; background: white; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .info-label { color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem; }
-        .info-value { font-weight: 600; }
-    </style>
-</head>
-<body>
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="p-4 border-bottom">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
-                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
-                </div>
-                <div>
-                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
-                    <small class="text-muted">Plateforme de gestion</small>
-                </div>
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}{{ event.title }}{% endblock %}
+{% block page_title %}{{ event.title }}{% endblock %}
+{% block page_subtitle %}{{ event.get_event_type_display }} - {{ event.date|date:"d/m/Y" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .event-hero { 
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
+        color: white; 
+        padding: 40px; 
+        border-radius: 0 0 1.5rem 1.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .event-hero.poster-bg {
+        background-size: cover;
+        background-position: center;
+    }
+    .event-hero.poster-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(99,102,241,0.85) 0%, rgba(168,85,247,0.85) 100%);
+        border-radius: 0 0 1.5rem 1.5rem;
+    }
+    .event-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    .stat-card { 
+        text-align: center; 
+        padding: 1.5rem; 
+        background: white; 
+        border-radius: 1rem; 
+        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .info-label { color: #64748b; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    .info-value { font-weight: 600; }
+    .team-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .attendance-badge-present {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    .attendance-badge-absent {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Event Hero -->
+<div class="event-hero {% if event.poster_image %}poster-bg{% endif %}" 
+     {% if event.poster_image %}style="background-image: url('{{ event.poster_image.url }}');"{% endif %}>
+    <div class="event-hero-content">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <span class="badge bg-white text-primary mb-2">{{ event.get_event_type_display }}</span>
+                {% if event.is_alert %}
+                <span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle me-1"></i>Urgent</span>
+                {% endif %}
+                <h2 class="fw-bold mb-2">{{ event.title }}</h2>
+                <p class="mb-0 opacity-75">{{ event.description|default:"Aucune description" }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'event-edit' event.pk %}" class="btn btn-light">
+                    <i class="bi bi-pencil me-1"></i>Modifier
+                </a>
+                <a href="{% url 'event-list' %}" class="btn btn-outline-light">
+                    <i class="bi bi-arrow-left me-1"></i>Retour
+                </a>
             </div>
         </div>
-        <div class="p-3">
-            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
-                <small class="text-muted d-block">Connecté en tant que</small>
-                <span class="fw-semibold" id="userRole">Utilisateur</span>
-            </div>
-        </div>
-        <nav class="px-3 pb-4" id="sidebarNav"></nav>
-    </aside>
+    </div>
+</div>
 
-    <main class="main-content">
-        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
-            <div class="container-fluid py-3 px-4">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-                        <h5 class="mb-0 fw-semibold">Détail Événement</h5>
+<div class="container-fluid p-4">
+    <div class="row g-4">
+        <!-- Left Column - Info -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-people fs-2 text-primary mb-2 d-block"></i>
+                        <h4 class="fw-bold mb-0">{{ present_count|default:"0" }}</h4>
+                        <small class="text-muted">Présents</small>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-clipboard-check fs-2 text-success mb-2 d-block"></i>
+                        <h4 class="fw-bold mb-0">{{ total_attendance|default:"0" }}</h4>
+                        <small class="text-muted">Total pointés</small>
                     </div>
                 </div>
             </div>
-        </header>
 
-        <div class="container-fluid p-4">
-            <!-- Event Hero -->
-            <div class="event-hero" id="eventHero">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <!-- Event Details -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-info-circle me-2"></i>Détails</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="info-label">Date</p>
+                        <p class="info-value"><i class="bi bi-calendar me-2 text-primary"></i>{{ event.date|date:"l d F Y" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="info-label">Heure</p>
+                        <p class="info-value"><i class="bi bi-clock me-2 text-primary"></i>{{ event.time|time:"H:i" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="info-label">Lieu</p>
+                        <p class="info-value"><i class="bi bi-geo-alt me-2 text-primary"></i>{{ event.location|default:"Non défini" }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="info-label">Statut</p>
+                        <p class="info-value">
+                            {% if event.is_published %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Publié</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-eye-slash me-1"></i>Brouillon</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if event.responsible %}
                     <div>
-                        <span class="badge bg-white text-primary mb-2" id="eventTypeBadge">-</span>
-                        <h2 class="fw-bold mb-2" id="eventTitle">-</h2>
-                        <p class="mb-0 opacity-75" id="eventDescription">-</p>
+                        <p class="info-label">Responsable</p>
+                        <p class="info-value"><i class="bi bi-person me-2 text-primary"></i>{{ event.responsible.get_full_name }}</p>
                     </div>
-                    <div class="d-flex gap-2">
-                        <a href="#" class="btn btn-light" id="editBtn"><i class="bi bi-pencil me-1"></i>Modifier</a>
-                        <button class="btn btn-outline-light" onclick="window.history.back()"><i class="bi bi-arrow-left me-1"></i>Retour</button>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <div class="row g-4">
-                <!-- Left Column - Info -->
-                <div class="col-lg-4">
-                    <!-- Quick Stats -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <i class="bi bi-people fs-2 text-primary mb-2 d-block"></i>
-                                <h4 class="fw-bold mb-0" id="attendeesCount">-</h4>
-                                <small class="text-muted">Présents</small>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="stat-card">
-                                <i class="bi bi-person-plus fs-2 text-success mb-2 d-block"></i>
-                                <h4 class="fw-bold mb-0" id="visitorsCount">-</h4>
-                                <small class="text-muted">Visiteurs</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Event Details -->
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold"><i class="bi bi-info-circle me-2"></i>Détails</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <p class="info-label">Date</p>
-                                <p class="info-value" id="eventDate"><i class="bi bi-calendar me-2"></i>-</p>
-                            </div>
-                            <div class="mb-3">
-                                <p class="info-label">Heure</p>
-                                <p class="info-value" id="eventTime"><i class="bi bi-clock me-2"></i>-</p>
-                            </div>
-                            <div class="mb-3">
-                                <p class="info-label">Lieu</p>
-                                <p class="info-value" id="eventLocation"><i class="bi bi-geo-alt me-2"></i>-</p>
-                            </div>
-                            <div>
-                                <p class="info-label">Organisateur</p>
-                                <p class="info-value" id="eventOrganizer"><i class="bi bi-person me-2"></i>-</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="card border-0 shadow-sm mt-4">
-                        <div class="card-body">
-                            <a href="diaconat.html?event=${eventId}" class="btn btn-primary w-100 mb-2">
-                                <i class="bi bi-clipboard-check me-2"></i>Faire le pointage
-                            </a>
-                            <button class="btn btn-outline-secondary w-100" onclick="exportAttendance()">
-                                <i class="bi bi-download me-2"></i>Exporter présence
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column - Attendance -->
-                <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2"></i>Liste de présence</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Membre</th>
-                                            <th>Statut</th>
-                                            <th>Heure d'arrivée</th>
-                                            <th>Notes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="attendanceList">
-                                        <tr><td colspan="4" class="text-center py-4 text-muted">Chargement...</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Comments Section -->
-                    <div class="card border-0 shadow-sm mt-4">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold"><i class="bi bi-chat me-2"></i>Commentaires</h6>
-                        </div>
-                        <div class="card-body">
-                            <div id="commentsList">
-                                <p class="text-muted text-center py-3">Aucun commentaire</p>
-                            </div>
-                            <div class="mt-3">
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="commentInput" placeholder="Ajouter un commentaire...">
-                                    <button class="btn btn-primary" onclick="addComment()"><i class="bi bi-send"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Actions -->
+            <div class="d-grid gap-2">
+                <a href="{% url 'attendance-event' event.pk %}" class="btn btn-success btn-lg">
+                    <i class="bi bi-clipboard-check me-2"></i>Gérer les Présences
+                </a>
+                {% if event.is_published %}
+                <form method="post" action="{% url 'event-edit' event.pk %}" class="d-grid">
+                    {% csrf_token %}
+                    <input type="hidden" name="unpublish" value="1">
+                    <button type="submit" class="btn btn-outline-warning">
+                        <i class="bi bi-eye-slash me-2"></i>Dépublier
+                    </button>
+                </form>
+                {% endif %}
             </div>
         </div>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="static/js/api.js"></script>
-    <script src="static/js/utils.js"></script>
-    <script src="static/js/toast.js"></script>
-    <script src="static/js/auth.js"></script>
-    <script src="static/js/navigation.js"></script>
-
-    <script>
-        let eventId = null;
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!Auth.state.isAuthenticated) {
-                await Auth.refreshMe();
-                if (!Auth.state.isAuthenticated) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-            }
-
-            // Get event ID from URL
-            const params = Utils.getUrlParams();
-            eventId = params.id;
-
-            if (!eventId) {
-                Toast.error('Erreur', 'Aucun événement spécifié');
-                window.location.href = 'events.html';
-                return;
-            }
-
-            initUI();
-            loadEvent();
-            loadAttendance();
-
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('editBtn').href = `event-edit.html?id=${eventId}`;
-        });
-
-        function initUI() {
-            const user = Auth.state.user;
-            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
-            if (window.Navigation) Navigation.render('sidebarNav', 'events');
-            Utils.Theme.init();
-            updateThemeIcon();
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.getElementById('sidebarBackdrop').classList.toggle('show');
-        }
-
-        function toggleTheme() {
-            Utils.Theme.toggle();
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-        }
-
-        async function loadEvent() {
-            try {
-                const event = await API.api.get(`/api/events/${eventId}/`);
-                
-                document.getElementById('eventTitle').textContent = event.title || 'Sans titre';
-                document.getElementById('eventDescription').textContent = event.description || 'Aucune description';
-                document.getElementById('eventDate').innerHTML = `<i class="bi bi-calendar me-2"></i>${Utils.formatDate(event.date)}`;
-                document.getElementById('eventTime').innerHTML = `<i class="bi bi-clock me-2"></i>${event.time || 'Non spécifié'}`;
-                document.getElementById('eventLocation').innerHTML = `<i class="bi bi-geo-alt me-2"></i>${event.location || 'Non spécifié'}`;
-                document.getElementById('eventOrganizer').innerHTML = `<i class="bi bi-person me-2"></i>${event.organizer_name || 'Non spécifié'}`;
-
-                const typeLabels = {
-                    service: 'Culte', meeting: 'Réunion', conference: 'Conférence',
-                    social: 'Social', other: 'Autre'
-                };
-                document.getElementById('eventTypeBadge').textContent = typeLabels[event.event_type] || event.event_type;
-
-                // Update attendance link
-                const pointageBtn = document.querySelector('a[href^="diaconat.html"]');
-                if (pointageBtn) {
-                    pointageBtn.href = `diaconat.html?tab=pointage&event=${eventId}`;
-                }
-
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de charger l\'événement');
-            }
-        }
-
-        async function loadAttendance() {
-            try {
-                const response = await API.api.get('/api/attendance/', { event: eventId });
-                const attendance = response.results || response;
-                
-                const present = attendance.filter(a => a.status === 'present').length;
-                const visitors = attendance.filter(a => a.is_visitor).length;
-                
-                document.getElementById('attendeesCount').textContent = present;
-                document.getElementById('visitorsCount').textContent = visitors;
-
-                const tbody = document.getElementById('attendanceList');
-                
-                if (attendance.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Aucun pointage enregistré</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = attendance.map(a => `
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                ${a.is_visitor ? '<span class="badge bg-info">Visiteur</span>' : ''}
-                                <span>${a.member_name || 'Inconnu'}</span>
+        <!-- Right Column - Team & Attendance -->
+        <div class="col-lg-8">
+            <!-- Service Team -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2"></i>Équipe de service</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% if event.moderator %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-mic fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Modérateur</p>
+                                <p class="text-muted small">{{ event.moderator }}</p>
                             </div>
-                        </td>
-                        <td>
-                            <span class="badge ${a.status === 'present' ? 'bg-success' : (a.status === 'late' ? 'bg-warning' : 'bg-danger')}">
-                                ${a.status === 'present' ? 'Présent' : (a.status === 'late' ? 'Retard' : 'Absent')}
-                            </span>
-                        </td>
-                        <td>${a.arrival_time || '-'}</td>
-                        <td>${a.notes || '-'}</td>
-                    </tr>
-                `).join('');
-
-            } catch (error) {
-                console.error('Failed to load attendance:', error);
-            }
-        }
-
-        function exportAttendance() {
-            Toast.success('Export', 'Liste de présence exportée');
-        }
-
-        function addComment() {
-            const input = document.getElementById('commentInput');
-            if (!input.value.trim()) return;
-            
-            Toast.success('Succès', 'Commentaire ajouté');
-            input.value = '';
-        }
-    </script>
-
-    <!-- Logout Confirmation Modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-semibold">
-                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
-                        Confirmer la déconnexion
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        {% endif %}
+                        {% if event.preacher %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-book fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Prédicateur</p>
+                                <p class="text-muted small">{{ event.preacher }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if event.choir %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-music-note-beamed fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Chorale</p>
+                                <p class="text-muted small">{{ event.choir }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if event.protocol_team %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-shield-check fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Protocole</p>
+                                <p class="text-muted small">{{ event.protocol_team }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if event.tech_team %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-gear fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Technique</p>
+                                <p class="text-muted small">{{ event.tech_team }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if event.communicator %}
+                        <div class="col-md-4">
+                            <div class="team-card">
+                                <i class="bi bi-broadcast fs-3 text-primary mb-2 d-block"></i>
+                                <p class="fw-medium mb-0 small">Communicateur</p>
+                                <p class="text-muted small">{{ event.communicator }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                    <a href="{% url 'logout' %}" class="btn btn-danger">
-                        <i class="bi bi-box-arrow-right me-1"></i>
-                        Se déconnecter
+            </div>
+
+            <!-- Attendance List -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-clipboard-check me-2"></i>Liste de présence</h6>
+                    <a href="{% url 'attendance-event' event.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter
                     </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if attendance_list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Membre</th>
+                                    <th>Numéro</th>
+                                    <th>Statut</th>
+                                    <th>Heure d'arrivée</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in attendance_list %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if attendance.member.photo %}
+                                            <img src="{{ attendance.member.photo.url }}" class="rounded-circle me-2" width="32" height="32" alt="">
+                                            {% else %}
+                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-2" style="width:32px;height:32px;">
+                                                <i class="bi bi-person text-primary small"></i>
+                                            </div>
+                                            {% endif %}
+                                            <span class="fw-medium">{{ attendance.member.get_full_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td><small class="text-muted">{{ attendance.member.member_number }}</small></td>
+                                    <td>
+                                        {% if attendance.attended %}
+                                        <span class="attendance-badge-present"><i class="bi bi-check-circle me-1"></i>Présent</span>
+                                        {% else %}
+                                        <span class="attendance-badge-absent"><i class="bi bi-x-circle me-1"></i>Absent</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ attendance.checked_in_at|time:"H:i"|default:"--:--" }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-clipboard-x fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted">Aucune présence enregistrée</p>
+                        <a href="{% url 'attendance-event' event.pk %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-2"></i>Commencer le pointage
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
