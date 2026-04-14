@@ -180,7 +180,7 @@ class Event(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='service')
-    duration_type = models.CharField(max_length=20, default='daily')
+    duration_type = models.CharField(max_length=20, choices=DURATION_CHOICES, default='daily')
     date = models.DateField()
     time = models.TimeField()
     location = models.TextField(blank=True, null=True)

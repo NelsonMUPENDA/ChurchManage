@@ -383,7 +383,7 @@ class EventForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Titre de l\'événement'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Description détaillée...'}),
             'event_type': forms.Select(attrs={'class': 'form-select'}),
-            'duration_type': forms.Select(attrs={'class': 'form-select'}),
+            'duration_type': forms.Select(attrs={'class': 'form-select'}, choices=Event.DURATION_CHOICES),
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lieu de l\'événement'}),

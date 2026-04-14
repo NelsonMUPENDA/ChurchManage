@@ -859,10 +859,19 @@ def event_create(request):
             event = form.save()
             messages.success(request, f'Événement "{event.title}" créé avec succès!')
             return redirect('event-detail', pk=event.pk)
+        else:
+            # Form has errors - return with error messages
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
     else:
         form = EventForm()
-    
-    return render(request, 'dashboard/events.html', {'form': form, 'action': 'Créer', 'view': 'event_form'})
+
+    departments = Department.objects.all()
+    return render(request, 'dashboard/events.html', {
+        'form': form, 
+        'action': 'Créer', 
+        'view': 'event_form',
+        'departments': departments
+    })
 
 
 @login_required
@@ -879,11 +888,13 @@ def event_edit(request, pk):
     else:
         form = EventForm(instance=event)
     
+    departments = Department.objects.all()
     return render(request, 'dashboard/events.html', {
         'form': form,
         'event': event,
         'action': 'Modifier',
-        'view': 'event_form'
+        'view': 'event_form',
+        'departments': departments
     })
 
 

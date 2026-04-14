@@ -415,14 +415,23 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Durée</label>
                                 {{ form.duration_type }}
+                                {% if form.duration_type.errors %}
+                                <div class="invalid-feedback d-block">{{ form.duration_type.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Lieu</label>
                                 {{ form.location }}
+                                {% if form.location.errors %}
+                                <div class="invalid-feedback d-block">{{ form.location.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-medium">Description</label>
                                 {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -434,34 +443,73 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Modérateur</label>
                                 {{ form.moderator }}
+                                {% if form.moderator.errors %}
+                                <div class="invalid-feedback d-block">{{ form.moderator.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Prédicateur / Orateur</label>
                                 {{ form.preacher }}
+                                {% if form.preacher.errors %}
+                                <div class="invalid-feedback d-block">{{ form.preacher.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Chorale / Groupe de louange</label>
                                 {{ form.choir }}
+                                {% if form.choir.errors %}
+                                <div class="invalid-feedback d-block">{{ form.choir.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Communicateur / MC</label>
                                 {{ form.communicator }}
+                                {% if form.communicator.errors %}
+                                <div class="invalid-feedback d-block">{{ form.communicator.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Équipe de protocole</label>
                                 {{ form.protocol_team }}
+                                {% if form.protocol_team.errors %}
+                                <div class="invalid-feedback d-block">{{ form.protocol_team.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Équipe technique</label>
                                 {{ form.tech_team }}
+                                {% if form.tech_team.errors %}
+                                <div class="invalid-feedback d-block">{{ form.tech_team.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Responsable</label>
                                 {{ form.responsible }}
+                                {% if form.responsible.errors %}
+                                <div class="invalid-feedback d-block">{{ form.responsible.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-medium">Département</label>
-                                {{ form.department }}
+                                <div class="input-group">
+                                    {{ form.department }}
+                                    <a href="{% url 'department-create' %}" class="btn btn-outline-primary" title="Ajouter un département">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </a>
+                                </div>
+                                {% if form.department.errors %}
+                                <div class="invalid-feedback d-block">{{ form.department.errors.0 }}</div>
+                                {% endif %}
+                                {% if departments %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Départements existants :</small>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        {% for dept in departments %}
+                                        <span class="badge bg-light text-dark border">{{ dept.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
