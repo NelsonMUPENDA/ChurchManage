@@ -221,13 +221,44 @@ class Attendance(models.Model):
 
 class EventAttendanceAggregate(models.Model):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='attendance_aggregate')
-    male_adults = models.PositiveIntegerField(default=0)
-    female_adults = models.PositiveIntegerField(default=0)
-    male_children = models.PositiveIntegerField(default=0)
-    female_children = models.PositiveIntegerField(default=0)
+
+    # Adultes
+    male_adults = models.PositiveIntegerField(default=0, verbose_name="Hommes adultes")
+    female_adults = models.PositiveIntegerField(default=0, verbose_name="Femmes adultes")
+
+    # Jeunes
+    young_men = models.PositiveIntegerField(default=0, verbose_name="Jeunes hommes (garçons)")
+    young_women = models.PositiveIntegerField(default=0, verbose_name="Jeunes filles")
+
+    # Enfants
+    male_children = models.PositiveIntegerField(default=0, verbose_name="Garçons (enfants)")
+    female_children = models.PositiveIntegerField(default=0, verbose_name="Filles (enfants)")
+    children_total = models.PositiveIntegerField(default=0, verbose_name="Total enfants")
+
+    # Personnes âgées
+    elderly_men = models.PositiveIntegerField(default=0, verbose_name="Hommes âgés (papas/vieillards)")
+    elderly_women = models.PositiveIntegerField(default=0, verbose_name="Femmes âgées (mamas)")
+
+    # Totaux calculés
+    total_men = models.PositiveIntegerField(default=0, verbose_name="Total hommes")
+    total_women = models.PositiveIntegerField(default=0, verbose_name="Total femmes")
+    grand_total = models.PositiveIntegerField(default=0, verbose_name="Total général")
+
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='updated_event_attendance_aggregates')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def calculate_totals(self):
+        """Calcule les totaux automatiquement"""
+        self.total_men = self.male_adults + self.young_men + self.male_children + self.elderly_men
+        self.total_women = self.female_adults + self.young_women + self.female_children + self.elderly_women
+        self.children_total = self.male_children + self.female_children
+        self.grand_total = self.total_men + self.total_women
+        return self.grand_total
+
+    def save(self, *args, **kwargs):
+        self.calculate_totals()
+        super().save(*args, **kwargs)
 
 
 class EventVisitorAggregate(models.Model):

@@ -9,7 +9,8 @@ from .models import (
     EvangelismActivity, TrainingEvent, MarriageRecord,
     FinancialCategory, FinancialTransaction,
     Announcement, AnnouncementDeck, AnnouncementDeckItem,
-    Document, LogisticsItem, ChurchSettings
+    Document, LogisticsItem, ChurchSettings,
+    EventAttendanceAggregate
 )
 from .widgets import ServiceTimesWidget
 
@@ -734,4 +735,27 @@ class ContactForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'subject': forms.TextInput(attrs={'class': 'form-control'}),
             'message': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+        }
+
+
+class EventAttendanceAggregateForm(forms.ModelForm):
+    """Formulaire pour les compteurs démographiques de présence"""
+    
+    class Meta:
+        model = EventAttendanceAggregate
+        fields = [
+            'male_adults', 'female_adults',
+            'young_men', 'young_women',
+            'male_children', 'female_children',
+            'elderly_men', 'elderly_women',
+        ]
+        widgets = {
+            'male_adults': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'female_adults': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'young_men': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'young_women': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'male_children': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'female_children': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'elderly_men': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
+            'elderly_women': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'placeholder': '0'}),
         }

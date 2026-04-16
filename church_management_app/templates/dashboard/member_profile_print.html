@@ -1,0 +1,602 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche Membre - {{ member.user.first_name }} {{ member.user.last_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                margin: 0;
+                padding: 15mm;
+            }
+            body {
+                background: white;
+            }
+        }
+
+        body {
+            background: #f8f9fa;
+        }
+
+        .preview-toolbar {
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .print-container {
+            background: white;
+            max-width: 210mm;
+            margin: 2rem auto;
+            padding: 20mm;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            min-height: 297mm;
+        }
+
+        .church-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid #1a365d;
+        }
+
+        .church-logo {
+            max-width: 60px;
+            max-height: 60px;
+            margin-bottom: 0.5rem;
+        }
+
+        .church-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 0.25rem;
+        }
+
+        .church-info {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .document-title {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 1.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 0.75rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .member-photo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .member-photo-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #1a365d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .member-basic-info h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 0.25rem;
+        }
+
+        .member-basic-info .member-number {
+            font-size: 1rem;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .member-basic-info .member-status {
+            margin-top: 0.5rem;
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .section-card {
+            margin-bottom: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #1a365d;
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-body {
+            padding: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            width: 40%;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            width: 60%;
+            color: #212529;
+            font-size: 0.9rem;
+        }
+
+        .qr-code-container {
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            border: 2px dashed #dee2e6;
+        }
+
+        .qr-code-container img {
+            max-width: 150px;
+            max-height: 150px;
+        }
+
+        .qr-code-container p {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .print-footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .signature-section {
+            margin-top: 3rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .signature-box {
+            flex: 1;
+            text-align: center;
+        }
+
+        .signature-line {
+            border-top: 1px solid #212529;
+            margin-top: 3rem;
+            padding-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 4rem;
+            color: rgba(26, 54, 93, 0.03);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: -1;
+            white-space: nowrap;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .member-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-label, .info-value {
+                width: 100%;
+            }
+
+            .info-label {
+                margin-bottom: 0.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toolbar -->
+    <div class="preview-toolbar no-print">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0">
+                        <i class="bi bi-eye me-2"></i>Aperçu fiche membre
+                    </h5>
+                    <small class="text-muted">{{ member.user.first_name }} {{ member.user.last_name }}</small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="btn-group">
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="bi bi-printer me-2"></i>Imprimer
+                        </button>
+                        <a href="{% url 'member-print-card' member.pk %}" class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-file-pdf me-2"></i>Carte PDF
+                        </a>
+                    </div>
+                    <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-x-lg me-2"></i>Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Content -->
+    <div class="print-container">
+        <div class="watermark">{{ church_settings.church_name|default:"Consolation et Paix Divine" }}</div>
+
+        <!-- En-tête Église -->
+        <div class="church-header">
+            {% if church_settings and church_settings.logo %}
+            <img src="{{ church_settings.logo.url }}" alt="Logo" class="church-logo">
+            {% else %}
+            <i class="bi bi-building fs-2 text-primary d-block mb-2"></i>
+            {% endif %}
+            <div class="church-name">
+                {{ church_settings.church_name|default:"Consolation et Paix Divine" }}
+            </div>
+            {% if church_settings.church_slogan %}
+            <div class="church-slogan">{{ church_settings.church_slogan }}</div>
+            {% endif %}
+            <div class="church-info">
+                {% if church_settings.address %}{{ church_settings.address }}, {% endif %}
+                {% if church_settings.city %}{{ church_settings.city }}{% endif %}
+                {% if church_settings.phone_primary %}<br>Tél: {{ church_settings.phone_primary }}{% endif %}
+            </div>
+        </div>
+
+        <!-- Titre -->
+        <div class="document-title">Fiche d'Identification du Membre</div>
+
+        <!-- Photo et infos principales -->
+        <div class="member-header">
+            {% if member.user and member.user.photo %}
+            <img src="{{ member.user.photo.url }}" alt="Photo" class="member-photo">
+            {% else %}
+            <div class="member-photo-placeholder">
+                <i class="bi bi-person"></i>
+            </div>
+            {% endif %}
+            <div class="member-basic-info">
+                <h2>{{ member.user.last_name }} {{ member.user.first_name }}</h2>
+                {% if member.post_name %}
+                <div class="text-muted">Post-nom: {{ member.post_name }}</div>
+                {% endif %}
+                <div class="member-number">
+                    <i class="bi bi-upc-scan me-2"></i>{{ member.member_number|default:"N/A" }}
+                </div>
+                <div class="member-status">
+                    {% if member.is_active %}
+                    <span class="status-badge status-active">
+                        <i class="bi bi-check-circle me-1"></i>Membre Actif
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-inactive">
+                        <i class="bi bi-x-circle me-1"></i>Membre Inactif
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if member.qr_code %}
+            <div class="qr-code-container ms-auto">
+                <img src="{{ member.qr_code.url }}" alt="QR Code">
+                <p>Scannez pour vérifier l'authenticité</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="grid-2">
+            <!-- Informations Personnelles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-person-vcard"></i>
+                    Informations Personnelles
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Date de naissance</div>
+                        <div class="info-value">{{ member.birth_date|date:"d/m/Y"|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Lieu de naissance</div>
+                        <div class="info-value">{{ member.place_of_birth|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Genre</div>
+                        <div class="info-value">{{ member.get_gender_display|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Nationalité</div>
+                        <div class="info-value">{{ member.nationality|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">État civil</div>
+                        <div class="info-value">{{ member.marital_status|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Niveau d'études</div>
+                        <div class="info-value">{{ member.education_level|default:"Non renseigné" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations de Contact -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-telephone"></i>
+                    Informations de Contact
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Téléphone</div>
+                        <div class="info-value">{{ member.user.phone|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">{{ member.user.email|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Province</div>
+                        <div class="info-value">{{ member.province|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Ville</div>
+                        <div class="info-value">{{ member.city|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Commune / Quartier</div>
+                        <div class="info-value">
+                            {{ member.commune|default:"" }}
+                            {% if member.quarter %} / {{ member.quarter }}{% endif %}
+                            {% if not member.commune and not member.quarter %}Non renseigné{% endif %}
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Adresse complète</div>
+                        <div class="info-value">
+                            {% if member.avenue %}{{ member.avenue }}{% endif %}
+                            {% if member.house_number %}, N° {{ member.house_number }}{% endif %}
+                            {% if not member.avenue and not member.house_number %}Non renseignée{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations Professionnelles -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-briefcase"></i>
+                    Informations Professionnelles
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Profession / Occupation</div>
+                        <div class="info-value">{{ member.occupation|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Fonction publique</div>
+                        <div class="info-value">{{ member.public_function|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Position à l'église</div>
+                        <div class="info-value">{{ member.church_position|default:"Membre" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations Familiales -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-people"></i>
+                    Informations Familiales
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Nom du père</div>
+                        <div class="info-value">{{ member.father_full_name|default:"Non renseigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Nom de la mère</div>
+                        <div class="info-value">{{ member.mother_full_name|default:"Non renseigné" }}</div>
+                    </div>
+                    {% if member.family %}
+                    <div class="info-row">
+                        <div class="info-label">Famille</div>
+                        <div class="info-value">{{ member.family.name }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <div class="info-label">Contact d'urgence</div>
+                        <div class="info-value">
+                            {{ member.emergency_contact_name|default:"Non renseigné" }}
+                            {% if member.emergency_contact_phone %}
+                            <br><small>Tél: {{ member.emergency_contact_phone }}</small>
+                            {% endif %}
+                            {% if member.emergency_contact_relation %}
+                            <br><small>({{ member.emergency_contact_relation }})</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations d'Église -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-building"></i>
+                    Informations d'Église
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Département</div>
+                        <div class="info-value">{{ member.department.name|default:"Non assigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Ministère</div>
+                        <div class="info-value">{{ member.ministry.name|default:"Non assigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Groupe de maison</div>
+                        <div class="info-value">{{ member.home_group.name|default:"Non assigné" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Date de baptême</div>
+                        <div class="info-value">{{ member.baptism_date|date:"d/m/Y"|default:"Non renseigné" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations Système -->
+            <div class="section-card">
+                <div class="section-header">
+                    <i class="bi bi-info-circle"></i>
+                    Informations Système
+                </div>
+                <div class="section-body">
+                    <div class="info-row">
+                        <div class="info-label">Date d'inscription</div>
+                        <div class="info-value">{{ member.created_at|date:"d/m/Y \à H:i" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Dernière modification</div>
+                        <div class="info-value">{{ member.updated_at|date:"d/m/Y \à H:i" }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Imprimé le</div>
+                        <div class="info-value">{{ print_date|date:"d/m/Y \à H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if not member.is_active and member.inactive_reason %}
+        <div class="alert alert-warning mt-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Raison d'inactivité:</strong> {{ member.inactive_reason }}
+            {% if member.archived_date %}
+            <br><small>Date d'archivage: {{ member.archived_date|date:"d/m/Y" }}</small>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Signatures -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line">
+                    <i class="bi bi-person-badge me-2"></i>Signature du Membre
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">
+                    <i class="bi bi-shield-check me-2"></i>Signature du Responsable
+                </div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="print-footer">
+            <div class="fw-bold">{{ church_settings.church_name|default:"Consolation et Paix Divine" }}</div>
+            {% if church_settings.phone_primary or church_settings.email_primary %}
+            <div class="mt-1">
+                {% if church_settings.phone_primary %}Tél: {{ church_settings.phone_primary }}{% endif %}
+                {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="mt-2 text-muted">
+                Document confidentiel - Strictement personnel
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

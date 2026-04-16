@@ -171,42 +171,24 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
-
 <script>
     let currentPage = 1;
     let totalPages = 1;
     let searchQuery = '';
     let yearFilter = '';
-    let members = [];
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadMembers();
-        loadMarriages();
-        loadStats();
-
-        document.getElementById('searchInput').addEventListener('input', debounce(() => { searchQuery = document.getElementById('searchInput').value; currentPage = 1; loadMarriages(); }, 300));
-        document.getElementById('yearFilter').addEventListener('change', () => { yearFilter = document.getElementById('yearFilter').value; currentPage = 1; loadMarriages(); });
-        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; loadMarriages(); } });
-        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; loadMarriages(); } });
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('searchInput').addEventListener('input', debounce(() => {
+            searchQuery = document.getElementById('searchInput').value;
+            currentPage = 1;
+            filterMarriages();
+        }, 300));
+        document.getElementById('yearFilter').addEventListener('change', () => {
+            yearFilter = document.getElementById('yearFilter').value;
+            currentPage = 1;
+            filterMarriages();
+        });
     });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'mariage');
-    }
 
     function debounce(fn, delay) {
         let timeout;
@@ -216,132 +198,38 @@
         };
     }
 
-    async function loadMembers() {
-        try {
-            const response = await API.api.get('/api/members/', { limit: 1000 });
-            members = response.results || response;
-            
-            const men = members.filter(m => m.gender === 'M').map(m => `<option value="${m.id}">${m.first_name} ${m.last_name}</option>`).join('');
-            const women = members.filter(m => m.gender === 'F').map(m => `<option value="${m.id}">${m.first_name} ${m.last_name}</option>`).join('');
-            
-            document.querySelector('select[name="husband"]').innerHTML = '<option value="">Sélectionner...</option>' + men;
-            document.querySelector('select[name="wife"]').innerHTML = '<option value="">Sélectionner...</option>' + women;
-        } catch (error) {
-            console.error('Failed to load members:', error);
-        }
+    function filterMarriages() {
+        // Simple client-side filtering
+        const cards = document.querySelectorAll('.marriage-card');
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            const matchesSearch = !searchQuery || text.includes(searchQuery.toLowerCase());
+            const yearText = card.querySelector('.bi-calendar')?.parentElement?.nextElementSibling?.textContent || '';
+            const matchesYear = !yearFilter || yearText.includes(yearFilter);
+            card.closest('.col-md-6').style.display = (matchesSearch && matchesYear) ? '' : 'none';
+        });
     }
 
-    async function loadStats() {
-        try {
-            const response = await API.api.get('/api/marriages/stats/');
-            document.getElementById('totalMarriages').textContent = response.total || 0;
-            document.getElementById('yearMarriages').textContent = response.this_year || 0;
-            document.getElementById('upcomingMarriages').textContent = response.upcoming || 0;
-        } catch (error) {
-            console.error('Failed to load stats:', error);
-        }
-    }
-
-    async function loadMarriages() {
-        try {
-            const params = { page: currentPage, ordering: '-marriage_date' };
-            if (searchQuery) params.search = searchQuery;
-            if (yearFilter) params.year = yearFilter;
-
-            const response = await API.api.get('/api/marriages/', params);
-            const marriages = response.results || response;
-            
-            renderMarriages(marriages);
-            updatePagination(response.count, marriages.length);
-        } catch (error) {
-            console.error('Failed to load marriages:', error);
-            document.getElementById('marriagesGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
-        }
-    }
-
-    function renderMarriages(marriages) {
-        const container = document.getElementById('marriagesGrid');
-        
-        if (marriages.length === 0) {
-            container.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-heart fs-1 text-muted mb-3 d-block"></i><p class="text-muted">Aucun mariage enregistré</p></div>';
-            return;
-        }
-
-        container.innerHTML = marriages.map(m => `
-            <div class="col-md-6 col-xl-4">
-                <div class="card border-0 shadow-sm marriage-card h-100">
-                    <div class="card-body">
-                        <div class="text-center mb-3">
-                            <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
-                                <span class="fw-semibold">${m.husband_name || '?'}</span>
-                                <i class="bi bi-heart-fill text-danger"></i>
-                                <span class="fw-semibold">${m.wife_name || '?'}</span>
-                            </div>
-                            <span class="badge bg-light text-dark">${m.is_blessed ? '<i class="bi bi-check-circle-fill text-success me-1"></i>Béni' : 'Civil'}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-2 border-top">
-                            <span class="text-muted small"><i class="bi bi-calendar me-1"></i>Mariage</span>
-                            <span class="fw-medium">${Utils.formatDateShort(m.marriage_date)}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center py-2">
-                            <span class="text-muted small"><i class="bi bi-person me-1"></i>Officiant</span>
-                            <span class="fw-medium">${m.officiant || 'N/A'}</span>
-                        </div>
-                        ${m.notes ? `<p class="text-muted small mt-2 mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${m.notes}</p>` : ''}
-                        <div class="d-flex gap-2 mt-3">
-                            <button class="btn btn-sm btn-outline-primary flex-fill" onclick="viewMarriage(${m.id})"><i class="bi bi-eye me-1"></i>Voir</button>
-                            ${Auth.isAdmin() ? `<button class="btn btn-sm btn-light" onclick="deleteMarriage(${m.id})"><i class="bi bi-trash text-danger"></i></button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function updatePagination(totalCount, pageSize) {
-        totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-        document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-        document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-        document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-    }
-
-    async function saveMarriage() {
+    function saveMarriage() {
         const form = document.getElementById('marriageForm');
-        const data = Object.fromEntries(new FormData(form));
-        data.is_blessed = form.elements['is_blessed'].checked;
+        const husband = form.elements['husband'].value;
+        const wife = form.elements['wife'].value;
 
-        if (data.husband === data.wife) {
-            Toast.error('Erreur', 'L\'époux et l\'épouse doivent être différents');
-            return;
+        if (husband === wife && husband !== '') {
+            alert('L\'époux et l\'épouse doivent être différents');
+            return false;
         }
-
-        try {
-            await API.api.post('/api/marriages/', data);
-            Toast.success('Succès', 'Mariage enregistré');
-            bootstrap.Modal.getInstance(document.getElementById('addMarriageModal')).hide();
-            form.reset();
-            loadMarriages();
-            loadStats();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible d\'enregistrer');
-        }
+        return true;
     }
 
-    async function deleteMarriage(id) {
-        if (!confirm('Supprimer ce mariage ?')) return;
-        try {
-            await API.api.delete(`/api/marriages/${id}/`);
-            Toast.success('Succès', 'Mariage supprimé');
-            loadMarriages();
-            loadStats();
-        } catch (error) {
-            Toast.error('Erreur', 'Impossible de supprimer');
+    function deleteMarriage(id) {
+        if (confirm('Supprimer ce mariage ?')) {
+            window.location.href = `/marriages/${id}/delete/`;
         }
     }
 
     function viewMarriage(id) {
-        Toast.info('Info', 'Détail à implémenter');
+        alert('Détail à implémenter');
     }
 </script>
 {% endblock %}

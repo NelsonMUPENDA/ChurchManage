@@ -16,15 +16,272 @@
 
 {% block content %}
 <div class="container-fluid p-4">
-            <!-- Balance Cards -->
-            <div class="row g-3 mb-4" id="balanceCards">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm balance-card">
+
+    {% if view == 'transaction_detail' and transaction %}
+    <!-- Transaction Detail View -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'finance-list' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Retour
+                            </a>
+                            <span class="ms-3 fw-bold">Détail de la transaction</span>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'transaction-edit' transaction.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'transaction-delete' transaction.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Informations générales</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="text-muted">Type:</td>
+                                    <td>
+                                        {% if transaction.direction == 'in' %}
+                                        <span class="badge bg-success"><i class="bi bi-arrow-down-circle me-1"></i>Entrée</span>
+                                        {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-arrow-up-circle me-1"></i>Sortie</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Type de transaction:</td>
+                                    <td>
+                                        {% for type_val, type_label in transaction_types %}
+                                            {% if type_val == transaction.transaction_type %}{{ type_label }}{% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Date:</td>
+                                    <td class="fw-semibold">{{ transaction.date|date:"d/m/Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Référence:</td>
+                                    <td><span class="badge bg-light text-dark border">{{ transaction.reference_number|default:"-" }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Catégorie:</td>
+                                    <td><span class="badge bg-secondary">{{ transaction.category.name|default:"Non catégorisé" }}</span></td>
+                                </tr>
+                                {% if transaction.event %}
+                                <tr>
+                                    <td class="text-muted">Événement:</td>
+                                    <td><i class="bi bi-calendar-event me-1 text-primary"></i>{{ transaction.event.title }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if transaction.payment_method %}
+                                <tr>
+                                    <td class="text-muted">Mode de paiement:</td>
+                                    <td>{{ transaction.payment_method }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Montant</h6>
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h2 class="{% if transaction.direction == 'in' %}text-success{% else %}text-danger{% endif %} mb-0">
+                                        {% if transaction.direction == 'in' %}+{% else %}-{% endif %}{{ transaction.amount|floatformat:2 }}
+                                        <small class="fs-4">{{ transaction.currency }}</small>
+                                    </h2>
+                                    <small class="text-muted">
+                                        {% if transaction.direction == 'in' %}Entrée{% else %}Sortie{% endif %} d'argent
+                                    </small>
+                                </div>
+                            </div>
+
+                            <h6 class="text-muted mb-3 mt-4">Personnes concernées</h6>
+                            <table class="table table-borderless">
+                                {% if transaction.member %}
+                                <tr>
+                                    <td class="text-muted">Membre:</td>
+                                    <td class="fw-semibold">
+                                        <i class="bi bi-person me-1 text-primary"></i>
+                                        {{ transaction.member.post_name|default:transaction.member.user.get_full_name|default:transaction.member.member_number }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if transaction.donor_name %}
+                                <tr>
+                                    <td class="text-muted">Donateur:</td>
+                                    <td>{{ transaction.donor_name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if transaction.recipient_name %}
+                                <tr>
+                                    <td class="text-muted">Bénéficiaire:</td>
+                                    <td>{{ transaction.recipient_name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if transaction.cashier %}
+                                <tr>
+                                    <td class="text-muted">Caissier:</td>
+                                    <td>{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if transaction.description %}
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-2">Description</h6>
+                        <p class="bg-light p-3 rounded">{{ transaction.description }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 pt-3 border-top">
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            Créée le {{ transaction.created_at|date:"d/m/Y à H:i" }}
+                            {% if transaction.created_by %}par {{ transaction.created_by.get_full_name|default:transaction.created_by.username }}{% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'transaction_form' and transaction %}
+    <!-- Transaction Edit Form -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <a href="{% url 'finance-list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <span class="ms-3 fw-bold">Modifier la transaction</span>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'transaction-edit' transaction.id %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Type *</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="direction" id="typeIncome" value="in" {% if transaction.direction == 'in' %}checked{% endif %}>
+                                    <label class="btn btn-outline-success" for="typeIncome"><i class="bi bi-arrow-down-circle me-1"></i>Entrée</label>
+                                    <input type="radio" class="btn-check" name="direction" id="typeExpense" value="out" {% if transaction.direction == 'out' %}checked{% endif %}>
+                                    <label class="btn btn-outline-danger" for="typeExpense"><i class="bi bi-arrow-up-circle me-1"></i>Sortie</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control" name="date" value="{{ transaction.date|date:'Y-m-d' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Montant *</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="currency" style="max-width: 80px;">
+                                        <option value="CDF" {% if transaction.currency == 'CDF' %}selected{% endif %}>CDF</option>
+                                        <option value="USD" {% if transaction.currency == 'USD' %}selected{% endif %}>USD</option>
+                                    </select>
+                                    <input type="number" class="form-control" name="amount" step="0.01" value="{{ transaction.amount }}" required>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Type de transaction *</label>
+                                <select class="form-select" name="transaction_type" required>
+                                    {% for type_value, type_label in transaction_types %}
+                                    <option value="{{ type_value }}" {% if transaction.transaction_type == type_value %}selected{% endif %}>{{ type_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Catégorie *</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="">Sélectionner...</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat.id }}" {% if transaction.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Événement / Programme</label>
+                                <select class="form-select" name="event">
+                                    <option value="">Non lié à un événement</option>
+                                    {% for event in events %}
+                                    <option value="{{ event.id }}" {% if transaction.event.id == event.id %}selected{% endif %}>{{ event.title }} ({{ event.date|date:"d/m/Y" }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Membre concerné</label>
+                                <select class="form-select" name="member">
+                                    <option value="">Sélectionner un membre...</option>
+                                    {% for member in members %}
+                                    <option value="{{ member.id }}" {% if transaction.member.id == member.id %}selected{% endif %}>{{ member.post_name|default:member.user.get_full_name|default:member.member_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 income-only">
+                                <label class="form-label">Nom du donateur</label>
+                                <input type="text" class="form-control" name="donor_name" value="{{ transaction.donor_name|default:'' }}" placeholder="Ex: M. Jean Dupont">
+                            </div>
+                            <div class="col-md-6 expense-only {% if transaction.direction == 'in' %}d-none{% endif %}">
+                                <label class="form-label">Nom du bénéficiaire</label>
+                                <input type="text" class="form-control" name="recipient_name" value="{{ transaction.recipient_name|default:'' }}" placeholder="Ex: Fournisseur XYZ">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Mode de paiement</label>
+                                <select class="form-select" name="payment_method">
+                                    <option value="">Sélectionner...</option>
+                                    {% for method_value, method_label in payment_methods %}
+                                    <option value="{{ method_value }}" {% if transaction.payment_method == method_value %}selected{% endif %}>{{ method_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Référence</label>
+                                <input type="text" class="form-control" name="reference_number" value="{{ transaction.reference_number|default:'' }}" placeholder="N° de référence">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="2" placeholder="Détails supplémentaires...">{{ transaction.description|default:'' }}</textarea>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'finance-list' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Main Finance View -->
+
+    <!-- Balance Cards CDF & USD -->
+            <div class="row g-3 mb-4">
+                <!-- CDF Cards -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm bg-primary bg-gradient text-white mb-3">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <p class="mb-1 opacity-75 small">Solde Total (CDF)</p>
-                                    <h3 class="mb-0 fw-bold" id="balanceCDF">0</h3>
+                                    <p class="mb-1 opacity-75 small"><i class="bi bi-currency-exchange me-1"></i>Solde CDF</p>
+                                    <h3 class="mb-0 fw-bold">{{ balance_cdf|floatformat:0 }} <small class="fs-6">CDF</small></h3>
+                                    <small class="opacity-75">Entrées: {{ total_in_cdf|floatformat:0 }} | Sorties: {{ total_out_cdf|floatformat:0 }}</small>
                                 </div>
                                 <div class="rounded-3 p-2" style="background: rgba(255,255,255,0.2);">
                                     <i class="bi bi-wallet2 fs-4"></i>
@@ -32,32 +289,56 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <p class="text-muted mb-1 small">Entrées ce mois</p>
-                                    <h3 class="mb-0 fw-bold text-success" id="incomeMonth">0</h3>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+                                <div class="card-body p-2">
+                                    <p class="text-muted mb-1 small">Entrées ce mois (CDF)</p>
+                                    <h5 class="mb-0 text-success fw-bold">+{{ month_in_cdf|floatformat:0 }}</h5>
                                 </div>
-                                <div class="rounded-3 p-2" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-arrow-down-circle fs-4 text-success"></i>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm bg-danger bg-opacity-10">
+                                <div class="card-body p-2">
+                                    <p class="text-muted mb-1 small">Sorties ce mois (CDF)</p>
+                                    <h5 class="mb-0 text-danger fw-bold">-{{ month_out_cdf|floatformat:0 }}</h5>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
+
+                <!-- USD Cards -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm bg-info bg-gradient text-white mb-3">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <p class="text-muted mb-1 small">Sorties ce mois</p>
-                                    <h3 class="mb-0 fw-bold text-danger" id="expenseMonth">0</h3>
+                                    <p class="mb-1 opacity-75 small"><i class="bi bi-currency-dollar me-1"></i>Solde USD</p>
+                                    <h3 class="mb-0 fw-bold">{{ balance_usd|floatformat:2 }} <small class="fs-6">USD</small></h3>
+                                    <small class="opacity-75">Entrées: {{ total_in_usd|floatformat:2 }} | Sorties: {{ total_out_usd|floatformat:2 }}</small>
                                 </div>
-                                <div class="rounded-3 p-2" style="background: rgba(239,68,68,0.1);">
-                                    <i class="bi bi-arrow-up-circle fs-4 text-danger"></i>
+                                <div class="rounded-3 p-2" style="background: rgba(255,255,255,0.2);">
+                                    <i class="bi bi-currency-dollar fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm bg-success bg-opacity-10">
+                                <div class="card-body p-2">
+                                    <p class="text-muted mb-1 small">Entrées ce mois (USD)</p>
+                                    <h5 class="mb-0 text-success fw-bold">+{{ month_in_usd|floatformat:2 }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm bg-danger bg-opacity-10">
+                                <div class="card-body p-2">
+                                    <p class="text-muted mb-1 small">Sorties ce mois (USD)</p>
+                                    <h5 class="mb-0 text-danger fw-bold">-{{ month_out_usd|floatformat:2 }}</h5>
                                 </div>
                             </div>
                         </div>
@@ -78,13 +359,17 @@
                         <div class="col-md-3">
                             <select class="form-select bg-light border-0" id="typeFilter">
                                 <option value="">Tous les types</option>
-                                <option value="income">Entrées</option>
-                                <option value="expense">Sorties</option>
+                                {% for type in transaction_types %}
+                                <option value="{{ type.id }}">{{ type.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-3">
                             <select class="form-select bg-light border-0" id="categoryFilter">
                                 <option value="">Toutes catégories</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-3 text-md-end">
@@ -124,10 +409,55 @@
                                 </tr>
                             </thead>
                             <tbody id="transactionsTable">
-                                <tr><td colspan="6" class="text-center py-4">
-                                    <div class="spinner-border spinner-border-sm text-primary"></div>
-                                    <span class="ms-2">Chargement...</span>
-                                </td></tr>
+                                {% if transactions %}
+                                {% for transaction in transactions %}
+                                <tr class="transaction-row" data-direction="{{ transaction.direction }}">
+                                    <td>{{ transaction.date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            <span>{{ transaction.description|default:"-" }}</span>
+                                            {% if transaction.event %}
+                                            <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ transaction.event.title }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ transaction.category.name|default:"Non catégorisé" }}</span>
+                                        <small class="d-block text-muted mt-1">
+                                            {% for type_val, type_label in transaction_types %}
+                                                {% if type_val == transaction.transaction_type %}{{ type_label }}{% endif %}
+                                            {% endfor %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ transaction.reference_number|default:"-" }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if transaction.direction == 'in' %}
+                                        <span class="text-success fw-semibold">+{{ transaction.amount|floatformat:2 }}</span>
+                                        {% else %}
+                                        <span class="text-danger fw-semibold">-{{ transaction.amount|floatformat:2 }}</span>
+                                        {% endif %}
+                                        <small class="text-muted ms-1">{{ transaction.currency }}</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-light" onclick="viewTransaction({{ transaction.id }})" title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light" onclick="deleteTransaction({{ transaction.id }})" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                        Aucune transaction enregistrée
+                                    </td>
+                                </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -154,7 +484,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addTransactionForm">
+                    <form id="addTransactionForm" method="post" action="{% url 'finance-list' %}">
+                        {% csrf_token %}
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">Type *</label>
@@ -167,7 +498,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Date *</label>
-                                <input type="date" class="form-control" name="date" required>
+                                <input type="date" class="form-control" name="date" value="{% now 'Y-m-d' %}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Montant *</label>
@@ -180,73 +511,153 @@
                                 </div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Catégorie *</label>
-                                <select class="form-select" name="category" id="categorySelect" required>
-                                    <option value="">Sélectionner...</option>
+                                <label class="form-label">Type de transaction *</label>
+                                <select class="form-select" name="transaction_type" id="transactionTypeSelect" required>
+                                    {% for type_value, type_label in transaction_types %}
+                                    <option value="{{ type_value }}">{{ type_label }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <input type="text" class="form-control" name="description" placeholder="Ex: Don de M. Dupont">
+                                <label class="form-label">Catégorie *</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="category" id="categorySelect" required>
+                                        <option value="">Sélectionner...</option>
+                                        {% for cat in categories %}
+                                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Ajouter une catégorie">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Référence</label>
-                                <input type="text" class="form-control" name="reference" placeholder="N° de reçu ou facture">
+                                <label class="form-label">Événement / Programme</label>
+                                <select class="form-select" name="event" id="eventSelect">
+                                    <option value="">Non lié à un événement</option>
+                                    {% for event in events %}
+                                    <option value="{{ event.id }}">{{ event.title }} ({{ event.date|date:"d/m/Y" }})</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text text-muted">Lie cette transaction à un événement spécifique</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Membre concerné</label>
+                                <select class="form-select" name="member" id="memberSelect">
+                                    <option value="">Sélectionner un membre...</option>
+                                    {% for member in members %}
+                                    <option value="{{ member.id }}">{{ member.post_name|default:member.user.get_full_name|default:member.member_number }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 income-only">
+                                <label class="form-label">Nom du donateur</label>
+                                <input type="text" class="form-control" name="donor_name" placeholder="Ex: M. Jean Dupont">
+                            </div>
+                            <div class="col-md-6 expense-only" style="display: none;">
+                                <label class="form-label">Nom du bénéficiaire</label>
+                                <input type="text" class="form-control" name="recipient_name" placeholder="Ex: Fournisseur XYZ">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Mode de paiement</label>
+                                <select class="form-select" name="payment_method">
+                                    <option value="">Sélectionner...</option>
+                                    {% for method_value, method_label in payment_methods %}
+                                    <option value="{{ method_value }}">{{ method_label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Référence (Optionnel)</label>
+                                <input type="text" class="form-control" name="reference" placeholder="Auto-généré si vide">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" name="description" rows="2" placeholder="Détails supplémentaires..."></textarea>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" id="saveTransactionBtn">Enregistrer</button>
+                    <button type="submit" class="btn btn-primary" id="saveTransactionBtn" form="addTransactionForm">Enregistrer</button>
                 </div>
             </div>
         </div>
     </div>
 
-{% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
+    <!-- Add Category Modal -->
+    <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Nouvelle catégorie</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" action="{% url 'category-create' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nom *</label>
+                            <input type="text" class="form-control" name="name" required placeholder="Ex: Offrandes spéciales">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="2" placeholder="Description optionnelle..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
 
+{% block extra_js %}
 <script>
     let currentPage = 1;
     let totalPages = 1;
     let searchQuery = '';
     let typeFilter = '';
     let categoryFilter = '';
-    let categories = [];
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set today's date
+        const dateInput = document.querySelector('input[name="date"]');
+        if (dateInput && !dateInput.value) {
+            dateInput.valueAsDate = new Date();
+        }
+
+        // Handle income/expense toggle
+        const typeIncome = document.getElementById('typeIncome');
+        const typeExpense = document.getElementById('typeExpense');
+        const incomeFields = document.querySelectorAll('.income-only');
+        const expenseFields = document.querySelectorAll('.expense-only');
+
+        function updateFormFields() {
+            if (typeIncome.checked) {
+                incomeFields.forEach(el => el.style.display = 'block');
+                expenseFields.forEach(el => el.style.display = 'none');
+            } else {
+                incomeFields.forEach(el => el.style.display = 'none');
+                expenseFields.forEach(el => el.style.display = 'block');
             }
         }
 
-        initUI();
-        await loadCategories();
-        loadTransactions();
-        loadBalance();
+        if (typeIncome && typeExpense) {
+            typeIncome.addEventListener('change', updateFormFields);
+            typeExpense.addEventListener('change', updateFormFields);
+        }
 
         document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
         document.getElementById('typeFilter').addEventListener('change', handleTypeFilter);
         document.getElementById('categoryFilter').addEventListener('change', handleCategoryFilter);
-        document.getElementById('saveTransactionBtn').addEventListener('click', saveTransaction);
-        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
-        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
-
-        // Set today's date
-        document.querySelector('input[name="date"]').valueAsDate = new Date();
     });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'finances');
-    }
 
     function debounce(fn, delay) {
         let timeout;
@@ -256,142 +667,47 @@
         };
     }
 
-        function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadTransactions(); }
-        function handleTypeFilter(e) { typeFilter = e.target.value; currentPage = 1; loadTransactions(); }
-        function handleCategoryFilter(e) { categoryFilter = e.target.value; currentPage = 1; loadTransactions(); }
+    function handleSearch(e) {
+        searchQuery = e.target.value.toLowerCase();
+        filterTransactions();
+    }
 
-        function changePage(delta) {
-            const newPage = currentPage + delta;
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                loadTransactions();
-            }
+    function handleTypeFilter(e) {
+        typeFilter = e.target.value;
+        filterTransactions();
+    }
+
+    function handleCategoryFilter(e) {
+        categoryFilter = e.target.value;
+        filterTransactions();
+    }
+
+    function filterTransactions() {
+        const rows = document.querySelectorAll('#transactionsTable tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const matchesSearch = !searchQuery || text.includes(searchQuery);
+            // Add more filters as needed
+            row.style.display = matchesSearch ? '' : 'none';
+        });
+    }
+
+    function viewTransaction(id) {
+        window.location.href = `/finances/${id}/`;
+    }
+
+    function deleteTransaction(id) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) {
+            window.location.href = `/finances/${id}/delete/`;
         }
+    }
 
-        async function loadCategories() {
-            try {
-                const response = await API.api.get('/api/financial-categories/');
-                categories = response.results || response;
-                
-                const options = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                document.getElementById('categorySelect').innerHTML = '<option value="">Sélectionner...</option>' + options;
-                document.getElementById('categoryFilter').innerHTML = '<option value="">Toutes catégories</option>' + options;
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            }
-        }
+    function exportCSV() {
+        alert('Génération du fichier CSV...');
+    }
 
-        async function loadBalance() {
-            try {
-                const response = await API.api.get('/api/dashboard/summary/');
-                const finance = response.stats?.finance_month_totals || {};
-                const cdf = finance.CDF || {};
-                
-                document.getElementById('balanceCDF').textContent = Utils.formatCurrency(cdf.balance || 0, 'CDF');
-                document.getElementById('incomeMonth').textContent = '+' + Utils.formatCurrency(cdf.in || 0, 'CDF');
-                document.getElementById('expenseMonth').textContent = '-' + Utils.formatCurrency(cdf.out || 0, 'CDF');
-            } catch (error) {
-                console.error('Failed to load balance:', error);
-            }
-        }
-
-        async function loadTransactions() {
-            try {
-                const params = { page: currentPage, ordering: '-date' };
-                if (searchQuery) params.search = searchQuery;
-                if (typeFilter) params.direction = typeFilter === 'income' ? 'in' : 'out';
-                if (categoryFilter) params.category = categoryFilter;
-
-                const response = await API.api.get('/api/financial-transactions/', params);
-                const transactions = response.results || response;
-                
-                renderTransactions(transactions);
-                updatePagination(response.count, transactions.length);
-            } catch (error) {
-                console.error('Failed to load transactions:', error);
-                Toast.error('Erreur', 'Impossible de charger les transactions');
-            }
-        }
-
-        function renderTransactions(transactions) {
-            const tbody = document.getElementById('transactionsTable');
-            
-            if (transactions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 mb-3 d-block"></i>Aucune transaction</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = transactions.map(t => {
-                const isIncome = t.direction === 'in';
-                const amountClass = isIncome ? 'transaction-positive' : 'transaction-negative';
-                const sign = isIncome ? '+' : '-';
-                
-                return `
-                    <tr>
-                        <td>${Utils.formatDateShort(t.date)}</td>
-                        <td>${t.description || '-'}</td>
-                        <td><span class="badge bg-light text-dark">${t.category_name || '-'}</span></td>
-                        <td><small class="text-muted">${t.reference || '-'}</small></td>
-                        <td class="text-end fw-semibold ${amountClass}">${sign}${Utils.formatCurrency(t.amount, t.currency)}</td>
-                        <td>
-                            <button class="btn btn-sm btn-light" onclick="viewTransaction(${t.id})"><i class="bi bi-eye"></i></button>
-                            ${Auth.isAdmin() ? `<button class="btn btn-sm btn-light text-danger ms-1" onclick="deleteTransaction(${t.id})"><i class="bi bi-trash"></i></button>` : ''}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function updatePagination(totalCount, pageSize) {
-            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-        }
-
-        async function saveTransaction() {
-            const form = document.getElementById('addTransactionForm');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-            
-            data.amount = parseFloat(data.amount);
-
-            try {
-                await API.api.post('/api/financial-transactions/', data);
-                Toast.success('Succès', 'Transaction enregistrée');
-                bootstrap.Modal.getInstance(document.getElementById('addTransactionModal')).hide();
-                form.reset();
-                document.querySelector('input[name="date"]').valueAsDate = new Date();
-                loadTransactions();
-                loadBalance();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible d\'enregistrer la transaction');
-            }
-        }
-
-        async function deleteTransaction(id) {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) return;
-            try {
-                await API.api.delete(`/api/financial-transactions/${id}/`);
-                Toast.success('Succès', 'Transaction supprimée');
-                loadTransactions();
-                loadBalance();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de supprimer');
-            }
-        }
-
-        function viewTransaction(id) {
-            window.location.href = `transaction-detail.html?id=${id}`;
-        }
-
-        function exportCSV() {
-            Toast.info('Export', 'Génération du fichier CSV...');
-        }
-
-        function exportPDF() {
-            Toast.info('Export', 'Génération du fichier PDF...');
-        }
-    </script>
+    function exportPDF() {
+        alert('Génération du fichier PDF...');
+    }
+</script>
 {% endblock %}

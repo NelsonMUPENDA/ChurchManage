@@ -18,191 +18,335 @@
 
 {% block content %}
 <div class="container-fluid p-4">
-            <!-- Stats -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi bi-megaphone fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Total Annonces</p>
-                                    <h4 class="mb-0 fw-bold" id="totalAnnouncements">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-check-circle fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Publiées</p>
-                                    <h4 class="mb-0 fw-bold" id="publishedCount">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-pin-angle fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Épinglées</p>
-                                    <h4 class="mb-0 fw-bold" id="pinnedCount">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Actions -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
-                            </div>
+    {% if view == 'detail' and announcement %}
+    <!-- Announcement Detail View -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'announcement-list' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Retour
+                            </a>
+                            <span class="ms-3 fw-bold">Détail de l'annonce</span>
                         </div>
-                        <div class="col-md-4">
-                            <select class="form-select bg-light border-0" id="statusFilter">
-                                <option value="">Tous les statuts</option>
-                                <option value="published">Publiées</option>
-                                <option value="draft">Brouillons</option>
-                                <option value="archived">Archivées</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAnnouncementModal">
-                                <i class="bi bi-plus-lg me-2"></i>Nouvelle annonce
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
                             </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'announcement-edit' announcement.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'announcement-delete' announcement.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Announcements List -->
-            <div class="row g-3" id="announcementsList">
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="text-muted mt-2">Chargement des annonces...</p>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <nav class="mt-4" id="paginationNav" style="display: none;">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
-                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
-                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
-                </ul>
-            </nav>
-        </div>
-    </main>
-
-    <!-- Add/Edit Modal -->
-    <div class="modal fade" id="addAnnouncementModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Nouvelle annonce</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="announcementForm">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Titre *</label>
-                                <input type="text" class="form-control" name="title" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Contenu *</label>
-                                <textarea class="form-control" name="content" rows="5" required></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Catégorie</label>
-                                <select class="form-select" name="category">
-                                    <option value="general">Général</option>
-                                    <option value="event">Événement</option>
-                                    <option value="urgent">Urgent</option>
-                                    <option value="info">Information</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date de publication</label>
-                                <input type="date" class="form-control" name="publish_date">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="is_pinned" id="isPinned">
-                                    <label class="form-check-label" for="isPinned">Épingler en haut</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="is_published" id="isPublished" checked>
-                                    <label class="form-check-label" for="isPublished">Publier immédiatement</label>
-                                </div>
-                            </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            {% if announcement.is_active %}
+                            <span class="badge bg-success mb-2">Publiée</span>
+                            {% else %}
+                            <span class="badge bg-secondary mb-2">Brouillon</span>
+                            {% endif %}
+                            <h3 class="mb-2">{{ announcement.title }}</h3>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-person me-1"></i>{{ announcement.author.get_full_name|default:announcement.author.username }}
+                                <span class="mx-2">|</span>
+                                <i class="bi bi-calendar me-1"></i>{{ announcement.published_date|date:"d/m/Y H:i" }}
+                            </p>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" id="saveBtn">Enregistrer</button>
+                    </div>
+                    <hr>
+                    <div class="mt-4">
+                        <p class="lead" style="white-space: pre-line;">{{ announcement.content }}</p>
+                    </div>
+                    {% if announcement.image %}
+                    <div class="mt-4 text-center">
+                        <img src="{{ announcement.image.url }}" alt="Image annonce" class="img-fluid rounded">
+                    </div>
+                    {% endif %}
+                    <div class="mt-4 pt-3 border-top text-muted">
+                        <small><i class="bi bi-clock me-1"></i>Créée le {{ announcement.created_at|date:"d/m/Y à H:i" }}</small>
+                        <small class="ms-3"><i class="bi bi-pencil me-1"></i>Modifiée le {{ announcement.updated_at|date:"d/m/Y à H:i" }}</small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    {% elif view == 'form' and announcement %}
+    <!-- Edit Announcement Form -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <a href="{% url 'announcement-list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <span class="ms-3 fw-bold">Modifier l'annonce</span>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'announcement-edit' announcement.id %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Titre *</label>
+                            <input type="text" class="form-control" name="title" value="{{ announcement.title }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contenu *</label>
+                            <textarea class="form-control" name="content" rows="8" required>{{ announcement.content }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Image</label>
+                            <input type="file" class="form-control" name="image" accept="image/*">
+                            {% if announcement.image %}
+                            <div class="mt-2">
+                                <small class="text-muted">Image actuelle:</small><br>
+                                <img src="{{ announcement.image.url }}" alt="Image" class="img-thumbnail" style="max-height: 150px;">
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="isActive" {% if announcement.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">Publier l'annonce (is_active)</label>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'announcement-list' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'form' %}
+    <!-- Create Announcement Form -->
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <a href="{% url 'announcement-list' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Retour
+                    </a>
+                    <span class="ms-3 fw-bold">Nouvelle annonce</span>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'announcement-create' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Titre *</label>
+                            <input type="text" class="form-control" name="title" required placeholder="Titre de l'annonce">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contenu *</label>
+                            <textarea class="form-control" name="content" rows="8" required placeholder="Contenu de l'annonce..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Image</label>
+                            <input type="file" class="form-control" name="image" accept="image/*">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="isActive" checked>
+                            <label class="form-check-label" for="isActive">Publier immédiatement (is_active)</label>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'announcement-list' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Créer l'annonce
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'delete_confirm' and announcement %}
+    <!-- Delete Confirmation -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white py-3">
+                    <span class="fw-bold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Confirmer la suppression</span>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="mb-4">Êtes-vous sûr de vouloir supprimer l'annonce <strong>"{{ announcement.title }}"</strong> ?</p>
+                    <p class="text-muted">Cette action est irréversible.</p>
+                    <form method="post" action="{% url 'announcement-delete' announcement.id %}">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{% url 'announcement-list' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Main Announcements List View -->
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
+                            <i class="bi bi-megaphone fs-4" style="color: #6366f1;"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Total Annonces</p>
+                            <h4 class="mb-0 fw-bold">{{ total_count|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
+                            <i class="bi bi-check-circle fs-4" style="color: #10b981;"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Publiées</p>
+                            <h4 class="mb-0 fw-bold">{{ published_count|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3" style="background: rgba(148,163,184,0.1);">
+                            <i class="bi bi-file-earmark fs-4" style="color: #64748b;"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Brouillons</p>
+                            <h4 class="mb-0 fw-bold">{{ draft_count|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select bg-light border-0" id="statusFilter">
+                        <option value="">Tous les statuts (is_active)</option>
+                        <option value="published">Publiées (is_active=True)</option>
+                        <option value="draft">Brouillons (is_active=False)</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <a href="{% url 'announcement-create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Nouvelle annonce
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Announcements List -->
+    <div class="row g-3" id="announcementsList">
+        {% if announcements %}
+        {% for announcement in announcements %}
+        <div class="col-md-6">
+            <div class="card announcement-card h-100 {% if announcement.is_active %}published{% else %}draft{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            {% if announcement.is_active %}
+                            <span class="badge bg-success status-badge mb-1">Publiée</span>
+                            {% else %}
+                            <span class="badge bg-secondary status-badge mb-1">Brouillon</span>
+                            {% endif %}
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'announcement-detail' announcement.id %}"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                <li><a class="dropdown-item" href="{% url 'announcement-edit' announcement.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'announcement-delete' announcement.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <h5 class="card-title mb-2">{{ announcement.title }}</h5>
+                    <p class="card-text text-muted mb-3" style="white-space: pre-line; max-height: 100px; overflow: hidden;">{{ announcement.content }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-person me-1"></i>{{ announcement.author.get_full_name|default:announcement.author.username }}
+                            <span class="mx-1">|</span>
+                            <i class="bi bi-calendar me-1"></i>{{ announcement.created_at|date:"d/m/Y" }}
+                        </small>
+                        <a href="{% url 'announcement-detail' announcement.id %}" class="btn btn-sm btn-outline-primary">Voir détails</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+            <p class="text-muted">Aucune annonce enregistrée</p>
+            <a href="{% url 'announcement-create' %}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-lg me-2"></i>Créer une annonce
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
-
 <script>
-    let currentPage = 1;
-    let totalPages = 1;
-    let searchQuery = '';
-    let statusFilter = '';
+    let editingId = null;
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadAnnouncements();
-
+    document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
         document.getElementById('statusFilter').addEventListener('change', handleStatusFilter);
-        document.getElementById('saveBtn').addEventListener('click', saveAnnouncement);
-        document.getElementById('prevPage').addEventListener('click', (e) => { e.preventDefault(); changePage(-1); });
-        document.getElementById('nextPage').addEventListener('click', (e) => { e.preventDefault(); changePage(1); });
     });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'announcements');
-    }
 
     function debounce(fn, delay) {
         let timeout;
@@ -212,157 +356,41 @@
         };
     }
 
-    function handleSearch(e) { searchQuery = e.target.value; currentPage = 1; loadAnnouncements(); }
-    function handleStatusFilter(e) { statusFilter = e.target.value; currentPage = 1; loadAnnouncements(); }
+    function handleSearch(e) {
+        const searchQuery = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.announcement-card');
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.closest('.col-md-6').style.display = text.includes(searchQuery) ? '' : 'none';
+        });
+    }
 
-    function changePage(delta) {
-        const newPage = currentPage + delta;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            loadAnnouncements();
+    function handleStatusFilter(e) {
+        const statusFilter = e.target.value;
+        const cards = document.querySelectorAll('.announcement-card');
+        cards.forEach(card => {
+            const isPinned = card.classList.contains('pinned');
+            const isPublished = card.classList.contains('published');
+            let show = true;
+            if (statusFilter === 'pinned') show = isPinned;
+            else if (statusFilter === 'published') show = isPublished && !isPinned;
+            else if (statusFilter === 'draft') show = !isPublished;
+            card.closest('.col-md-6').style.display = show ? '' : 'none';
+        });
+    }
+
+    function editAnnouncement(id) {
+        window.location.href = `/announcements/${id}/edit/`;
+    }
+
+    function deleteAnnouncement(id) {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) {
+            window.location.href = `/announcements/${id}/delete/`;
         }
     }
 
-    async function loadAnnouncements() {
-            try {
-                const params = { page: currentPage, ordering: '-is_pinned,-created_at' };
-                if (searchQuery) params.search = searchQuery;
-                if (statusFilter) params.status = statusFilter;
-
-                const response = await API.api.get('/api/announcements/', params);
-                const announcements = response.results || response;
-                
-                renderAnnouncements(announcements);
-                updatePagination(response.count, announcements.length);
-                updateStats(response.stats || {});
-            } catch (error) {
-                console.error('Failed to load announcements:', error);
-                Toast.error('Erreur', 'Impossible de charger les annonces');
-            }
-        }
-
-        function renderAnnouncements(announcements) {
-            const container = document.getElementById('announcementsList');
-            
-            if (announcements.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12 text-center py-5">
-                        <i class="bi bi-megaphone fs-1 text-muted mb-3 d-block"></i>
-                        <p class="text-muted">Aucune annonce</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = announcements.map(a => {
-                const statusClass = a.is_pinned ? 'pinned' : (a.is_published ? 'published' : 'draft');
-                const statusBadge = a.is_pinned ? 
-                    '<span class="badge bg-warning text-dark status-badge"><i class="bi bi-pin-angle me-1"></i>Épinglée</span>' :
-                    (a.is_published ? 
-                        '<span class="badge bg-success status-badge">Publiée</span>' : 
-                        '<span class="badge bg-secondary status-badge">Brouillon</span>');
-                
-                return `
-                    <div class="col-md-6 col-xl-4">
-                        <div class="card border-0 shadow-sm announcement-card ${statusClass} h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge bg-light text-dark">${a.category || 'Général'}</span>
-                                    ${statusBadge}
-                                </div>
-                                <h6 class="fw-semibold mb-2">${a.title}</h6>
-                                <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${a.content || ''}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">${Utils.timeAgo(a.created_at)}</small>
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="#" onclick="viewAnnouncement(${a.id})"><i class="bi bi-eye me-2"></i>Voir</a></li>
-                                            <li><a class="dropdown-item" href="#" onclick="editAnnouncement(${a.id})"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
-                                            ${Auth.isAdmin() ? `<li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="#" onclick="deleteAnnouncement(${a.id})"><i class="bi bi-trash me-2"></i>Supprimer</a></li>` : ''}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updatePagination(totalCount, pageSize) {
-            totalPages = Math.ceil(totalCount / (pageSize || 10)) || 1;
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
-            document.getElementById('paginationNav').style.display = totalPages > 1 ? 'block' : 'none';
-            document.getElementById('prevPage').parentElement.classList.toggle('disabled', currentPage === 1);
-            document.getElementById('nextPage').parentElement.classList.toggle('disabled', currentPage === totalPages);
-        }
-
-        function updateStats(stats) {
-            document.getElementById('totalAnnouncements').textContent = stats.total || '0';
-            document.getElementById('publishedCount').textContent = stats.published || '0';
-            document.getElementById('pinnedCount').textContent = stats.pinned || '0';
-        }
-
-        async function saveAnnouncement() {
-            const form = document.getElementById('announcementForm');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-            
-            data.is_pinned = formData.has('is_pinned');
-            data.is_published = formData.has('is_published');
-
-            try {
-                if (editingId) {
-                    await API.api.put(`/api/announcements/${editingId}/`, data);
-                    Toast.success('Succès', 'Annonce mise à jour');
-                } else {
-                    await API.api.post('/api/announcements/', data);
-                    Toast.success('Succès', 'Annonce créée');
-                }
-                
-                bootstrap.Modal.getInstance(document.getElementById('addAnnouncementModal')).hide();
-                form.reset();
-                editingId = null;
-                loadAnnouncements();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible d\'enregistrer l\'annonce');
-            }
-        }
-
-        async function editAnnouncement(id) {
-            try {
-                const response = await API.api.get(`/api/announcements/${id}/`);
-                const a = response;
-                
-                const form = document.getElementById('announcementForm');
-                form.elements['title'].value = a.title;
-                form.elements['content'].value = a.content;
-                form.elements['category'].value = a.category;
-                form.elements['is_pinned'].checked = a.is_pinned;
-                form.elements['is_published'].checked = a.is_published;
-                
-                editingId = id;
-                document.querySelector('.modal-title').textContent = 'Modifier l\'annonce';
-                new bootstrap.Modal(document.getElementById('addAnnouncementModal')).show();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de charger l\'annonce');
-            }
-        }
-
-        async function deleteAnnouncement(id) {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
-            try {
-                await API.api.delete(`/api/announcements/${id}/`);
-                Toast.success('Succès', 'Annonce supprimée');
-                loadAnnouncements();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de supprimer');
-            }
-        }
-
-        function viewAnnouncement(id) {
-            window.location.href = `announcement-detail.html?id=${id}`;
-        }
-    </script>
+    function viewAnnouncement(id) {
+        window.location.href = `/announcements/${id}/`;
+    }
+</script>
 {% endblock %}

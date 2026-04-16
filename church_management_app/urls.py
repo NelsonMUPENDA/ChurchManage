@@ -21,8 +21,10 @@ urlpatterns = [
     path('members/<int:pk>/edit/', views.member_edit, name='member-edit'),
     path('members/<int:pk>/delete/', views.member_delete, name='member-delete'),
     path('members/print/', views.member_print_list, name='member-print-list'),
+    path('members/print-preview/', views.member_print_preview, name='member-print-preview'),
     path('members/export/', views.member_export, name='member-export'),
     path('members/<int:pk>/print-card/', views.member_print_card, name='member-print-card'),
+    path('members/<int:pk>/profile-print/', views.member_profile_print, name='member-profile-print'),
     
     # Familles - CRUD
     path('families/', views.family_list, name='family-list'),
@@ -61,6 +63,7 @@ urlpatterns = [
     
     # Finances - CRUD
     path('finances/', views.finance_list, name='finance-list'),
+    path('finances/<int:pk>/', views.transaction_detail, name='transaction-detail'),
     path('finances/transactions/create/', views.transaction_create, name='transaction-create'),
     path('finances/transactions/<int:pk>/edit/', views.transaction_edit, name='transaction-edit'),
     path('finances/transactions/<int:pk>/delete/', views.transaction_delete, name='transaction-delete'),
@@ -85,6 +88,7 @@ urlpatterns = [
     
     # Logistique - CRUD
     path('logistics/', views.logistics_list, name='logistics-list'),
+    path('logistics/<int:pk>/', views.logistics_detail, name='logistics-detail'),
     path('logistics/create/', views.logistics_create, name='logistics-create'),
     path('logistics/<int:pk>/edit/', views.logistics_edit, name='logistics-edit'),
     path('logistics/<int:pk>/delete/', views.logistics_delete, name='logistics-delete'),

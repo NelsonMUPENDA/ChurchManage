@@ -110,18 +110,32 @@
                     </select>
                 </div>
                 <div class="col-md-5 text-md-end">
-                    <div class="d-flex gap-2 justify-content-md-end">
+                    <div class="d-flex gap-2 justify-content-md-end flex-wrap">
                         {% if user|can_export %}
-                        <a href="{% url 'member-print-list' %}" class="btn btn-outline-secondary" target="_blank" title="Imprimer la liste">
-                            <i class="bi bi-printer"></i>
-                        </a>
-                        <a href="{% url 'member-export' %}" class="btn btn-outline-success" title="Exporter Excel">
-                            <i class="bi bi-file-excel"></i>
-                        </a>
+                        <div class="btn-group">
+                            <a href="{% url 'member-print-preview' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" class="btn btn-outline-secondary" target="_blank" title="Aperçu avant impression">
+                                <i class="bi bi-printer me-1"></i><span class="d-none d-md-inline">Imprimer</span>
+                            </a>
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Options d'export</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'member-print-preview' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" target="_blank">
+                                    <i class="bi bi-eye me-2"></i>Aperçu avant impression
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'member-print-list' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" target="_blank">
+                                    <i class="bi bi-file-pdf me-2 text-danger"></i>Export PDF direct
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'member-export' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}">
+                                    <i class="bi bi-file-excel me-2 text-success"></i>Export Excel
+                                </a></li>
+                            </ul>
+                        </div>
                         {% endif %}
                         {% if user|can_create %}
                         <a href="{% url 'member-create' %}" class="btn btn-primary">
-                            <i class="bi bi-plus-lg me-2"></i>Ajouter
+                            <i class="bi bi-plus-lg me-1"></i><span class="d-none d-md-inline">Ajouter</span>
                         </a>
                         {% endif %}
                     </div>
@@ -164,9 +178,22 @@
                             </a>
                             {% endif %}
                             {% if user|can_export %}
-                            <a href="{% url 'member-print-card' member.pk %}" class="btn btn-sm btn-outline-info" target="_blank" title="Carte">
-                                <i class="bi bi-card-text"></i>
-                            </a>
+                            <div class="btn-group">
+                                <a href="{% url 'member-profile-print' member.pk %}" class="btn btn-sm btn-outline-info" target="_blank" title="Fiche complète">
+                                    <i class="bi bi-file-text"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-info dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="Options d'impression">
+                                    <span class="visually-hidden">Options</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'member-profile-print' member.pk %}" target="_blank">
+                                        <i class="bi bi-file-text me-2 text-info"></i>Fiche complète
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'member-print-card' member.pk %}" target="_blank">
+                                        <i class="bi bi-card-text me-2 text-primary"></i>Carte de membre
+                                    </a></li>
+                                </ul>
+                            </div>
                             {% endif %}
                             {% if user|can_delete %}
                             <a href="{% url 'member-delete' member.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')">

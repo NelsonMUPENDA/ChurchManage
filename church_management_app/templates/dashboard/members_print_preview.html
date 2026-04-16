@@ -1,0 +1,330 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aperçu - Liste des Membres</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                background: white;
+            }
+        }
+
+        body {
+            background: #f8f9fa;
+        }
+
+        .preview-toolbar {
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .print-container {
+            background: white;
+            max-width: 210mm;
+            margin: 2rem auto;
+            padding: 20mm;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            min-height: 297mm;
+        }
+
+        .church-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid #1a365d;
+        }
+
+        .church-logo {
+            max-width: 80px;
+            max-height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .church-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 0.5rem;
+        }
+
+        .church-slogan {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .church-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
+
+        .document-title {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 2rem 0 1rem;
+            text-transform: uppercase;
+        }
+
+        .print-date {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+        }
+
+        .members-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .members-table thead th {
+            background: #1a365d;
+            color: white;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #1a365d;
+        }
+
+        .members-table tbody td {
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+
+        .members-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .members-table tbody tr:hover {
+            background: #e9ecef;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-inactive {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .print-footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .summary-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-number {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #adb5bd;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toolbar -->
+    <div class="preview-toolbar no-print">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0">
+                        <i class="bi bi-eye me-2"></i>Aperçu avant impression
+                    </h5>
+                    <small class="text-muted">{{ total_members }} membre(s) à imprimer</small>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="btn-group">
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="bi bi-printer me-2"></i>Imprimer
+                        </button>
+                        <a href="{% url 'member-print-list' %}{% if status_filter %}?status={{ status_filter }}{% endif %}{% if department_filter %}{% if status_filter %}&{% else %}?{% endif %}department={{ department_filter }}{% endif %}" class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-file-pdf me-2"></i>PDF
+                        </a>
+                        <a href="{% url 'member-export' %}{% if status_filter %}?status={{ status_filter }}{% endif %}{% if department_filter %}{% if status_filter %}&{% else %}?{% endif %}department={{ department_filter }}{% endif %}" class="btn btn-outline-success">
+                            <i class="bi bi-file-excel me-2"></i>Excel
+                        </a>
+                    </div>
+                    <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-x-lg me-2"></i>Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Content -->
+    <div class="print-container">
+        <!-- En-tête Église -->
+        <div class="church-header">
+            {% if church_settings and church_settings.logo %}
+            <img src="{{ church_settings.logo.url }}" alt="Logo" class="church-logo">
+            {% else %}
+            <i class="bi bi-building fs-1 text-primary mb-3 d-block"></i>
+            {% endif %}
+            <div class="church-name">
+                {{ church_settings.church_name|default:"Consolation et Paix Divine" }}
+            </div>
+            {% if church_settings.church_slogan %}
+            <div class="church-slogan">{{ church_settings.church_slogan }}</div>
+            {% endif %}
+            <div class="church-info">
+                {% if church_settings.address %}{{ church_settings.address }}, {% endif %}
+                {% if church_settings.city %}{{ church_settings.city }}{% endif %}
+                {% if church_settings.phone_primary %}<br>Tél: {{ church_settings.phone_primary }}{% endif %}
+                {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+            </div>
+        </div>
+
+        <!-- Titre du document -->
+        <div class="document-title">
+            {% if status_filter == 'active' %}
+                Liste des Membres Actifs
+            {% elif status_filter == 'inactive' %}
+                Liste des Membres Inactifs
+            {% elif status_filter == 'visitor' %}
+                Liste des Visiteurs
+            {% else %}
+                Registre des Membres
+            {% endif %}
+        </div>
+        <div class="print-date">
+            Généré le {{ print_date|date:"d/m/Y \à H:i" }}
+        </div>
+
+        <!-- Résumé des filtres -->
+        {% if status_filter or department_filter or search %}
+        <div class="summary-box">
+            <small class="text-muted">Filtres appliqués :</small>
+            <div class="mt-1">
+                {% if status_filter %}
+                <span class="badge bg-primary me-2">Statut: {{ status_filter }}</span>
+                {% endif %}
+                {% if department_filter %}
+                <span class="badge bg-secondary me-2">Département: {{ department_filter }}</span>
+                {% endif %}
+                {% if search %}
+                <span class="badge bg-info">Recherche: {{ search }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tableau des membres -->
+        <table class="members-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">N°</th>
+                    <th style="width: 12%;">Matricule</th>
+                    <th style="width: 20%;">Nom & Prénoms</th>
+                    <th style="width: 15%;">Téléphone</th>
+                    <th style="width: 20%;">Email</th>
+                    <th style="width: 8%;">Genre</th>
+                    <th style="width: 15%;">Département</th>
+                    <th style="width: 5%;">Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ member.member_number|default:"-" }}</td>
+                    <td>
+                        {% if member.user %}
+                            {{ member.user.last_name }} {{ member.user.first_name }}
+                            {% if member.post_name %}({{ member.post_name }}){% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>{{ member.user.phone|default:"-" }}</td>
+                    <td>{{ member.user.email|default:"-" }}</td>
+                    <td>{{ member.get_gender_display|default:"-" }}</td>
+                    <td>{{ member.department.name|default:"-" }}</td>
+                    <td>
+                        {% if member.is_active %}
+                        <span class="status-badge status-active">Actif</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactif</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                        Aucun membre à afficher
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Total -->
+        <div class="mt-3 text-end">
+            <strong>Total: {{ total_members }} membre(s)</strong>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="print-footer">
+            <div>{{ church_settings.church_name|default:"Consolation et Paix Divine" }}</div>
+            {% if church_settings.phone_primary or church_settings.email_primary %}
+            <div class="mt-1">
+                {% if church_settings.phone_primary %}Tél: {{ church_settings.phone_primary }}{% endif %}
+                {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+            </div>
+            {% endif %}
+            <div class="page-number">Page 1</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mise à jour du numéro de page lors de l'impression
+        window.addEventListener('beforeprint', function() {
+            document.querySelector('.page-number').textContent = '';
+        });
+    </script>
+</body>
+</html>

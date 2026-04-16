@@ -210,33 +210,13 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/api.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
-<script src="{% static 'js/toast.js' %}"></script>
-<script src="{% static 'js/auth.js' %}"></script>
-<script src="{% static 'js/navigation.js' %}"></script>
-
 <script>
     let currentPeriod = 'month';
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        if (!Auth.state.isAuthenticated) {
-            await Auth.refreshMe();
-            if (!Auth.state.isAuthenticated) {
-                window.location.href = 'login.html';
-                return;
-            }
-        }
-
-        initUI();
-        loadStats();
-
+    document.addEventListener('DOMContentLoaded', function() {
+        setDefaultDates();
         document.getElementById('generateBtn').addEventListener('click', generateReports);
     });
-
-    function initUI() {
-        if (window.Navigation) Navigation.render('sidebarNav', 'reports');
-    }
 
     function setDefaultDates() {
         const today = new Date();
@@ -268,33 +248,16 @@
         document.getElementById('dateTo').valueAsDate = today;
     }
 
-    async function loadStats() {
-        try {
-            const response = await API.api.get('/api/dashboard/summary/');
-            const stats = response.stats || {};
-            
-            document.getElementById('totalMembers').textContent = stats.members_total || '0';
-            document.getElementById('avgAttendance').textContent = Math.round((stats.attendance_rate_week || 0) * 100) + '%';
-            document.getElementById('totalEvents').textContent = stats.events_week || '0';
-            
-            const finance = stats.finance_month_totals?.CDF || {};
-            document.getElementById('totalDonations').textContent = Utils.formatCurrency(finance.in || 0, 'CDF');
-        } catch (error) {
-            console.error('Failed to load stats:', error);
-        }
-    }
-
     function generateReports() {
-        Toast.info('Génération', 'Génération des rapports en cours...');
-        loadStats();
+        alert('Génération des rapports en cours...');
     }
 
     function generateReport(type) {
-        Toast.success('Export', `Rapport ${type} généré avec succès`);
+        alert('Rapport ' + type + ' généré avec succès');
     }
 
     function showReport(type) {
-        Toast.info('Rapport', `Affichage du rapport ${type}`);
+        alert('Affichage du rapport ' + type);
     }
 </script>
 {% endblock %}

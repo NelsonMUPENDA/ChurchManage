@@ -6,19 +6,21 @@ from django.contrib import messages
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from datetime import timedelta
 
 from .models import (
     Member, Family, HomeGroup, Department, Ministry, Event, Attendance,
     EvangelismActivity, TrainingEvent, MarriageRecord,
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
-    ChurchBiography, Contact, ChurchSettings
+    ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
     EventForm, AttendanceForm, EvangelismActivityForm, TrainingEventForm, MarriageRecordForm,
     FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, LogisticsItemForm,
-    LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm
+    LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm,
+    EventAttendanceAggregateForm
 )
 from .permissions import (
     role_required, admin_required, finance_required, pastor_required,
@@ -366,53 +368,264 @@ def member_delete(request, pk):
 
 @login_required
 def member_print_list(request):
-    """Imprimer la liste des membres (PDF)"""
+    """Imprimer la liste des membres (PDF) - Version professionnelle A4"""
     from django.http import HttpResponse
+    from django.conf import settings
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.pdfgen import canvas
     from io import BytesIO
-    
-    members = Member.objects.select_related('user').filter(is_active=True)
-    
+    from datetime import datetime
+    import os
+
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+    church_name = church_settings.church_name if church_settings else "Consolation et Paix Divine"
+    church_slogan = church_settings.church_slogan if church_settings else ""
+    church_address = church_settings.address if church_settings else ""
+    church_city = church_settings.city if church_settings else ""
+    church_phone = church_settings.phone_primary if church_settings else ""
+    church_email = church_settings.email_primary if church_settings else ""
+    logo_path = church_settings.logo.path if church_settings and church_settings.logo else None
+
+    # Récupérer les membres avec filtres optionnels
+    members = Member.objects.select_related('user', 'department', 'ministry', 'home_group').all()
+
+    # Appliquer les filtres si présents
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        members = members.filter(is_active=True)
+    elif status_filter == 'inactive':
+        members = members.filter(is_active=False)
+
+    department_filter = request.GET.get('department', '')
+    if department_filter:
+        members = members.filter(department_id=department_filter)
+
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="liste_membres.pdf"'
-    
+    response['Content-Disposition'] = f'attachment; filename="liste_membres_{datetime.now().strftime("%Y%m%d")}.pdf"'
+
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    elements = []
-    
+
+    # Configuration du document A4 avec marges
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=15*mm,
+        leftMargin=15*mm,
+        topMargin=25*mm,
+        bottomMargin=20*mm
+    )
+
+    # Styles personnalisés
     styles = getSampleStyleSheet()
-    elements.append(Paragraph("Liste des Membres", styles['Heading1']))
+
+    # Style pour l'en-tête de l'église
+    church_name_style = ParagraphStyle(
+        'ChurchName',
+        parent=styles['Heading1'],
+        fontSize=16,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#1a365d'),
+        alignment=TA_CENTER,
+        spaceAfter=6
+    )
+
+    church_slogan_style = ParagraphStyle(
+        'ChurchSlogan',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica-Oblique',
+        textColor=colors.HexColor('#4a5568'),
+        alignment=TA_CENTER,
+        spaceAfter=6
+    )
+
+    church_info_style = ParagraphStyle(
+        'ChurchInfo',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#2d3748'),
+        alignment=TA_CENTER,
+        spaceAfter=2
+    )
+
+    # Style pour le titre du document
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#2d3748'),
+        alignment=TA_CENTER,
+        spaceAfter=12,
+        spaceBefore=12
+    )
+
+    # Style pour le pied de page
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.HexColor('#718096'),
+        alignment=TA_CENTER
+    )
+
+    elements = []
+
+    # En-tête du document
+    header_data = []
+
+    # Logo si disponible
+    if logo_path and os.path.exists(logo_path):
+        try:
+            img = Image(logo_path, width=2*cm, height=2*cm)
+            header_data.append([img, '', ''])
+        except:
+            pass
+
+    # Informations de l'église
+    church_header = [
+        Paragraph(church_name, church_name_style),
+        Paragraph(church_slogan, church_slogan_style) if church_slogan else '',
+        Paragraph(f"{church_address}, {church_city}", church_info_style) if church_address else '',
+        Paragraph(f"Tél: {church_phone} | Email: {church_email}", church_info_style) if church_phone or church_email else ''
+    ]
+
+    for line in church_header:
+        if line:
+            elements.append(line)
+
+    # Ligne de séparation
+    elements.append(Spacer(1, 0.3*cm))
+
+    # Titre du document
+    title_text = "REGISTRE DES MEMBRES"
+    if status_filter == 'active':
+        title_text = "LISTE DES MEMBRES ACTIFS"
+    elif status_filter == 'inactive':
+        title_text = "LISTE DES MEMBRES INACTIFS"
+
+    elements.append(Paragraph(title_text, title_style))
+    elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", church_info_style))
     elements.append(Spacer(1, 0.5*cm))
-    
-    data = [['N°', 'Nom', 'Prénom', 'Téléphone', 'Email']]
+
+    # Préparation des données du tableau
+    headers = ['N°', 'Matricule', 'Nom & Prénoms', 'Téléphone', 'Email', 'Genre', 'Département', 'Statut']
+    data = [headers]
+
     for idx, member in enumerate(members, 1):
+        full_name = f"{member.user.last_name} {member.user.first_name}" if member.user else 'N/A'
+        if member.post_name:
+            full_name += f" ({member.post_name})"
+
         data.append([
             str(idx),
-            member.user.last_name if member.user else '',
-            member.user.first_name if member.user else '',
-            member.user.phone if member.user else '',
-            member.user.email if member.user else ''
+            member.member_number or '-',
+            full_name,
+            member.user.phone if member.user else '-',
+            member.user.email if member.user else '-',
+            member.get_gender_display() if member.gender else '-',
+            member.department.name if member.department else '-',
+            'Actif' if member.is_active else 'Inactif'
         ])
-    
-    table = Table(data, colWidths=[1*cm, 4*cm, 4*cm, 3*cm, 5*cm])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+
+    # Création du tableau
+    col_widths = [0.8*cm, 2.2*cm, 4.5*cm, 2.5*cm, 3.5*cm, 1.5*cm, 2.5*cm, 1.5*cm]
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+
+    # Style du tableau professionnel
+    table_style = TableStyle([
+        # En-tête
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a365d')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+
+        # Corps du tableau
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+        ('ALIGN', (5, 1), (7, -1), 'CENTER'),
+        ('ALIGN', (2, 1), (4, -1), 'LEFT'),
+
+        # Alternance de couleurs pour les lignes
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+
+        # Bordures
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e0')),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor('#1a365d')),
+
+        # Espacement
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ])
+
+    # Alternance de couleurs pour les lignes
+    for i in range(1, len(data)):
+        if i % 2 == 0:
+            table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f7fafc'))
+
+    table.setStyle(table_style)
     elements.append(table)
-    doc.build(elements)
-    
+
+    # Résumé
+    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Paragraph(f"Total: {len(members)} membre(s)", church_info_style))
+
+    # Fonction pour ajouter le filigrane et pied de page sur chaque page
+    def add_watermark_and_footer(canvas, doc):
+        canvas.saveState()
+
+        # Filigrane avec le logo (en arrière-plan)
+        if logo_path and os.path.exists(logo_path):
+            try:
+                # Position centrale avec transparence
+                canvas.setFillAlpha(0.08)
+                img = Image(logo_path)
+                img.drawHeight = 8*cm
+                img.drawWidth = 8*cm
+                img.wrapOn(canvas, A4[0], A4[1])
+                img.drawOn(canvas, (A4[0] - 8*cm) / 2, (A4[1] - 8*cm) / 2)
+                canvas.setFillAlpha(1.0)
+            except:
+                pass
+
+        # Pied de page
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(colors.HexColor('#718096'))
+
+        # Ligne de séparation
+        canvas.setStrokeColor(colors.HexColor('#cbd5e0'))
+        canvas.line(15*mm, 15*mm, A4[0] - 15*mm, 15*mm)
+
+        # Contact info
+        footer_text = f"{church_name}"
+        if church_phone:
+            footer_text += f" | Tél: {church_phone}"
+        if church_email:
+            footer_text += f" | Email: {church_email}"
+
+        canvas.drawCentredString(A4[0] / 2, 10*mm, footer_text)
+
+        # Numéro de page
+        canvas.drawRightString(A4[0] - 15*mm, 10*mm, f"Page {canvas.getPageNumber()}")
+
+        canvas.restoreState()
+
+    # Construction du PDF avec la fonction de callback pour chaque page
+    doc.build(elements, onFirstPage=add_watermark_and_footer, onLaterPages=add_watermark_and_footer)
+
     pdf = buffer.getvalue()
     buffer.close()
     response.write(pdf)
@@ -420,29 +633,239 @@ def member_print_list(request):
 
 
 @login_required
+def member_print_preview(request):
+    """Aperçu avant impression de la liste des membres"""
+    members = Member.objects.select_related('user', 'department', 'ministry', 'home_group').all()
+
+    # Appliquer les filtres si présents
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        members = members.filter(is_active=True)
+    elif status_filter == 'inactive':
+        members = members.filter(is_active=False)
+    elif status_filter == 'visitor':
+        members = members.filter(user__isnull=True)
+
+    department_filter = request.GET.get('department', '')
+    if department_filter:
+        members = members.filter(department_id=department_filter)
+
+    search = request.GET.get('search', '')
+    if search:
+        members = members.filter(
+            Q(user__first_name__icontains=search) |
+            Q(user__last_name__icontains=search) |
+            Q(user__email__icontains=search) |
+            Q(member_number__icontains=search)
+        )
+
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
+    context = {
+        'members': members,
+        'church_settings': church_settings,
+        'total_members': members.count(),
+        'status_filter': status_filter,
+        'department_filter': department_filter,
+        'search': search,
+        'print_date': timezone.now(),
+    }
+
+    return render(request, 'dashboard/members_print_preview.html', context)
+
+
+@login_required
+def member_profile_print(request, pk):
+    """Fiche complète du membre pour impression"""
+    member = get_object_or_404(
+        Member.objects.select_related(
+            'user', 'department', 'ministry', 'home_group', 'family'
+        ),
+        pk=pk
+    )
+
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
+    context = {
+        'member': member,
+        'church_settings': church_settings,
+        'print_date': timezone.now(),
+    }
+
+    return render(request, 'dashboard/member_profile_print.html', context)
+
+
+@login_required
 def member_export(request):
-    """Exporter les membres en CSV"""
-    import csv
+    """Exporter les membres en Excel (xlsx) - Version professionnelle"""
     from django.http import HttpResponse
-    
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="membres.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow(['N° Membre', 'Nom', 'Prénom', 'Email', 'Téléphone', 'Genre', 'Statut'])
-    
-    members = Member.objects.select_related('user').all()
-    for member in members:
-        writer.writerow([
-            member.member_number,
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, NamedStyle
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.table import Table, TableStyleInfo
+    from datetime import datetime
+    from io import BytesIO
+
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+    church_name = church_settings.church_name if church_settings else "Consolation et Paix Divine"
+
+    # Créer le workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Membres"
+
+    # Styles
+    header_font = Font(name='Calibri', size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1a365d", end_color="1a365d", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    title_font = Font(name='Calibri', size=14, bold=True, color="1a365d")
+    title_alignment = Alignment(horizontal="center", vertical="center")
+
+    data_font = Font(name='Calibri', size=10)
+    data_alignment = Alignment(horizontal="left", vertical="center")
+    center_alignment = Alignment(horizontal="center", vertical="center")
+
+    # Bordures
+    thin_border = Border(
+        left=Side(style='thin', color='cbd5e0'),
+        right=Side(style='thin', color='cbd5e0'),
+        top=Side(style='thin', color='cbd5e0'),
+        bottom=Side(style='thin', color='cbd5e0')
+    )
+
+    # En-tête du document (titre)
+    ws.merge_cells('A1:K1')
+    title_cell = ws['A1']
+    title_cell.value = f"{church_name} - REGISTRE DES MEMBRES"
+    title_cell.font = title_font
+    title_cell.alignment = title_alignment
+
+    # Sous-titre avec date
+    ws.merge_cells('A2:K2')
+    subtitle_cell = ws['A2']
+    subtitle_cell.value = f"Export généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"
+    subtitle_cell.font = Font(name='Calibri', size=10, italic=True, color="718096")
+    subtitle_cell.alignment = title_alignment
+
+    # Ligne vide
+    ws.append([])
+
+    # En-têtes des colonnes
+    headers = [
+        'N°', 'Matricule', 'Nom', 'Prénom', 'Post-nom', 'Téléphone', 'Email',
+        'Genre', 'Date de naissance', 'Département', 'Ministère', 'Statut'
+    ]
+
+    ws.append(headers)
+    header_row = ws[4]  # La ligne 4 contient les headers
+
+    # Appliquer le style aux en-têtes
+    for cell in header_row:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # Récupérer les membres avec filtres
+    members = Member.objects.select_related('user', 'department', 'ministry').all()
+
+    # Appliquer les filtres si présents
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        members = members.filter(is_active=True)
+    elif status_filter == 'inactive':
+        members = members.filter(is_active=False)
+
+    department_filter = request.GET.get('department', '')
+    if department_filter:
+        members = members.filter(department_id=department_filter)
+
+    # Ajouter les données
+    for idx, member in enumerate(members, 1):
+        row_data = [
+            idx,
+            member.member_number or '',
             member.user.last_name if member.user else '',
             member.user.first_name if member.user else '',
-            member.user.email if member.user else '',
+            member.post_name or '',
             member.user.phone if member.user else '',
+            member.user.email if member.user else '',
             member.get_gender_display() if member.gender else '',
+            member.birth_date.strftime('%d/%m/%Y') if member.birth_date else '',
+            member.department.name if member.department else '',
+            member.ministry.name if member.ministry else '',
             'Actif' if member.is_active else 'Inactif'
-        ])
-    
+        ]
+        ws.append(row_data)
+
+    # Appliquer les styles aux données
+    for row_idx, row in enumerate(ws.iter_rows(min_row=5, max_row=ws.max_row), start=5):
+        for cell in row:
+            cell.font = data_font
+            cell.border = thin_border
+            cell.alignment = data_alignment
+
+            # Alternance de couleurs pour les lignes
+            if row_idx % 2 == 0:
+                cell.fill = PatternFill(start_color="f7fafc", end_color="f7fafc", fill_type="solid")
+
+            # Alignement centré pour certaines colonnes
+            if cell.column in [1, 2, 8, 12]:  # N°, Matricule, Genre, Statut
+                cell.alignment = center_alignment
+
+    # Ajuster la largeur des colonnes
+    column_widths = {
+        'A': 5,   # N°
+        'B': 15,  # Matricule
+        'C': 15,  # Nom
+        'D': 15,  # Prénom
+        'E': 15,  # Post-nom
+        'F': 15,  # Téléphone
+        'G': 25,  # Email
+        'H': 8,   # Genre
+        'I': 15,  # Date de naissance
+        'J': 20,  # Département
+        'K': 20,  # Ministère
+        'L': 10,  # Statut
+    }
+
+    for col, width in column_widths.items():
+        ws.column_dimensions[col].width = width
+
+    # Hauteur de la ligne d'en-tête
+    ws.row_dimensions[4].height = 30
+
+    # Figer les volets (Freeze panes) - figer l'en-tête
+    ws.freeze_panes = 'A5'
+
+    # Ajouter un filtre automatique
+    ws.auto_filter.ref = f"A4:L{ws.max_row}"
+
+    # Ajouter une ligne de total
+    total_row = ws.max_row + 2
+    ws.merge_cells(f'A{total_row}:B{total_row}')
+    total_cell = ws[f'A{total_row}']
+    total_cell.value = f"Total des membres: {len(members)}"
+    total_cell.font = Font(name='Calibri', size=11, bold=True)
+    total_cell.alignment = Alignment(horizontal="left", vertical="center")
+
+    # Sauvegarder dans un buffer
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    # Créer la réponse
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="membres_{datetime.now().strftime("%Y%m%d_%H%M")}.xlsx"'
+
+    buffer.close()
     return response
 
 
@@ -452,7 +875,7 @@ def member_print_card(request, pk):
     from django.http import HttpResponse
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Image
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Image, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib.enums import TA_CENTER
@@ -841,12 +1264,33 @@ def event_detail(request, pk):
     """Détail d'un événement"""
     event = get_object_or_404(Event, pk=pk)
     attendance_list = Attendance.objects.filter(event=event).select_related('member')
-    
+
+    # Get all active members for comparison
+    total_members = Member.objects.filter(is_active=True).count()
+
+    # Get demographic counters
+    aggregate = EventAttendanceAggregate.objects.filter(event=event).first()
+    demographic_total = aggregate.grand_total if aggregate else 0
+
+    # Calculate combined attendance stats
+    member_present_count = attendance_list.filter(attended=True).count()
+    member_absent_count = attendance_list.filter(attended=False).count()
+    total_presence = member_present_count + demographic_total
+    total_expected = total_members + demographic_total
+    global_rate = round((total_presence / total_expected * 100)) if total_expected > 0 else 0
+
     return render(request, 'dashboard/event-detail.html', {
         'event': event,
         'attendance_list': attendance_list,
         'total_attendance': attendance_list.count(),
-        'present_count': attendance_list.filter(attended=True).count()
+        'present_count': member_present_count,
+        'absent_count': member_absent_count,
+        'not_marked_count': total_members - member_present_count - member_absent_count,
+        'total_members': total_members,
+        'aggregate': aggregate,
+        'demographic_total': demographic_total,
+        'total_presence': total_presence,
+        'global_rate': global_rate,
     })
 
 
@@ -927,13 +1371,20 @@ def attendance_event(request, event_pk):
     """Pointage pour un événement spécifique"""
     event = get_object_or_404(Event, pk=event_pk)
 
+    # Get or create aggregate for the event (always needed for context)
+    aggregate, created = EventAttendanceAggregate.objects.get_or_create(
+        event=event,
+        defaults={'male_adults': 0, 'female_adults': 0, 'young_men': 0, 'young_women': 0,
+                 'male_children': 0, 'female_children': 0, 'elderly_men': 0, 'elderly_women': 0}
+    )
+
     if request.method == 'POST':
         action = request.POST.get('action', '')
         member_id = request.POST.get('member_id')
 
         if action == 'mark_all_present':
             # Mark all active members as present
-            members = Member.objects.filter(status='active')
+            members = Member.objects.filter(is_active=True)
             for member in members:
                 attendance, created = Attendance.objects.get_or_create(
                     event=event,
@@ -945,6 +1396,22 @@ def attendance_event(request, event_pk):
                     attendance.checked_in_at = timezone.now()
                     attendance.save()
             messages.success(request, f'Tous les membres ont été marqués présents!')
+            return redirect('attendance-event', event_pk=event_pk)
+
+        elif action == 'mark_all_absent':
+            # Mark all active members as absent
+            members = Member.objects.filter(is_active=True)
+            for member in members:
+                attendance, created = Attendance.objects.get_or_create(
+                    event=event,
+                    member=member,
+                    defaults={'attended': False, 'checked_in_at': None}
+                )
+                if not created:
+                    attendance.attended = False
+                    attendance.checked_in_at = None
+                    attendance.save()
+            messages.success(request, f'Tous les membres ont été marqués absents!')
             return redirect('attendance-event', event_pk=event_pk)
 
         elif action == 'reset':
@@ -966,19 +1433,56 @@ def attendance_event(request, event_pk):
                 attendance.attended = attended
                 attendance.checked_in_at = timezone.now() if attended else None
                 attendance.save()
+
+            # Calculate updated counts
+            present_count = Attendance.objects.filter(event=event, attended=True).count()
+            absent_count = Attendance.objects.filter(event=event, attended=False).count()
+
+            # Get demographic totals for combined calculation
+            aggregate = EventAttendanceAggregate.objects.filter(event=event).first()
+            demographic_total = aggregate.grand_total if aggregate else 0
+            total_members = Member.objects.filter(is_active=True).count()
+            total_presence = present_count + demographic_total
+            total_expected = total_members + demographic_total
+            global_rate = round((total_presence / total_expected * 100)) if total_expected > 0 else 0
+
+            # Check if AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'present_count': present_count,
+                    'absent_count': absent_count,
+                    'demographic_total': demographic_total,
+                    'total_presence': total_presence,
+                    'global_rate': global_rate,
+                    'member_name': member.get_full_name(),
+                    'action': action
+                })
+
             messages.success(request, f'Présence enregistrée pour {member.get_full_name}!')
             return redirect('attendance-event', event_pk=event_pk)
 
+        # Handle AttendanceForm
         form = AttendanceForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, 'Présence enregistrée avec succès!')
             return redirect('attendance-event', event_pk=event_pk)
+
+        # Handle demographic counters form
+        aggregate_form = EventAttendanceAggregateForm(request.POST, instance=aggregate)
+        if aggregate_form.is_valid():
+            aggregate = aggregate_form.save(commit=False)
+            aggregate.updated_by = request.user
+            aggregate.save()
+            messages.success(request, 'Compteurs démographiques enregistrés avec succès!')
+            return redirect('attendance-event', event_pk=event_pk)
     else:
         form = AttendanceForm(initial={'event': event})
+        aggregate_form = EventAttendanceAggregateForm(instance=aggregate)
 
     # Get all active members
-    members = Member.objects.filter(status='active').order_by('last_name', 'first_name')
+    members = Member.objects.filter(is_active=True).order_by('user__last_name', 'user__first_name')
 
     # Get existing attendances for this event
     attendances = Attendance.objects.filter(event=event).select_related('member')
@@ -990,13 +1494,23 @@ def attendance_event(request, event_pk):
     total_members = members.count()
     not_marked_count = total_members - present_count - absent_count
 
-    # Calculate attendance rate for progress ring
-    attendance_rate = round((present_count / total_members * 100)) if total_members > 0 else 0
+    # Calculate combined attendance rate (members + demographic counters)
+    demographic_total = aggregate.grand_total if aggregate else 0
+    total_presence = present_count + demographic_total
+    total_expected = total_members + demographic_total
+
+    # Calculate attendance rate for progress ring (combined)
+    attendance_rate = round((total_presence / total_expected * 100)) if total_expected > 0 else 0
     attendance_offset = 326.73 - (attendance_rate / 100 * 326.73)  # 326.73 is circumference of circle r=52
+
+    # Member-only rate for reference
+    member_attendance_rate = round((present_count / total_members * 100)) if total_members > 0 else 0
 
     return render(request, 'dashboard/attendance.html', {
         'event': event,
         'form': form,
+        'aggregate_form': aggregate_form,
+        'aggregate': aggregate,
         'members': members,
         'member_attendance': member_attendance,
         'present_count': present_count,
@@ -1005,6 +1519,9 @@ def attendance_event(request, event_pk):
         'total_members': total_members,
         'attendance_rate': attendance_rate,
         'attendance_offset': attendance_offset,
+        'member_attendance_rate': member_attendance_rate,
+        'demographic_total': demographic_total,
+        'total_presence': total_presence,
     })
 
 
@@ -1015,15 +1532,176 @@ def attendance_event(request, event_pk):
 @login_required
 @finance_required
 def finance_list(request):
-    """Liste des transactions financières"""
+    """Liste des transactions financières avec création directe"""
+    from datetime import datetime
+
+    # Handle POST request for creating transaction directly from main page
+    if request.method == 'POST':
+        try:
+            direction = request.POST.get('direction', 'in')
+            amount = request.POST.get('amount', '0')
+            date_str = request.POST.get('date')
+            category_id = request.POST.get('category')
+            description = request.POST.get('description', '')
+            currency = request.POST.get('currency', 'CDF')
+            reference = request.POST.get('reference', '')
+            event_id = request.POST.get('event')
+            member_id = request.POST.get('member')
+            transaction_type = request.POST.get('transaction_type', 'offering' if direction == 'in' else 'functioning')
+            payment_method = request.POST.get('payment_method', '')
+            donor_name = request.POST.get('donor_name', '')
+            recipient_name = request.POST.get('recipient_name', '')
+
+            if not amount or float(amount) <= 0:
+                messages.error(request, 'Le montant doit être supérieur à 0')
+                return redirect('finance-list')
+
+            # Get category
+            category = None
+            if category_id:
+                try:
+                    category = FinancialCategory.objects.get(pk=category_id)
+                except FinancialCategory.DoesNotExist:
+                    pass
+
+            # Get event
+            event = None
+            if event_id:
+                try:
+                    event = Event.objects.get(pk=event_id)
+                except Event.DoesNotExist:
+                    pass
+
+            # Get member
+            member = None
+            if member_id:
+                try:
+                    member = Member.objects.get(pk=member_id)
+                except Member.DoesNotExist:
+                    pass
+
+            # Auto-generate reference if not provided
+            if not reference:
+                prefix = 'ENT' if direction == 'in' else 'SOR'
+                year = datetime.now().year
+                # Get last transaction number for this year
+                last_count = FinancialTransaction.objects.filter(
+                    reference_number__startswith=f'{prefix}-{year}'
+                ).count()
+                reference = f'{prefix}-{year}-{str(last_count + 1).zfill(4)}'
+
+            # Create transaction
+            transaction = FinancialTransaction.objects.create(
+                direction=direction,
+                amount=float(amount),
+                date=date_str or datetime.now().date(),
+                category=category,
+                event=event,
+                member=member,
+                transaction_type=transaction_type,
+                payment_method=payment_method,
+                description=description,
+                currency=currency,
+                reference_number=reference,
+                document_number=reference,
+                donor_name=donor_name if direction == 'in' else None,
+                recipient_name=recipient_name if direction == 'out' else None,
+                created_by=request.user,
+                cashier=request.user
+            )
+
+            messages.success(request, f'Transaction {reference} enregistrée avec succès!')
+            return redirect('finance-list')
+
+        except Exception as e:
+            messages.error(request, f'Erreur lors de l\'enregistrement: {str(e)}')
+            return redirect('finance-list')
+
+    # GET request - show list
     transactions = FinancialTransaction.objects.all().select_related('category', 'member').order_by('-date', '-created_at')
-    
+
+    # Calculate monthly stats
+    from django.utils import timezone
+    today = timezone.now()
+    first_day_of_month = today.replace(day=1)
+
+    # Calculate monthly stats by currency
+    month_in_cdf = FinancialTransaction.objects.filter(
+        direction='in', currency='CDF',
+        date__gte=first_day_of_month
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    month_out_cdf = FinancialTransaction.objects.filter(
+        direction='out', currency='CDF',
+        date__gte=first_day_of_month
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    month_in_usd = FinancialTransaction.objects.filter(
+        direction='in', currency='USD',
+        date__gte=first_day_of_month
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    month_out_usd = FinancialTransaction.objects.filter(
+        direction='out', currency='USD',
+        date__gte=first_day_of_month
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    # Calculate total balances by currency
+    total_in_cdf = FinancialTransaction.objects.filter(
+        direction='in', currency='CDF'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_out_cdf = FinancialTransaction.objects.filter(
+        direction='out', currency='CDF'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_in_usd = FinancialTransaction.objects.filter(
+        direction='in', currency='USD'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_out_usd = FinancialTransaction.objects.filter(
+        direction='out', currency='USD'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    balance_cdf = total_in_cdf - total_out_cdf
+    balance_usd = total_in_usd - total_out_usd
+
+    # Get upcoming and recent events for selection
+    upcoming_events = Event.objects.filter(date__gte=timezone.now().date() - timezone.timedelta(days=7)).order_by('-date')[:20]
+    members = Member.objects.filter(is_active=True).order_by('post_name', 'member_number')
+
     context = {
         'transactions': transactions[:100],
-        'total_in': FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
-        'total_out': FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
+        'categories': FinancialCategory.objects.all(),
+        'events': upcoming_events,
+        'members': members,
+        'transaction_types': FinancialTransaction.TRANSACTION_TYPE_CHOICES,
+        'payment_methods': [
+            ('cash', 'Espèces'),
+            ('bank_transfer', 'Virement bancaire'),
+            ('mobile_money', 'Mobile Money'),
+            ('check', 'Chèque'),
+            ('card', 'Carte bancaire'),
+        ],
+        # CDF totals
+        'total_in_cdf': total_in_cdf,
+        'total_out_cdf': total_out_cdf,
+        'balance_cdf': balance_cdf,
+        'month_in_cdf': month_in_cdf,
+        'month_out_cdf': month_out_cdf,
+        # USD totals
+        'total_in_usd': total_in_usd,
+        'total_out_usd': total_out_usd,
+        'balance_usd': balance_usd,
+        'month_in_usd': month_in_usd,
+        'month_out_usd': month_out_usd,
+        # Combined totals for backwards compatibility
+        'total_in': total_in_cdf + total_in_usd,
+        'total_out': total_out_cdf + total_out_usd,
+        'month_in': month_in_cdf + month_in_usd,
+        'month_out': month_out_cdf + month_out_usd,
     }
-    return render(request, 'finances.html', context)
+    return render(request, 'dashboard/finances.html', context)
 
 
 @login_required
@@ -1047,19 +1725,62 @@ def transaction_create(request):
 def transaction_edit(request, pk):
     """Modifier une transaction"""
     transaction = get_object_or_404(FinancialTransaction, pk=pk)
-    
+
     if request.method == 'POST':
-        form = FinancialTransactionForm(request.POST, instance=transaction)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Transaction modifiée avec succès!')
+        # Handle manual form submission
+        try:
+            transaction.direction = request.POST.get('direction', transaction.direction)
+            transaction.amount = request.POST.get('amount', transaction.amount)
+            transaction.currency = request.POST.get('currency', transaction.currency)
+            transaction.date = request.POST.get('date', transaction.date)
+            transaction.transaction_type = request.POST.get('transaction_type', transaction.transaction_type)
+            transaction.payment_method = request.POST.get('payment_method', transaction.payment_method)
+            transaction.description = request.POST.get('description', transaction.description)
+            transaction.reference_number = request.POST.get('reference_number', transaction.reference_number)
+            transaction.donor_name = request.POST.get('donor_name', '')
+            transaction.recipient_name = request.POST.get('recipient_name', '')
+
+            # Foreign keys
+            category_id = request.POST.get('category')
+            if category_id:
+                transaction.category = FinancialCategory.objects.filter(pk=category_id).first()
+
+            event_id = request.POST.get('event')
+            if event_id:
+                transaction.event = Event.objects.filter(pk=event_id).first()
+            else:
+                transaction.event = None
+
+            member_id = request.POST.get('member')
+            if member_id:
+                transaction.member = Member.objects.filter(pk=member_id).first()
+            else:
+                transaction.member = None
+
+            transaction.save()
+            messages.success(request, f'Transaction {transaction.reference_number} modifiée avec succès!')
             return redirect('finance-list')
-    else:
-        form = FinancialTransactionForm(instance=transaction)
-    
+
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la modification: {str(e)}')
+
+    # Get context data for form
+    upcoming_events = Event.objects.filter(date__gte=timezone.now().date() - timezone.timedelta(days=7)).order_by('-date')[:20]
+    members = Member.objects.filter(is_active=True).order_by('post_name', 'member_number')
+
     return render(request, 'dashboard/finances.html', {
-        'form': form,
         'transaction': transaction,
+        'categories': FinancialCategory.objects.all(),
+        'events': upcoming_events,
+        'members': members,
+        'transaction_types': FinancialTransaction.TRANSACTION_TYPE_CHOICES,
+        'payment_methods': [
+            ('cash', 'Espèces'),
+            ('bank_transfer', 'Virement bancaire'),
+            ('mobile_money', 'Mobile Money'),
+            ('check', 'Chèque'),
+            ('card', 'Carte bancaire'),
+        ],
         'action': 'Modifier',
         'view': 'transaction_form'
     })
@@ -1081,6 +1802,17 @@ def transaction_delete(request, pk):
 
 @login_required
 @finance_required
+def transaction_detail(request, pk):
+    """Détail d'une transaction"""
+    transaction = get_object_or_404(FinancialTransaction, pk=pk)
+    return render(request, 'dashboard/finances.html', {
+        'transaction': transaction,
+        'view': 'transaction_detail'
+    })
+
+
+@login_required
+@finance_required
 def category_list(request):
     """Liste des catégories financières"""
     categories = FinancialCategory.objects.all()
@@ -1095,11 +1827,11 @@ def category_create(request):
         form = FinancialCategoryForm(request.POST)
         if form.is_valid():
             category = form.save()
-            messages.success(request, f'Catégorie {category.name} créée avec succès!')
-            return redirect('category-list')
+            messages.success(request, f'Catégorie "{category.name}" créée avec succès!')
+            return redirect('finance-list')
     else:
         form = FinancialCategoryForm()
-    
+
     return render(request, 'dashboard/finances.html', {'form': form, 'action': 'Créer', 'view': 'category_form'})
 
 
@@ -1171,10 +1903,47 @@ def reports(request):
 @login_required
 def announcement_list(request):
     """Liste des annonces"""
+    if request.method == 'POST':
+        # Handle create from main page
+        try:
+            title = request.POST.get('title')
+            content = request.POST.get('content')
+            is_active = request.POST.get('is_active') == 'on'
+
+            if not title or not content:
+                messages.error(request, 'Le titre et le contenu sont requis')
+                return redirect('announcement-list')
+
+            announcement = Announcement.objects.create(
+                title=title,
+                content=content,
+                author=request.user,
+                is_active=is_active
+            )
+
+            # Handle image upload
+            if request.FILES.get('image'):
+                announcement.image = request.FILES['image']
+                announcement.save()
+
+            messages.success(request, f'Annonce "{title}" créée avec succès!')
+            return redirect('announcement-list')
+
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création: {str(e)}')
+            return redirect('announcement-list')
+
+    # GET request
     announcements = Announcement.objects.all().order_by('-created_at')
+    total_count = announcements.count()
+    published_count = announcements.filter(is_active=True).count()
+    draft_count = announcements.filter(is_active=False).count()
+
     return render(request, 'dashboard/announcements.html', {
         'announcements': announcements,
-        'published_count': announcements.filter(is_active=True).count()
+        'total_count': total_count,
+        'published_count': published_count,
+        'draft_count': draft_count,
     })
 
 
@@ -1182,42 +1951,77 @@ def announcement_list(request):
 def announcement_detail(request, pk):
     """Détail d'une annonce"""
     announcement = get_object_or_404(Announcement, pk=pk)
-    return render(request, 'dashboard/announcements.html', {'announcement': announcement, 'view': 'detail'})
+    return render(request, 'dashboard/announcements.html', {
+        'announcement': announcement,
+        'view': 'detail'
+    })
 
 
 @login_required
 def announcement_create(request):
-    """Créer une annonce"""
+    """Créer une annonce - formulaire dédié"""
     if request.method == 'POST':
-        form = AnnouncementForm(request.POST, request.FILES)
-        if form.is_valid():
-            announcement = form.save(commit=False)
-            announcement.created_by = request.user
-            announcement.save()
-            messages.success(request, f'Annonce {announcement.title} créée avec succès!')
+        try:
+            title = request.POST.get('title')
+            content = request.POST.get('content')
+            is_active = request.POST.get('is_active') == 'on'
+
+            if not title or not content:
+                messages.error(request, 'Le titre et le contenu sont requis')
+                return render(request, 'dashboard/announcements.html', {
+                    'view': 'form',
+                    'action': 'Créer',
+                    'form_data': request.POST
+                })
+
+            announcement = Announcement.objects.create(
+                title=title,
+                content=content,
+                author=request.user,
+                is_active=is_active
+            )
+
+            # Handle image upload
+            if request.FILES.get('image'):
+                announcement.image = request.FILES['image']
+                announcement.save()
+
+            messages.success(request, f'Annonce "{title}" créée avec succès!')
             return redirect('announcement-list')
-    else:
-        form = AnnouncementForm()
-    
-    return render(request, 'dashboard/announcements.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création: {str(e)}')
+
+    return render(request, 'dashboard/announcements.html', {
+        'view': 'form',
+        'action': 'Créer'
+    })
 
 
 @login_required
 def announcement_edit(request, pk):
     """Modifier une annonce"""
     announcement = get_object_or_404(Announcement, pk=pk)
-    
+
     if request.method == 'POST':
-        form = AnnouncementForm(request.POST, request.FILES, instance=announcement)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Annonce {announcement.title} modifiée avec succès!')
+        try:
+            announcement.title = request.POST.get('title', announcement.title)
+            announcement.content = request.POST.get('content', announcement.content)
+            announcement.is_active = request.POST.get('is_active') == 'on'
+
+            # Handle image upload
+            if request.FILES.get('image'):
+                announcement.image = request.FILES['image']
+
+            announcement.save()
+
+            messages.success(request, f'Annonce "{announcement.title}" modifiée avec succès!')
             return redirect('announcement-list')
-    else:
-        form = AnnouncementForm(instance=announcement)
-    
+
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la modification: {str(e)}')
+
     return render(request, 'dashboard/announcements.html', {
-        'form': form,
         'announcement': announcement,
         'action': 'Modifier',
         'view': 'form'
@@ -1228,13 +2032,16 @@ def announcement_edit(request, pk):
 def announcement_delete(request, pk):
     """Supprimer une annonce"""
     announcement = get_object_or_404(Announcement, pk=pk)
-    
+
     if request.method == 'POST':
         announcement.delete()
         messages.success(request, 'Annonce supprimée avec succès!')
         return redirect('announcement-list')
-    
-    return render(request, 'dashboard/announcements.html', {'announcement': announcement, 'delete_confirm': True})
+
+    return render(request, 'dashboard/announcements.html', {
+        'announcement': announcement,
+        'view': 'delete_confirm'
+    })
 
 
 # ============================================================
@@ -1245,11 +2052,71 @@ def announcement_delete(request, pk):
 def diaconat(request):
     """Diaconat - Pointage et logistique"""
     today = timezone.now().date()
-    upcoming_events = Event.objects.filter(date__gte=today).order_by('date')[:10]
-    
+
+    # Get all events for the dropdown (upcoming and past 30 days)
+    recent_date = today - timezone.timedelta(days=30)
+    events = Event.objects.filter(date__gte=recent_date).order_by('-date')
+
+    # Get selected event from query param
+    selected_event_id = request.GET.get('event')
+    selected_event = None
+    members = []
+    member_attendance = {}
+    present_count = 0
+    absent_count = 0
+    total_members = 0
+    not_marked_count = 0
+    attendance_rate = 0
+    attendance_offset = 326.73
+
+    if selected_event_id:
+        try:
+            selected_event = Event.objects.get(pk=selected_event_id)
+
+            # Get all active members
+            members = Member.objects.filter(is_active=True).order_by('user__last_name', 'user__first_name')
+            total_members = members.count()
+
+            # Get existing attendances for this event
+            attendances = Attendance.objects.filter(event=selected_event).select_related('member')
+            member_attendance = {a.member_id: a for a in attendances}
+
+            # Calculate stats
+            present_count = attendances.filter(attended=True).count()
+            absent_count = attendances.filter(attended=False).count()
+            not_marked_count = total_members - present_count - absent_count
+
+            # Calculate attendance rate
+            total_marked = present_count + absent_count
+            attendance_rate = round((present_count / total_marked * 100)) if total_marked > 0 else 0
+
+            # Calculate progress ring offset
+            circumference = 326.73
+            attendance_offset = circumference - (attendance_rate / 100) * circumference
+
+        except Event.DoesNotExist:
+            pass
+
     context = {
-        'events': upcoming_events,
-        'logistics_items': LogisticsItem.objects.all()[:20]
+        'events': events,
+        'selected_event': selected_event,
+        'members': members,
+        'member_attendance': member_attendance,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'total_members': total_members,
+        'not_marked_count': not_marked_count,
+        'attendance_rate': attendance_rate,
+        'attendance_offset': attendance_offset,
+        'logistics_items': LogisticsItem.objects.filter(is_active=True).order_by('-created_at')[:50],
+        'logistics_categories': [
+            ('furniture', 'Mobilier'),
+            ('equipment', 'Équipement'),
+            ('consumable', 'Consommable'),
+            ('other', 'Autre'),
+        ],
+        'condition_choices': LogisticsItem.CONDITION_CHOICES,
+        'currency_choices': LogisticsItem.CURRENCY_CHOICES,
     }
     return render(request, 'dashboard/diaconat.html', context)
 
@@ -1269,58 +2136,98 @@ def diaconat_attendance(request):
 @login_required
 def logistics_list(request):
     """Liste des éléments logistiques"""
-    items = LogisticsItem.objects.all().select_related('responsible')
-    return render(request, 'dashboard/diaconat.html', {'items': items, 'view': 'logistics_list'})
+    items = LogisticsItem.objects.filter(is_active=True).order_by('-created_at')[:50]
+    return render(request, 'dashboard/diaconat.html', {
+        'logistics_items': items,
+        'logistics_categories': [
+            ('furniture', 'Mobilier'),
+            ('equipment', 'Équipement'),
+            ('consumable', 'Consommable'),
+            ('other', 'Autre'),
+        ],
+        'condition_choices': LogisticsItem.CONDITION_CHOICES,
+        'currency_choices': LogisticsItem.CURRENCY_CHOICES,
+    })
 
 
 @login_required
 def logistics_create(request):
-    """Créer un élément logistique"""
+    """Créer un élément logistique avec tous les champs du modèle"""
     if request.method == 'POST':
-        form = LogisticsItemForm(request.POST)
-        if form.is_valid():
-            item = form.save()
-            messages.success(request, f'Élément {item.name} créé avec succès!')
-            return redirect('logistics-list')
-    else:
-        form = LogisticsItemForm()
-    
-    return render(request, 'dashboard/diaconat.html', {'form': form, 'action': 'Créer', 'view': 'logistics_form'})
+        try:
+            item = LogisticsItem.objects.create(
+                name=request.POST.get('name'),
+                category=request.POST.get('category', ''),
+                asset_tag=request.POST.get('asset_tag', '') or None,
+                quantity=int(request.POST.get('quantity', 1)),
+                unit=request.POST.get('unit', '') or None,
+                condition=request.POST.get('condition', 'good'),
+                location=request.POST.get('location', '') or None,
+                acquired_date=request.POST.get('acquired_date') or None,
+                unit_price=request.POST.get('unit_price') or None,
+                purchase_currency=request.POST.get('purchase_currency', 'CDF'),
+                supplier=request.POST.get('supplier', '') or None,
+                notes=request.POST.get('notes', '') or None,
+                is_active=request.POST.get('is_active') == 'on'
+            )
+            messages.success(request, f'Article "{item.name}" créé avec succès!')
+            return redirect('diaconat')
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création: {str(e)}')
+
+    return redirect('diaconat')
 
 
 @login_required
 def logistics_edit(request, pk):
     """Modifier un élément logistique"""
     item = get_object_or_404(LogisticsItem, pk=pk)
-    
+
     if request.method == 'POST':
-        form = LogisticsItemForm(request.POST, instance=item)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Élément {item.name} modifié avec succès!')
-            return redirect('logistics-list')
-    else:
-        form = LogisticsItemForm(instance=item)
-    
-    return render(request, 'dashboard/diaconat.html', {
-        'form': form,
-        'item': item,
-        'action': 'Modifier',
-        'view': 'logistics_form'
-    })
+        try:
+            item.name = request.POST.get('name', item.name)
+            item.category = request.POST.get('category', item.category)
+            item.asset_tag = request.POST.get('asset_tag') or None
+            item.quantity = int(request.POST.get('quantity', item.quantity))
+            item.unit = request.POST.get('unit') or None
+            item.condition = request.POST.get('condition', item.condition)
+            item.location = request.POST.get('location') or None
+            item.acquired_date = request.POST.get('acquired_date') or None
+            item.unit_price = request.POST.get('unit_price') or None
+            item.purchase_currency = request.POST.get('purchase_currency', item.purchase_currency)
+            item.supplier = request.POST.get('supplier') or None
+            item.notes = request.POST.get('notes') or None
+            item.is_active = request.POST.get('is_active') == 'on'
+            item.save()
+            messages.success(request, f'Article "{item.name}" modifié avec succès!')
+            return redirect('diaconat')
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la modification: {str(e)}')
+
+    return redirect('diaconat')
 
 
 @login_required
 def logistics_delete(request, pk):
     """Supprimer un élément logistique"""
     item = get_object_or_404(LogisticsItem, pk=pk)
-    
+
     if request.method == 'POST':
         item.delete()
-        messages.success(request, 'Élément supprimé avec succès!')
-        return redirect('logistics-list')
-    
-    return render(request, 'dashboard/diaconat.html', {'item': item, 'delete_confirm': True, 'view': 'logistics_list'})
+        messages.success(request, f'Article "{item.name}" supprimé avec succès!')
+        return redirect('diaconat')
+
+    return redirect('diaconat')
+
+
+@login_required
+def logistics_detail(request, pk):
+    """Détail d'un élément logistique"""
+    item = get_object_or_404(LogisticsItem, pk=pk)
+    return render(request, 'dashboard/diaconat.html', {
+        'logistics_item': item,
+        'view': 'logistics_detail'
+    })
 
 
 # ============================================================

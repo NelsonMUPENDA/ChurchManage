@@ -98,23 +98,145 @@
     <div class="row g-4">
         <!-- Left Column - Info -->
         <div class="col-lg-4">
+            <!-- Global Attendance Stats -->
+            <div class="card border-0 shadow-sm mb-4 bg-gradient bg-success bg-opacity-10 border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success mb-3">
+                        <i class="bi bi-pie-chart me-2"></i>Taux de présence global
+                    </h5>
+                    <div class="display-4 fw-bold text-success mb-2">{{ global_rate|default:0 }}%</div>
+                    <p class="text-muted mb-3">{{ total_presence|default:0 }} présences sur {{ total_members|default:0 }} membres attendus</p>
+                    <div class="row text-center g-2">
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded">
+                                <div class="fw-bold text-primary">{{ present_count|default:0 }}</div>
+                                <small class="text-muted">Membres</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded">
+                                <div class="fw-bold text-info">{{ demographic_total|default:0 }}</div>
+                                <small class="text-muted">Compteurs</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 bg-white rounded">
+                                <div class="fw-bold text-success">{{ total_presence|default:0 }}</div>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Stats -->
             <div class="row g-3 mb-4">
                 <div class="col-6">
                     <div class="stat-card">
-                        <i class="bi bi-people fs-2 text-primary mb-2 d-block"></i>
+                        <i class="bi bi-people fs-2 text-success mb-2 d-block"></i>
                         <h4 class="fw-bold mb-0">{{ present_count|default:"0" }}</h4>
                         <small class="text-muted">Présents</small>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="stat-card">
-                        <i class="bi bi-clipboard-check fs-2 text-success mb-2 d-block"></i>
+                        <i class="bi bi-x-circle fs-2 text-danger mb-2 d-block"></i>
+                        <h4 class="fw-bold mb-0">{{ absent_count|default:"0" }}</h4>
+                        <small class="text-muted">Absents</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-question-circle fs-2 text-secondary mb-2 d-block"></i>
+                        <h4 class="fw-bold mb-0">{{ not_marked_count|default:"0" }}</h4>
+                        <small class="text-muted">Non pointés</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-clipboard-check fs-2 text-primary mb-2 d-block"></i>
                         <h4 class="fw-bold mb-0">{{ total_attendance|default:"0" }}</h4>
                         <small class="text-muted">Total pointés</small>
                     </div>
                 </div>
             </div>
+
+            <!-- Demographic Counters -->
+            {% if aggregate and aggregate.grand_total > 0 %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-bar-chart-line me-2"></i>Compteurs démographiques</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                <i class="bi bi-person-standing fs-4 text-primary d-block mb-1"></i>
+                                <div class="fw-bold">{{ aggregate.total_men|default:0 }}</div>
+                                <small class="text-muted">Hommes</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-danger bg-opacity-10 rounded text-center">
+                                <i class="bi bi-person-standing-dress fs-4 text-danger d-block mb-1"></i>
+                                <div class="fw-bold">{{ aggregate.total_women|default:0 }}</div>
+                                <small class="text-muted">Femmes</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-primary">{{ aggregate.male_adults|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">H. Adultes</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-danger">{{ aggregate.female_adults|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">F. Adultes</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-info">{{ aggregate.young_men|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">Garçons</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-warning">{{ aggregate.young_women|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">J. Filles</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-success">{{ aggregate.male_children|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">G. Enfants</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-success">{{ aggregate.female_children|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">F. Enfants</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-secondary">{{ aggregate.elderly_men|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">Papas</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="p-2 bg-light rounded">
+                                <div class="fw-bold text-secondary">{{ aggregate.elderly_women|default:0 }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">Mamas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Event Details -->
             <div class="card border-0 shadow-sm mb-4">
@@ -237,12 +359,51 @@
                 </div>
             </div>
 
+            <!-- Attendance Summary -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-graph-up me-2"></i>Résumé du pointage</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="bi bi-check-circle fs-2 text-success mb-2 d-block"></i>
+                                <h5 class="fw-bold">{{ present_count|default:0 }}</h5>
+                                <small class="text-muted">Membres présents</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="bi bi-x-circle fs-2 text-danger mb-2 d-block"></i>
+                                <h5 class="fw-bold">{{ absent_count|default:0 }}</h5>
+                                <small class="text-muted">Membres absents</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="bi bi-question-circle fs-2 text-secondary mb-2 d-block"></i>
+                                <h5 class="fw-bold">{{ not_marked_count|default:0 }}</h5>
+                                <small class="text-muted">Non pointés</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="bi bi-calculator fs-2 text-primary mb-2 d-block"></i>
+                                <h5 class="fw-bold">{{ total_members|default:0 }}</h5>
+                                <small class="text-muted">Total membres</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Attendance List -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-semibold"><i class="bi bi-clipboard-check me-2"></i>Liste de présence</h6>
                     <a href="{% url 'attendance-event' event.pk %}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i>Ajouter
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter / Modifier
                     </a>
                 </div>
                 <div class="card-body p-0">
