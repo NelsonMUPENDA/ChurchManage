@@ -1,0 +1,226 @@
+{% load static %}
+{% load permissions_tags %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Accueil{% endblock %} - {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</title>
+    {% if church_settings and church_settings.logo %}
+    <link rel="icon" type="image/png" href="{{ church_settings.logo.url }}">
+    {% else %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/logo.svg' %}">
+    {% endif %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/public.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top cpd-navbar">
+        <div class="container">
+            <a class="cpd-navbar-brand" href="{% url 'home' %}">
+                <div class="logo-icon">
+                    {% if church_settings and church_settings.logo %}
+                    <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                    {% else %}
+                    <i class="bi bi-layers"></i>
+                    {% endif %}
+                </div>
+                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="publicNav">
+                <ul class="navbar-nav ms-auto align-items-center cpd-nav-container" id="navContainer">
+                    <li class="nav-item">
+                        <a class="nav-link cpd-nav-link {% if active_page == 'home' %}active{% endif %}" href="{% url 'home' %}">Accueil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cpd-nav-link {% if active_page == 'about' %}active{% endif %}" href="{% url 'about' %}">À Propos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cpd-nav-link {% if active_page == 'events' %}active{% endif %}" href="{% url 'public-events' %}">Événements</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link cpd-nav-link {% if active_page == 'contact' %}active{% endif %}" href="{% url 'contact' %}">Contact</a>
+                    </li>
+                </ul>
+                <div class="ms-lg-3 mt-2 mt-lg-0 d-flex align-items-center gap-2">
+                    <!-- Theme Toggle -->
+                    <button class="cpd-theme-toggle" id="themeToggle" type="button" aria-label="Changer le thème">
+                        <i class="bi bi-sun" id="themeIconLight"></i>
+                        <i class="bi bi-moon" id="themeIconDark" style="display: none;"></i>
+                    </button>
+                    <div id="authButton">
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                            <i class="bi bi-grid me-1"></i>
+                            Mon Espace
+                        </a>
+                        {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>
+                            Se Connecter
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-5 pt-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="cpd-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="cpd-footer-brand">
+                        <div class="logo-icon">
+                            {% if church_settings and church_settings.logo %}
+                            <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                            {% else %}
+                            <i class="bi bi-layers"></i>
+                            {% endif %}
+                        </div>
+                        <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+                    </div>
+                    <p class="cpd-footer-text">
+                        {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service.{% endif %}
+                    </p>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h6 class="cpd-footer-title">Liens Rapides</h6>
+                    <ul class="cpd-footer-links">
+                        <li><a href="{% url 'home' %}">Accueil</a></li>
+                        <li><a href="{% url 'about' %}">À Propos</a></li>
+                        <li><a href="{% url 'public-events' %}">Événements</a></li>
+                        <li><a href="{% url 'contact' %}">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6 class="cpd-footer-title">Contact</h6>
+                    <ul class="cpd-footer-contact">
+                        <li>
+                            <i class="bi bi-geo-alt"></i>
+                            <span>{% if church_settings and church_settings.address %}{{ church_settings.address }}{% else %}123 Avenue de la Foi{% endif %}, {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}</span>
+                        </li>
+                        <li>
+                            <i class="bi bi-telephone"></i>
+                            <span>{% if church_settings and church_settings.phone_primary %}{{ church_settings.phone_primary }}{% else %}+243 99 999 9999{% endif %}</span>
+                        </li>
+                        <li>
+                            <i class="bi bi-envelope"></i>
+                            <span>{% if church_settings and church_settings.email_primary %}{{ church_settings.email_primary }}{% else %}contact@consolationetpaix.org{% endif %}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <h6 class="cpd-footer-title">Réseaux Sociaux</h6>
+                    <div class="cpd-social-links">
+                        {% if church_settings and church_settings.facebook_url %}
+                        <a href="{{ church_settings.facebook_url }}" target="_blank" class="cpd-social-btn" aria-label="Facebook">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        {% endif %}
+                        {% if church_settings and church_settings.youtube_url %}
+                        <a href="{{ church_settings.youtube_url }}" target="_blank" class="cpd-social-btn" aria-label="YouTube">
+                            <i class="bi bi-youtube"></i>
+                        </a>
+                        {% endif %}
+                        {% if church_settings and church_settings.instagram_url %}
+                        <a href="{{ church_settings.instagram_url }}" target="_blank" class="cpd-social-btn" aria-label="Instagram">
+                            <i class="bi bi-instagram"></i>
+                        </a>
+                        {% endif %}
+                        {% if church_settings and church_settings.twitter_url %}
+                        <a href="{{ church_settings.twitter_url }}" target="_blank" class="cpd-social-btn" aria-label="Twitter">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if church_settings and church_settings.whatsapp_number %}
+                        <a href="https://wa.me/{{ church_settings.whatsapp_number }}" target="_blank" class="cpd-social-btn" aria-label="WhatsApp">
+                            <i class="bi bi-whatsapp"></i>
+                        </a>
+                        {% endif %}
+                        {% if church_settings and church_settings.telegram_url %}
+                        <a href="{{ church_settings.telegram_url }}" target="_blank" class="cpd-social-btn" aria-label="Telegram">
+                            <i class="bi bi-telegram"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="cpd-footer-bottom">
+                <p class="cpd-footer-copyright">
+                    © {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}. Tous droits réservés.
+                </p>
+                <p class="cpd-footer-copyright">
+                    Propulsé par <a href="https://www.mupenda.cd" style="color: var(--cpd-primary);">Mupenda Company</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme
+            initTheme();
+        });
+
+        // Theme toggle functionality
+        function initTheme() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIconLight = document.getElementById('themeIconLight');
+            const themeIconDark = document.getElementById('themeIconDark');
+            const html = document.documentElement;
+            
+            // ALWAYS start with dark mode on page load
+            let savedTheme = 'dark';
+            setTheme(savedTheme);
+            
+            themeToggle.addEventListener('click', function() {
+                const currentTheme = html.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                setTheme(newTheme);
+                localStorage.setItem('cpd_theme', newTheme);
+            });
+            
+            function setTheme(theme) {
+                html.setAttribute('data-bs-theme', theme);
+                
+                if (theme === 'dark') {
+                    themeIconLight.style.display = 'none';
+                    themeIconDark.style.display = 'inline';
+                } else {
+                    themeIconLight.style.display = 'inline';
+                    themeIconDark.style.display = 'none';
+                }
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

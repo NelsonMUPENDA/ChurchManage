@@ -75,6 +75,7 @@ def logout_view(request):
 def index(request):
     """Page d'accueil publique"""
     context = {
+        'active_page': 'home',
         'upcoming_events': Event.objects.filter(
             date__gte=timezone.now().date(),
             is_published=True
@@ -86,6 +87,7 @@ def index(request):
 def public_about(request):
     """Page À propos"""
     context = {
+        'active_page': 'about',
         'biography': ChurchBiography.objects.filter(is_active=True).first(),
     }
     return render(request, 'public-about.html', context)
@@ -104,7 +106,7 @@ def contact(request):
         from .forms import ContactForm
         form = ContactForm()
     
-    return render(request, 'contact.html', {'form': form})
+    return render(request, 'contact.html', {'form': form, 'active_page': 'contact'})
 
 
 def public_events(request):
@@ -124,6 +126,7 @@ def public_events(request):
         past_events = past_events.filter(event_type=event_type)
     
     return render(request, 'public-events.html', {
+        'active_page': 'events',
         'upcoming_events': upcoming_events,
         'past_events': past_events,
         'event_type': event_type,

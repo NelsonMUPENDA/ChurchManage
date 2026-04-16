@@ -1,55 +1,9 @@
+{% extends 'base_public.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Événements - {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</title>
-    {% if church_settings and church_settings.logo %}
-    <link rel="icon" type="image/png" href="{{ church_settings.logo.url }}">
-    {% else %}
-    <link rel="icon" type="image/svg+xml" href="{% static 'images/logo.svg' %}">
-    {% endif %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/public.css' %}">
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg fixed-top cpd-navbar">
-        <div class="container">
-            <a class="cpd-navbar-brand" href="{% url 'home' %}">
-                <div class="logo-icon">
-                    {% if church_settings and church_settings.logo %}
-                    <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                    {% else %}
-                    <i class="bi bi-layers"></i>
-                    {% endif %}
-                </div>
-                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="publicNav">
-                <ul class="navbar-nav ms-auto align-items-center cpd-nav-container" id="navContainer">
-                    <!-- Nav items injected by JS -->
-                </ul>
-                <div class="ms-lg-3 mt-2 mt-lg-0 d-flex align-items-center gap-2">
-                    <!-- Theme Toggle -->
-                    <button class="cpd-theme-toggle" id="themeToggle" type="button" aria-label="Changer le thème">
-                        <i class="bi bi-sun" id="themeIconLight"></i>
-                        <i class="bi bi-moon" id="themeIconDark" style="display: none;"></i>
-                    </button>
-                    <div id="authButton">
-                        <!-- Auth button injected by JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
 
+{% block title %}Événements{% endblock %}
+
+{% block content %}
     <!-- Page Header -->
     <section class="cpd-page-header">
         <div class="container cpd-page-header-content">
@@ -96,6 +50,11 @@
                 {% for event in upcoming_events %}
                 <div class="col-md-6 col-lg-4">
                     <div class="cpd-event-card">
+                        {% if event.poster_image %}
+                        <div class="cpd-event-image">
+                            <img src="{{ event.poster_image.url }}" alt="{{ event.title }}" class="img-fluid" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px 12px 0 0;">
+                        </div>
+                        {% endif %}
                         <div class="cpd-event-date">
                             <span class="day">{{ event.date|date:"d" }}</span>
                             <span class="month">{{ event.date|date:"M" }}</span>
@@ -143,6 +102,11 @@
                 {% for event in past_events|slice:":6" %}
                 <div class="col-md-6 col-lg-4">
                     <div class="cpd-event-card cpd-event-card-past">
+                        {% if event.poster_image %}
+                        <div class="cpd-event-image">
+                            <img src="{{ event.poster_image.url }}" alt="{{ event.title }}" class="img-fluid" style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px 12px 0 0; filter: grayscale(50%);">
+                        </div>
+                        {% endif %}
                         <div class="cpd-event-date">
                             <span class="day">{{ event.date|date:"d" }}</span>
                             <span class="month">{{ event.date|date:"M" }}</span>
@@ -168,87 +132,4 @@
         </div>
     </section>
     {% endif %}
-
-    <!-- Footer -->
-    <footer class="cpd-footer">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="cpd-footer-brand">
-                        <div class="logo-icon">
-                            {% if church_settings and church_settings.logo %}
-                            <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                            {% else %}
-                            <i class="bi bi-layers"></i>
-                            {% endif %}
-                        </div>
-                        <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
-                    </div>
-                    <p class="cpd-footer-text">
-                        {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service.{% endif %}
-                    </p>
-                </div>
-                <div class="col-lg-2 col-md-4">
-                    <h6 class="cpd-footer-title">Liens Rapides</h6>
-                    <ul class="cpd-footer-links">
-                        <li><a href="{% url 'home' %}">Accueil</a></li>
-                        <li><a href="{% url 'about' %}">À Propos</a></li>
-                        <li><a href="{% url 'public-events' %}">Événements</a></li>
-                        <li><a href="{% url 'contact' %}">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-4">
-                    <h6 class="cpd-footer-title">Contact</h6>
-                    <ul class="cpd-footer-contact">
-                        <li>
-                            <i class="bi bi-geo-alt"></i>
-                            <span>{% if church_settings and church_settings.address %}{{ church_settings.address }}{% else %}123 Avenue de la Foi{% endif %}, {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}</span>
-                        </li>
-                        <li>
-                            <i class="bi bi-telephone"></i>
-                            <span>{% if church_settings and church_settings.phone_primary %}{{ church_settings.phone_primary }}{% else %}+243 99 999 9999{% endif %}</span>
-                        </li>
-                        <li>
-                            <i class="bi bi-envelope"></i>
-                            <span>{% if church_settings and church_settings.email_primary %}{{ church_settings.email_primary }}{% else %}contact@consolationetpaix.org{% endif %}</span>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-4">
-                    <h6 class="cpd-footer-title">Réseaux Sociaux</h6>
-                    <div class="cpd-social-links">
-                        {% if church_settings and church_settings.facebook_url %}
-                        <a href="{{ church_settings.facebook_url }}" target="_blank" class="cpd-social-btn" aria-label="Facebook">
-                            <i class="bi bi-facebook"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.youtube_url %}
-                        <a href="{{ church_settings.youtube_url }}" target="_blank" class="cpd-social-btn" aria-label="YouTube">
-                            <i class="bi bi-youtube"></i>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div class="cpd-footer-bottom">
-                <p class="cpd-footer-copyright">&copy; {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}. Tous droits réservés.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/utils.js' %}"></script>
-    <script src="{% static 'js/navigation.js' %}"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize navigation
-            if (window.Navigation) {
-                Navigation.renderPublic('navContainer', '/calendar/');
-                Navigation.updateAuthButton();
-            }
-        });
-    </script>
-</body>
-</html>
+{% endblock content %}
