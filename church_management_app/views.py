@@ -2241,22 +2241,38 @@ def logistics_detail(request, pk):
 def evangelisation_list(request):
     """Liste des activités d'évangélisation"""
     activities = EvangelismActivity.objects.all().order_by('-date', '-time')
-    return render(request, 'dashboard/evangelisation.html', {'activities': activities})
+    activity_choices = EvangelismActivity.ACTIVITY_TYPE_CHOICES
+    return render(request, 'dashboard/evangelisation.html', {
+        'activities': activities,
+        'activity_choices': activity_choices
+    })
 
 
 @login_required
 def evangelisation_create(request):
     """Créer une activité d'évangélisation"""
     if request.method == 'POST':
-        form = EvangelismActivityForm(request.POST)
-        if form.is_valid():
-            activity = form.save()
+        try:
+            activity = EvangelismActivity.objects.create(
+                title=request.POST.get('title'),
+                activity_type=request.POST.get('activity_type', 'field'),
+                custom_activity_type=request.POST.get('custom_activity_type'),
+                date=request.POST.get('date'),
+                time=request.POST.get('time'),
+                location=request.POST.get('location'),
+                moderator=request.POST.get('moderator'),
+                created_by=request.user
+            )
             messages.success(request, f'Activité {activity.title} créée avec succès!')
             return redirect('evangelisation-list')
-    else:
-        form = EvangelismActivityForm()
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création: {str(e)}')
     
-    return render(request, 'dashboard/evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+    activity_choices = EvangelismActivity.ACTIVITY_TYPE_CHOICES
+    return render(request, 'dashboard/evangelisation.html', {
+        'action': 'Créer',
+        'activity_choices': activity_choices
+    })
 
 
 @login_required
@@ -2265,19 +2281,25 @@ def evangelisation_edit(request, pk):
     activity = get_object_or_404(EvangelismActivity, pk=pk)
     
     if request.method == 'POST':
-        form = EvangelismActivityForm(request.POST, instance=activity)
-        if form.is_valid():
-            form.save()
+        try:
+            activity.title = request.POST.get('title')
+            activity.activity_type = request.POST.get('activity_type', 'field')
+            activity.custom_activity_type = request.POST.get('custom_activity_type')
+            activity.date = request.POST.get('date')
+            activity.time = request.POST.get('time')
+            activity.location = request.POST.get('location')
+            activity.moderator = request.POST.get('moderator')
+            activity.save()
             messages.success(request, f'Activité {activity.title} modifiée avec succès!')
             return redirect('evangelisation-list')
-    else:
-        form = EvangelismActivityForm(instance=activity)
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la modification: {str(e)}')
     
+    activity_choices = EvangelismActivity.ACTIVITY_TYPE_CHOICES
     return render(request, 'dashboard/evangelisation.html', {
-        'form': form,
         'activity': activity,
         'action': 'Modifier',
-        'view': 'form'
+        'activity_choices': activity_choices
     })
 
 
@@ -2358,6 +2380,8 @@ def training_delete(request, pk):
 # ============================================================
 # Mariages - CRUD
 # ============================================================
+# Mariages - CRUD
+# ============================================================
 
 @login_required
 def marriage_list(request):
@@ -2377,15 +2401,38 @@ def marriage_detail(request, pk):
 def marriage_create(request):
     """Créer un registre de mariage"""
     if request.method == 'POST':
-        form = MarriageRecordForm(request.POST)
-        if form.is_valid():
-            marriage = form.save()
+        try:
+            marriage = MarriageRecord.objects.create(
+                groom_id=request.POST.get('groom') or None,
+                bride_id=request.POST.get('bride') or None,
+                groom_full_name=request.POST.get('groom_full_name'),
+                bride_full_name=request.POST.get('bride_full_name'),
+                groom_birth_date=request.POST.get('groom_birth_date') or None,
+                groom_birth_place=request.POST.get('groom_birth_place'),
+                groom_nationality=request.POST.get('groom_nationality'),
+                bride_birth_date=request.POST.get('bride_birth_date') or None,
+                bride_birth_place=request.POST.get('bride_birth_place'),
+                bride_nationality=request.POST.get('bride_nationality'),
+                godfather_full_name=request.POST.get('godfather_full_name'),
+                godfather_nationality=request.POST.get('godfather_nationality'),
+                godmother_full_name=request.POST.get('godmother_full_name'),
+                godmother_nationality=request.POST.get('godmother_nationality'),
+                planned_date=request.POST.get('planned_date'),
+                planned_time=request.POST.get('planned_time'),
+                location=request.POST.get('location'),
+                dowry_paid=request.POST.get('dowry_paid') == 'on',
+                civil_verified=request.POST.get('civil_verified') == 'on',
+                prenuptial_tests=request.POST.get('prenuptial_tests') == 'on',
+                approved=request.POST.get('approved') == 'on',
+                created_by=request.user
+            )
             messages.success(request, 'Registre de mariage créé avec succès!')
             return redirect('marriage-detail', pk=marriage.pk)
-    else:
-        form = MarriageRecordForm()
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création: {str(e)}')
     
-    return render(request, 'dashboard/mariage.html', {'form': form, 'action': 'Créer', 'view': 'form'})
+    members = Member.objects.filter(is_active=True)
+    return render(request, 'dashboard/mariage.html', {'members': members, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -2394,17 +2441,38 @@ def marriage_edit(request, pk):
     marriage = get_object_or_404(MarriageRecord, pk=pk)
     
     if request.method == 'POST':
-        form = MarriageRecordForm(request.POST, instance=marriage)
-        if form.is_valid():
-            form.save()
+        try:
+            marriage.groom_id = request.POST.get('groom') or None
+            marriage.bride_id = request.POST.get('bride') or None
+            marriage.groom_full_name = request.POST.get('groom_full_name')
+            marriage.bride_full_name = request.POST.get('bride_full_name')
+            marriage.groom_birth_date = request.POST.get('groom_birth_date') or None
+            marriage.groom_birth_place = request.POST.get('groom_birth_place')
+            marriage.groom_nationality = request.POST.get('groom_nationality')
+            marriage.bride_birth_date = request.POST.get('bride_birth_date') or None
+            marriage.bride_birth_place = request.POST.get('bride_birth_place')
+            marriage.bride_nationality = request.POST.get('bride_nationality')
+            marriage.godfather_full_name = request.POST.get('godfather_full_name')
+            marriage.godfather_nationality = request.POST.get('godfather_nationality')
+            marriage.godmother_full_name = request.POST.get('godmother_full_name')
+            marriage.godmother_nationality = request.POST.get('godmother_nationality')
+            marriage.planned_date = request.POST.get('planned_date')
+            marriage.planned_time = request.POST.get('planned_time')
+            marriage.location = request.POST.get('location')
+            marriage.dowry_paid = request.POST.get('dowry_paid') == 'on'
+            marriage.civil_verified = request.POST.get('civil_verified') == 'on'
+            marriage.prenuptial_tests = request.POST.get('prenuptial_tests') == 'on'
+            marriage.approved = request.POST.get('approved') == 'on'
+            marriage.save()
             messages.success(request, 'Registre de mariage modifié avec succès!')
             return redirect('marriage-detail', pk=marriage.pk)
-    else:
-        form = MarriageRecordForm(instance=marriage)
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la modification: {str(e)}')
     
+    members = Member.objects.filter(is_active=True)
     return render(request, 'dashboard/mariage.html', {
-        'form': form,
         'marriage': marriage,
+        'members': members,
         'action': 'Modifier',
         'view': 'form'
     })

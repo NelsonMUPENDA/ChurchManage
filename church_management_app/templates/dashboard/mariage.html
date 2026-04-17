@@ -1,235 +1,596 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
 
-{% block title %}Mariages{% endblock %}
+{% block title %}Registre des Mariages{% endblock %}
 
-{% block page_title %}<i class="bi bi-heart me-2"></i>Mariages{% endblock %}
+{% block page_title %}<i class="bi bi-heart-fill me-2 text-danger"></i>Registre des Mariages{% endblock %}
 
 {% block extra_css %}
 <style>
-    .marriage-card { transition: all 0.2s; border-left: 4px solid #ec4899; }
-    .marriage-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .marriage-card { transition: all 0.2s; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .marriage-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .status-badge { font-size: 0.75rem; padding: 0.35em 0.65em; border-radius: 20px; }
+    .status-approved { background: #10b981; color: white; }
+    .status-pending { background: #f59e0b; color: white; }
+    .form-section { background: #f8f9fa; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .form-section-title { font-weight: 600; color: #374151; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid p-4">
-            <!-- Stats -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(236,72,153,0.1);">
-                                    <i class="bi bi-heart fs-4" style="color: #ec4899;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Total Mariages</p>
-                                    <h4 class="mb-0 fw-bold" id="totalMarriages">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    {% if delete_confirm %}
+    <!-- Delete Confirmation -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
                 </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-calendar-check fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Cette année</p>
-                                    <h4 class="mb-0 fw-bold" id="yearMarriages">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-calendar-event fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">À venir</p>
-                                    <h4 class="mb-0 fw-bold" id="upcomingMarriages">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher un couple...">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <select class="form-select bg-light border-0" id="yearFilter">
-                                <option value="">Toutes les années</option>
-                                <option value="2024">2024</option>
-                                <option value="2023">2023</option>
-                                <option value="2022">2022</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMarriageModal">
-                                <i class="bi bi-plus-lg me-2"></i>Nouveau mariage
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Marriages Grid -->
-            <div class="row g-3" id="marriagesGrid">
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="text-muted mt-2">Chargement...</p>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <nav class="mt-4" id="paginationNav" style="display: none;">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
-                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
-                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
-                </ul>
-            </nav>
-        </div>
-    </main>
-
-    <!-- Add Marriage Modal -->
-    <div class="modal fade" id="addMarriageModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Nouveau mariage</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="marriageForm">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Époux *</label>
-                                <select class="form-select" name="husband" required>
-                                    <option value="">Sélectionner...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Épouse *</label>
-                                <select class="form-select" name="wife" required>
-                                    <option value="">Sélectionner...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date du mariage *</label>
-                                <input type="date" class="form-control" name="marriage_date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date de demande</label>
-                                <input type="date" class="form-control" name="request_date">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Officiant</label>
-                                <input type="text" class="form-control" name="officiant" placeholder="Nom du pasteur/officiant">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Témoins</label>
-                                <input type="text" class="form-control" name="witnesses" placeholder="Noms des témoins">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control" name="notes" rows="2"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_blessed" id="isBlessed">
-                            <label class="form-check-label" for="isBlessed">Bénédiction par l'église</label>
-                                </div>
-                            </div>
-                        </div>
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-heart text-danger" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3">
+                        {{ marriage.groom_full_name|default:marriage.groom }} 
+                        <i class="bi bi-heart-fill text-danger mx-2"></i> 
+                        {{ marriage.bride_full_name|default:marriage.bride }}
+                    </h4>
+                    <p class="text-muted">Date prévue: {{ marriage.planned_date|date:"d/m/Y" }}</p>
+                    <p class="text-danger">Êtes-vous sûr de vouloir supprimer ce registre ? Cette action est irréversible.</p>
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <a href="{% url 'marriage-list' %}" class="btn btn-secondary me-2">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Supprimer définitivement
+                        </button>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" onclick="saveMarriage()">Enregistrer</button>
                 </div>
             </div>
         </div>
     </div>
+    
+    {% elif view == 'detail' %}
+    <!-- Marriage Detail -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-heart-fill text-danger me-2"></i>Détail du Mariage
+                    </h5>
+                    <div>
+                        <a href="{% url 'marriage-edit' marriage.pk %}" class="btn btn-sm btn-primary me-2">
+                            <i class="bi bi-pencil me-1"></i>Modifier
+                        </a>
+                        <a href="{% url 'marriage-list' %}" class="btn btn-sm btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Retour
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <!-- Couple Info -->
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-person-standing me-2"></i>Époux</h6>
+                                <p class="mb-1"><strong>Nom:</strong> {{ marriage.groom_full_name|default:marriage.groom }}</p>
+                                {% if marriage.groom_birth_date %}
+                                <p class="mb-1"><strong>Date de naissance:</strong> {{ marriage.groom_birth_date|date:"d/m/Y" }}</p>
+                                {% endif %}
+                                {% if marriage.groom_birth_place %}
+                                <p class="mb-1"><strong>Lieu de naissance:</strong> {{ marriage.groom_birth_place }}</p>
+                                {% endif %}
+                                {% if marriage.groom_nationality %}
+                                <p class="mb-1"><strong>Nationalité:</strong> {{ marriage.groom_nationality }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-person-standing-dress me-2"></i>Épouse</h6>
+                                <p class="mb-1"><strong>Nom:</strong> {{ marriage.bride_full_name|default:marriage.bride }}</p>
+                                {% if marriage.bride_birth_date %}
+                                <p class="mb-1"><strong>Date de naissance:</strong> {{ marriage.bride_birth_date|date:"d/m/Y" }}</p>
+                                {% endif %}
+                                {% if marriage.bride_birth_place %}
+                                <p class="mb-1"><strong>Lieu de naissance:</strong> {{ marriage.bride_birth_place }}</p>
+                                {% endif %}
+                                {% if marriage.bride_nationality %}
+                                <p class="mb-1"><strong>Nationalité:</strong> {{ marriage.bride_nationality }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Parrains -->
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-person-check me-2"></i>Parrain</h6>
+                                <p class="mb-1"><strong>Nom:</strong> {{ marriage.godfather_full_name|default:"Non spécifié" }}</p>
+                                {% if marriage.godfather_nationality %}
+                                <p class="mb-1"><strong>Nationalité:</strong> {{ marriage.godfather_nationality }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-person-check-fill me-2"></i>Marraine</h6>
+                                <p class="mb-1"><strong>Nom:</strong> {{ marriage.godmother_full_name|default:"Non spécifiée" }}</p>
+                                {% if marriage.godmother_nationality %}
+                                <p class="mb-1"><strong>Nationalité:</strong> {{ marriage.godmother_nationality }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Event Info -->
+                        <div class="col-12">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-calendar-heart me-2"></i>Informations du Mariage</h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p class="mb-1"><strong>Date prévue:</strong> {{ marriage.planned_date|date:"d/m/Y" }}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p class="mb-1"><strong>Heure:</strong> {{ marriage.planned_time|time:"H:i" }}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p class="mb-1"><strong>Lieu:</strong> {{ marriage.location }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status -->
+                        <div class="col-12">
+                            <div class="form-section">
+                                <h6 class="form-section-title"><i class="bi bi-check-circle me-2"></i>Statut des Préparatifs</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <p class="mb-1">
+                                            <i class="bi bi-{{ marriage.dowry_paid|yesno:'check-circle-fill,x-circle' }} text-{{ marriage.dowry_paid|yesno:'success,danger' }} me-1"></i>
+                                            <strong>Dot payée:</strong> {{ marriage.dowry_paid|yesno:"Oui,Non" }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="mb-1">
+                                            <i class="bi bi-{{ marriage.civil_verified|yesno:'check-circle-fill,x-circle' }} text-{{ marriage.civil_verified|yesno:'success,danger' }} me-1"></i>
+                                            <strong>État civil vérifié:</strong> {{ marriage.civil_verified|yesno:"Oui,Non" }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="mb-1">
+                                            <i class="bi bi-{{ marriage.prenuptial_tests|yesno:'check-circle-fill,x-circle' }} text-{{ marriage.prenuptial_tests|yesno:'success,danger' }} me-1"></i>
+                                            <strong>Tests prénuptiaux:</strong> {{ marriage.prenuptial_tests|yesno:"Oui,Non" }}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p class="mb-1">
+                                            <i class="bi bi-{{ marriage.approved|yesno:'check-circle-fill,x-circle' }} text-{{ marriage.approved|yesno:'success,danger' }} me-1"></i>
+                                            <strong>Approuvé:</strong> {{ marriage.approved|yesno:"Oui,Non" }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% elif action %}
+    <!-- Create/Edit Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-{% if action == 'Créer' %}plus-lg{% else %}pencil{% endif %} me-2"></i>{{ action }} un registre de mariage
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="marriageForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Couple Section -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-people-fill me-2"></i>Informations du Couple</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Époux (membre)</label>
+                                    <select class="form-select" name="groom">
+                                        <option value="">Sélectionner un membre...</option>
+                                        {% for member in members %}
+                                        <option value="{{ member.pk }}" {% if marriage.groom_id == member.pk %}selected{% endif %}>
+                                            {{ member.first_name }} {{ member.last_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Épouse (membre)</label>
+                                    <select class="form-select" name="bride">
+                                        <option value="">Sélectionner un membre...</option>
+                                        {% for member in members %}
+                                        <option value="{{ member.pk }}" {% if marriage.bride_id == member.pk %}selected{% endif %}>
+                                            {{ member.first_name }} {{ member.last_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nom complet de l'époux *</label>
+                                    <input type="text" class="form-control" name="groom_full_name" 
+                                           value="{{ marriage.groom_full_name|default:'' }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nom complet de l'épouse *</label>
+                                    <input type="text" class="form-control" name="bride_full_name" 
+                                           value="{{ marriage.bride_full_name|default:'' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Groom Details -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-person-standing me-2"></i>Détails de l'Époux</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Date de naissance</label>
+                                    <input type="date" class="form-control" name="groom_birth_date" 
+                                           value="{{ marriage.groom_birth_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Lieu de naissance</label>
+                                    <input type="text" class="form-control" name="groom_birth_place" 
+                                           value="{{ marriage.groom_birth_place|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Nationalité</label>
+                                    <input type="text" class="form-control" name="groom_nationality" 
+                                           value="{{ marriage.groom_nationality|default:'' }}"
+                                           placeholder="Ex: Congolaise">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bride Details -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-person-standing-dress me-2"></i>Détails de l'Épouse</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Date de naissance</label>
+                                    <input type="date" class="form-control" name="bride_birth_date" 
+                                           value="{{ marriage.bride_birth_date|date:'Y-m-d'|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Lieu de naissance</label>
+                                    <input type="text" class="form-control" name="bride_birth_place" 
+                                           value="{{ marriage.bride_birth_place|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Nationalité</label>
+                                    <input type="text" class="form-control" name="bride_nationality" 
+                                           value="{{ marriage.bride_nationality|default:'' }}"
+                                           placeholder="Ex: Congolaise">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Godparents -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-person-check me-2"></i>Parrain et Marraine</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nom complet du Parrain</label>
+                                    <input type="text" class="form-control" name="godfather_full_name" 
+                                           value="{{ marriage.godfather_full_name|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nationalité du Parrain</label>
+                                    <input type="text" class="form-control" name="godfather_nationality" 
+                                           value="{{ marriage.godfather_nationality|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nom complet de la Marraine</label>
+                                    <input type="text" class="form-control" name="godmother_full_name" 
+                                           value="{{ marriage.godmother_full_name|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Nationalité de la Marraine</label>
+                                    <input type="text" class="form-control" name="godmother_nationality" 
+                                           value="{{ marriage.godmother_nationality|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Wedding Event -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-calendar-heart me-2"></i>Date et Lieu du Mariage</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Date prévue *</label>
+                                    <input type="date" class="form-control" name="planned_date" 
+                                           value="{{ marriage.planned_date|date:'Y-m-d'|default:'' }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Heure prévue *</label>
+                                    <input type="time" class="form-control" name="planned_time" 
+                                           value="{{ marriage.planned_time|time:'H:i'|default:'10:00' }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium">Lieu *</label>
+                                    <input type="text" class="form-control" name="location" 
+                                           value="{{ marriage.location|default:'' }}" required
+                                           placeholder="Ex: Église Centrale">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Checkboxes -->
+                        <div class="form-section">
+                            <h6 class="form-section-title"><i class="bi bi-check-square me-2"></i>Statut des Préparatifs</h6>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="dowry_paid" id="dowryPaid"
+                                               {% if marriage.dowry_paid %}checked{% endif %}>
+                                        <label class="form-check-label" for="dowryPaid">Dot payée</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="civil_verified" id="civilVerified"
+                                               {% if marriage.civil_verified %}checked{% endif %}>
+                                        <label class="form-check-label" for="civilVerified">État civil vérifié</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="prenuptial_tests" id="prenuptialTests"
+                                               {% if marriage.prenuptial_tests %}checked{% endif %}>
+                                        <label class="form-check-label" for="prenuptialTests">Tests prénuptiaux</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="approved" id="approved"
+                                               {% if marriage.approved %}checked{% endif %}>
+                                        <label class="form-check-label" for="approved">Approuvé par l'église</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'marriage-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-lg me-1"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>{{ action }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- List View -->
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(236,72,153,0.1);">
+                        <i class="bi bi-heart fs-4" style="color: #ec4899;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total Mariages</p>
+                        <h4 class="mb-0 fw-bold">{{ marriages.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(16,185,129,0.1);">
+                        <i class="bi bi-calendar-check fs-4" style="color: #10b981;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Cette année</p>
+                        <h4 class="mb-0 fw-bold">{{ marriages_this_year|default:0 }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(245,158,11,0.1);">
+                        <i class="bi bi-calendar-event fs-4" style="color: #f59e0b;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">À venir</p>
+                        <h4 class="mb-0 fw-bold">{{ upcoming_marriages|default:0 }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(59,130,246,0.1);">
+                        <i class="bi bi-check-circle fs-4" style="color: #3b82f6;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Approuvés</p>
+                        <h4 class="mb-0 fw-bold">{{ approved_marriages|default:0 }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Toolbar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" id="searchInput" 
+                               placeholder="Rechercher un couple..." onkeyup="filterMarriages()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" id="statusFilter" onchange="filterMarriages()">
+                        <option value="">Tous les statuts</option>
+                        <option value="approved">Approuvés</option>
+                        <option value="pending">En attente</option>
+                    </select>
+                </div>
+                <div class="col-md-5 text-md-end">
+                    <a href="{% url 'marriage-create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Nouveau mariage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marriages List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if marriages %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="marriagesTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0 fw-semibold ps-4">Couple</th>
+                            <th class="border-0 fw-semibold">Date prévue</th>
+                            <th class="border-0 fw-semibold">Lieu</th>
+                            <th class="border-0 fw-semibold">Statut</th>
+                            <th class="border-0 fw-semibold text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for marriage in marriages %}
+                        <tr class="marriage-row" 
+                            data-groom="{{ marriage.groom_full_name|default:marriage.groom|lower }}"
+                            data-bride="{{ marriage.bride_full_name|default:marriage.bride|lower }}"
+                            data-approved="{{ marriage.approved|yesno:'approved,pending' }}">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <span class="status-badge {% if marriage.approved %}status-approved{% else %}status-pending{% endif %}">
+                                            <i class="bi bi-{{ marriage.approved|yesno:'check,x' }}"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">
+                                            {{ marriage.groom_full_name|default:marriage.groom }} 
+                                            <i class="bi bi-heart-fill text-danger mx-1 small"></i> 
+                                            {{ marriage.bride_full_name|default:marriage.bride }}
+                                        </h6>
+                                        <small class="text-muted">
+                                            Créé le {{ marriage.created_at|date:"d/m/Y" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <i class="bi bi-calendar-event text-muted me-1"></i>
+                                {{ marriage.planned_date|date:"d/m/Y" }}
+                                <br>
+                                <i class="bi bi-clock text-muted me-1"></i>
+                                {{ marriage.planned_time|time:"H:i" }}
+                            </td>
+                            <td>
+                                <i class="bi bi-geo-alt text-muted me-1"></i>
+                                {{ marriage.location|truncatechars:30 }}
+                            </td>
+                            <td>
+                                {% if marriage.approved %}
+                                <span class="badge bg-success">Approuvé</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">En attente</span>
+                                {% endif %}
+                                <div class="mt-1 small">
+                                    {% if marriage.dowry_paid %}<i class="bi bi-check text-success" title="Dot payée"></i>{% endif %}
+                                    {% if marriage.civil_verified %}<i class="bi bi-check text-success" title="État civil"></i>{% endif %}
+                                    {% if marriage.prenuptial_tests %}<i class="bi bi-check text-success" title="Tests prénuptiaux"></i>{% endif %}
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'marriage-detail' marriage.pk %}">
+                                                <i class="bi bi-eye me-2 text-info"></i>Voir détail
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'marriage-edit' marriage.pk %}">
+                                                <i class="bi bi-pencil me-2 text-primary"></i>Modifier
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'marriage-delete' marriage.pk %}">
+                                                <i class="bi bi-trash me-2"></i>Supprimer
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-heart text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">Aucun registre de mariage enregistré</p>
+                <a href="{% url 'marriage-create' %}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-lg me-2"></i>Créer le premier registre
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    let currentPage = 1;
-    let totalPages = 1;
-    let searchQuery = '';
-    let yearFilter = '';
-
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('searchInput').addEventListener('input', debounce(() => {
-            searchQuery = document.getElementById('searchInput').value;
-            currentPage = 1;
-            filterMarriages();
-        }, 300));
-        document.getElementById('yearFilter').addEventListener('change', () => {
-            yearFilter = document.getElementById('yearFilter').value;
-            currentPage = 1;
-            filterMarriages();
-        });
-    });
-
-    function debounce(fn, delay) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => fn.apply(this, args), delay);
-        };
-    }
-
     function filterMarriages() {
-        // Simple client-side filtering
-        const cards = document.querySelectorAll('.marriage-card');
-        cards.forEach(card => {
-            const text = card.textContent.toLowerCase();
-            const matchesSearch = !searchQuery || text.includes(searchQuery.toLowerCase());
-            const yearText = card.querySelector('.bi-calendar')?.parentElement?.nextElementSibling?.textContent || '';
-            const matchesYear = !yearFilter || yearText.includes(yearFilter);
-            card.closest('.col-md-6').style.display = (matchesSearch && matchesYear) ? '' : 'none';
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const rows = document.querySelectorAll('.marriage-row');
+        
+        rows.forEach(row => {
+            const groom = row.getAttribute('data-groom');
+            const bride = row.getAttribute('data-bride');
+            const approved = row.getAttribute('data-approved');
+            
+            const matchesSearch = groom.includes(searchInput) || bride.includes(searchInput);
+            const matchesStatus = !statusFilter || approved === statusFilter;
+            
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
-    }
-
-    function saveMarriage() {
-        const form = document.getElementById('marriageForm');
-        const husband = form.elements['husband'].value;
-        const wife = form.elements['wife'].value;
-
-        if (husband === wife && husband !== '') {
-            alert('L\'époux et l\'épouse doivent être différents');
-            return false;
-        }
-        return true;
-    }
-
-    function deleteMarriage(id) {
-        if (confirm('Supprimer ce mariage ?')) {
-            window.location.href = `/marriages/${id}/delete/`;
-        }
-    }
-
-    function viewMarriage(id) {
-        alert('Détail à implémenter');
     }
 </script>
 {% endblock %}

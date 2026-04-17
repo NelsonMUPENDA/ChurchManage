@@ -3,213 +3,325 @@
 
 {% block title %}Évangélisation{% endblock %}
 
-{% block page_title %}<i class="bi bi-megaphone me-2"></i>Évangélisation{% endblock %}
+{% block page_title %}<i class="bi bi-megaphone me-2"></i>Gestion des Activités d'Évangélisation{% endblock %}
 
 {% block extra_css %}
 <style>
-    .activity-card { transition: all 0.2s; }
-    .activity-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .activity-card { transition: all 0.2s; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .activity-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
     .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .activity-type-badge { font-size: 0.75rem; padding: 0.35em 0.65em; border-radius: 20px; }
+    .activity-type-field { background: #6366f1; color: white; }
+    .activity-type-prayer { background: #10b981; color: white; }
+    .activity-type-other { background: #f59e0b; color: white; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid p-4">
-            <!-- Stats Row -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="stat-icon me-3" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi bi-calendar-event fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Activités</p>
-                                    <h4 class="mb-0 fw-bold" id="totalActivities">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    {% if delete_confirm %}
+    <!-- Delete Confirmation -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirmer la suppression</h5>
                 </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="stat-icon me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-people fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Personnes touchées</p>
-                                    <h4 class="mb-0 fw-bold" id="totalReached">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="stat-icon me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-heart fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Conversions</p>
-                                    <h4 class="mb-0 fw-bold" id="totalConversions">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="stat-icon me-3" style="background: rgba(239,68,68,0.1);">
-                                    <i class="bi bi-geo-alt fs-4" style="color: #ef4444;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Zones couvertes</p>
-                                    <h4 class="mb-0 fw-bold" id="totalZones">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Actions -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-select bg-light border-0" id="typeFilter">
-                                <option value="">Tous les types</option>
-                                <option value="door_to_door">Porte-à-porte</option>
-                                <option value="street">Rue/Espace public</option>
-                                <option value="campaign">Campagne</option>
-                                <option value="media">Médias</option>
-                                <option value="other">Autre</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addActivityModal">
-                                <i class="bi bi-plus-lg me-2"></i>Nouvelle activité
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Activities Grid -->
-            <div class="row g-3" id="activitiesGrid">
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="text-muted mt-2">Chargement...</p>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <nav class="mt-4" id="paginationNav" style="display: none;">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item"><a class="page-link" href="#" id="prevPage">Précédent</a></li>
-                    <li class="page-item"><span class="page-link" id="pageInfo">Page 1</span></li>
-                    <li class="page-item"><a class="page-link" href="#" id="nextPage">Suivant</a></li>
-                </ul>
-            </nav>
-        </div>
-    </main>
-
-    <!-- Add Activity Modal -->
-    <div class="modal fade" id="addActivityModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Nouvelle activité d'évangélisation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="activityForm">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Titre *</label>
-                                <input type="text" class="form-control" name="title" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control" name="date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Type *</label>
-                                <select class="form-select" name="activity_type" required>
-                                    <option value="door_to_door">Porte-à-porte</option>
-                                    <option value="street">Rue/Espace public</option>
-                                    <option value="campaign">Campagne</option>
-                                    <option value="media">Médias</option>
-                                    <option value="other">Autre</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Lieu/Zone</label>
-                                <input type="text" class="form-control" name="location" placeholder="Ex: Quartier Matete">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Personnes touchées</label>
-                                <input type="number" class="form-control" name="people_reached" min="0" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Conversions</label>
-                                <input type="number" class="form-control" name="conversions" min="0" value="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Baptêmes</label>
-                                <input type="number" class="form-control" name="baptisms" min="0" value="0">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control" name="description" rows="3"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Participants</label>
-                                <input type="text" class="form-control" name="participants" placeholder="Noms des participants séparés par des virgules">
-                            </div>
-                        </div>
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-megaphone text-danger" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3">{{ activity.title }}</h4>
+                    <p class="text-muted">Type: {{ activity.get_activity_type_display }}</p>
+                    <p class="text-muted">Date: {{ activity.date|date:"d/m/Y" }} à {{ activity.time|time:"H:i" }}</p>
+                    <p class="text-danger">Êtes-vous sûr de vouloir supprimer cette activité ? Cette action est irréversible.</p>
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <a href="{% url 'evangelisation-list' %}" class="btn btn-secondary me-2">
+                            <i class="bi bi-x-lg me-1"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Supprimer définitivement
+                        </button>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" onclick="saveActivity()">Enregistrer</button>
                 </div>
             </div>
         </div>
     </div>
+    {% elif action %}
+    <!-- Create/Edit Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-{% if action == 'Créer' %}plus-lg{% else %}pencil{% endif %} me-2"></i>{{ action }} une activité
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="evangelisationForm">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Titre de l'activité *</label>
+                                <input type="text" class="form-control" name="title" 
+                                       value="{{ activity.title|default:'' }}" required
+                                       placeholder="Ex: Descente évangélique à Matete">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Date *</label>
+                                <input type="date" class="form-control" name="date" 
+                                       value="{{ activity.date|date:'Y-m-d'|default:'' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Heure *</label>
+                                <input type="time" class="form-control" name="time" 
+                                       value="{{ activity.time|time:'H:i'|default:'09:00' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Type d'activité *</label>
+                                <select class="form-select" name="activity_type" id="activityType" required onchange="toggleCustomType()">
+                                    {% for value, label in activity_choices %}
+                                    <option value="{{ value }}" {% if activity.activity_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 d-none" id="customTypeContainer">
+                                <label class="form-label fw-medium">Type personnalisé</label>
+                                <input type="text" class="form-control" name="custom_activity_type" 
+                                       value="{{ activity.custom_activity_type|default:'' }}"
+                                       placeholder="Ex: Distribution de tracts">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Lieu *</label>
+                                <input type="text" class="form-control" name="location" 
+                                       value="{{ activity.location|default:'' }}" required
+                                       placeholder="Ex: Quartier Matete, Avenue Lumumba">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Modérateur/Animateur</label>
+                                <input type="text" class="form-control" name="moderator" 
+                                       value="{{ activity.moderator|default:'' }}"
+                                       placeholder="Nom du responsable ou animateur">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'evangelisation-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-lg me-1"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>{{ action }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(99,102,241,0.1);">
+                        <i class="bi bi-calendar-event fs-4" style="color: #6366f1;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total des activités</p>
+                        <h4 class="mb-0 fw-bold">{{ activities.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(16,185,129,0.1);">
+                        <i class="bi bi-map fs-4" style="color: #10b981;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Descentes sur terrain</p>
+                        <h4 class="mb-0 fw-bold">{{ activities_field_count|default:activities|dictsortreversed:"activity_type"|length }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="stat-icon me-3" style="background: rgba(245,158,11,0.1);">
+                        <i class="bi bi-people fs-4" style="color: #f59e0b;"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Réunions de prière</p>
+                        <h4 class="mb-0 fw-bold">{{ activities_prayer_count|default:activities|length }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Toolbar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" id="searchInput" 
+                               placeholder="Rechercher une activité..." onkeyup="filterActivities()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" id="typeFilter" onchange="filterActivities()">
+                        <option value="">Tous les types</option>
+                        {% for value, label in activity_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5 text-md-end">
+                    <a href="{% url 'evangelisation-create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Nouvelle activité
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activities List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if activities %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="activitiesTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0 fw-semibold ps-4">Titre</th>
+                            <th class="border-0 fw-semibold">Type</th>
+                            <th class="border-0 fw-semibold">Date & Heure</th>
+                            <th class="border-0 fw-semibold">Lieu</th>
+                            <th class="border-0 fw-semibold">Modérateur</th>
+                            <th class="border-0 fw-semibold text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in activities %}
+                        <tr class="activity-row" data-type="{{ activity.activity_type }}" data-title="{{ activity.title|lower }}">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-3">
+                                        <span class="activity-type-badge activity-type-{{ activity.activity_type }}">
+                                            {{ activity.get_activity_type_display|slice:":1" }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ activity.title }}</h6>
+                                        <small class="text-muted">Créée le {{ activity.created_at|date:"d/m/Y" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    {{ activity.get_activity_type_display }}
+                                    {% if activity.custom_activity_type %}<br><small>{{ activity.custom_activity_type }}</small>{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <i class="bi bi-calendar-event text-muted me-1"></i>
+                                {{ activity.date|date:"d/m/Y" }}
+                                <br>
+                                <i class="bi bi-clock text-muted me-1"></i>
+                                {{ activity.time|time:"H:i" }}
+                            </td>
+                            <td>
+                                <i class="bi bi-geo-alt text-muted me-1"></i>
+                                {{ activity.location|truncatechars:30 }}
+                            </td>
+                            <td>
+                                {% if activity.moderator %}
+                                <i class="bi bi-person text-muted me-1"></i>
+                                {{ activity.moderator|truncatechars:25 }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'evangelisation-edit' activity.pk %}">
+                                                <i class="bi bi-pencil me-2 text-primary"></i>Modifier
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{% url 'evangelisation-delete' activity.pk %}">
+                                                <i class="bi bi-trash me-2"></i>Supprimer
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-megaphone text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">Aucune activité d'évangélisation enregistrée</p>
+                <a href="{% url 'evangelisation-create' %}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-lg me-2"></i>Créer la première activité
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set default date
-        const dateInput = document.querySelector('input[name="date"]');
-        if (dateInput && !dateInput.value) {
-            dateInput.valueAsDate = new Date();
-        }
-    });
-
-    function deleteActivity(id) {
-        if (confirm('Supprimer cette activité ?')) {
-            window.location.href = `/evangelisation/${id}/delete/`;
+    function toggleCustomType() {
+        const activityType = document.getElementById('activityType');
+        const customContainer = document.getElementById('customTypeContainer');
+        if (activityType && customContainer) {
+            if (activityType.value === 'other') {
+                customContainer.classList.remove('d-none');
+            } else {
+                customContainer.classList.add('d-none');
+            }
         }
     }
-
-    function viewActivity(id) {
-        alert('Détail à implémenter');
+    
+    // Initial check on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCustomType();
+    });
+    
+    function filterActivities() {
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const rows = document.querySelectorAll('.activity-row');
+        
+        rows.forEach(row => {
+            const title = row.getAttribute('data-title');
+            const type = row.getAttribute('data-type');
+            
+            const matchesSearch = title.includes(searchInput);
+            const matchesType = !typeFilter || type === typeFilter;
+            
+            if (matchesSearch && matchesType) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     }
 </script>
 {% endblock %}
