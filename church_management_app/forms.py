@@ -221,8 +221,23 @@ class MemberForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'}))
     email = forms.EmailField(required=False, label='Email',
         widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone_country_code = forms.ChoiceField(
+        required=False,
+        label='Code pays',
+        choices=[
+            ('+243', '+243 (RDC)'),
+            ('+250', '+250 (Rwanda)'),
+            ('+257', '+257 (Burundi)'),
+            ('+243', '+243 (Congo)'),
+            ('+33', '+33 (France)'),
+            ('+32', '+32 (Belgique)'),
+            ('+1', '+1 (USA/Canada)'),
+        ],
+        initial='+243',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     phone = forms.CharField(max_length=20, required=False, label='Téléphone',
-        widget=forms.TextInput(attrs={'class': 'form-control'}))
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 0991234567'}))
     photo = forms.ImageField(required=False, label='Photo',
         widget=forms.FileInput(attrs={'class': 'form-control'}))
     
@@ -236,7 +251,7 @@ class MemberForm(forms.ModelForm):
             'province', 'city', 'commune', 'quarter', 'avenue', 'house_number',
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
             'baptism_date', 'family', 'home_group', 'department', 'ministry',
-            'is_active'
+            'is_active', 'inactive_reason'
         ]
         widgets = {
             'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -264,7 +279,8 @@ class MemberForm(forms.ModelForm):
             'home_group': forms.Select(attrs={'class': 'form-select'}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'ministry': forms.Select(attrs={'class': 'form-select'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'is_active_check'}),
+            'inactive_reason': forms.Select(attrs={'class': 'form-select', 'id': 'inactive_reason_select'}),
         }
     
     def __init__(self, *args, **kwargs):
@@ -275,6 +291,13 @@ class MemberForm(forms.ModelForm):
             self.fields['last_name'].initial = self.instance.user.last_name
             self.fields['email'].initial = self.instance.user.email
             self.fields['phone'].initial = self.instance.user.phone
+        
+        # Filtrer les options de genre pour exclure 'Other'
+        self.fields['gender'].choices = [
+            ('', '---------'),
+            ('M', 'Masculin'),
+            ('F', 'Féminin'),
+        ]
     
     def save(self, commit=True):
         member = super().save(commit=False)

@@ -239,21 +239,21 @@
                     </div>
                     <div class="card-body pt-0">
                         <div class="d-grid gap-2">
-                            <form method="post" action="{% url 'attendance-event' selected_event.pk %}">
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="mark_all_present">
                                 <button type="submit" class="btn btn-success w-100">
                                     <i class="bi bi-check-all me-2"></i>Tous présents
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'attendance-event' selected_event.pk %}">
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="mark_all_absent">
                                 <button type="submit" class="btn btn-danger w-100">
                                     <i class="bi bi-x-square me-2"></i>Tous absents
                                 </button>
                             </form>
-                            <form method="post" action="{% url 'attendance-event' selected_event.pk %}">
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="reset">
                                 <button type="submit" class="btn btn-outline-secondary w-100">
@@ -696,7 +696,6 @@
         </div>
     </div>
 
-{% block extra_js %}
 <script>
 // Global variables
 let presentCount = parseInt('{{ present_count|default:0 }}') || 0;
@@ -768,6 +767,137 @@ function filterByStatus(status) {
     });
 }
 
+function updateUI(memberId, action, data) {
+    const memberItem = document.querySelector(`[data-member-id="${memberId}"]`);
+    if (!memberItem) return;
+
+    const presentBtn = memberItem.querySelector('.present-btn');
+    const absentBtn = memberItem.querySelector('.absent-btn');
+
+    if (action === 'present') {
+        presentBtn.classList.add('present');
+        absentBtn.classList.remove('absent');
+        memberItem.classList.remove('absent');
+        memberItem.classList.add('present');
+        memberItem.setAttribute('data-status', 'present');
+    } else {
+        absentBtn.classList.add('absent');
+        presentBtn.classList.remove('present');
+        memberItem.classList.remove('present');
+        memberItem.classList.add('absent');
+        memberItem.setAttribute('data-status', 'absent');
+    }
+
+    if (data.present_count !== undefined) {
+        presentCount = data.present_count;
+        absentCount = data.absent_count;
+        updateCounters();
+    }
+
+    const memberName = data.member_name || 'Membre';
+    const message = action === 'present' ? `${memberName} marqué présent` : `${memberName} marqué absent`;
+    addActivityLog(message, action === 'present' ? 'success' : 'warning');
+}
+
+function updateCounters() {
+    const presentBadge = document.getElementById('stat-present');
+    const absentBadge = document.getElementById('stat-absent');
+    const headerPresent = document.getElementById('header-present');
+    const headerAbsent = document.getElementById('header-absent');
+
+    if (presentBadge) presentBadge.textContent = presentCount;
+    if (absentBadge) absentBadge.textContent = absentCount;
+    if (headerPresent) headerPresent.textContent = presentCount;
+    if (headerAbsent) headerAbsent.textContent = absentCount;
+
+    const notMarkedCount = totalMembers - presentCount - absentCount;
+    const notMarkedBadge = document.getElementById('stat-pending');
+    if (notMarkedBadge) notMarkedBadge.textContent = notMarkedCount;
+
+    updateLiveStats();
+}
+
+function updateLiveStats() {
+    const markedCount = presentCount + absentCount;
+    const responseRate = totalMembers > 0 ? Math.round((markedCount / totalMembers) * 100) : 0;
+    const presentRate = markedCount > 0 ? Math.round((presentCount / markedCount) * 100) : 0;
+
+    const responseRateEl = document.getElementById('response-rate');
+    const responseBar = document.getElementById('response-bar');
+    if (responseRateEl) responseRateEl.textContent = responseRate + '%';
+    if (responseBar) responseBar.style.width = responseRate + '%';
+
+    const presentRatioEl = document.getElementById('present-ratio');
+    const presentBar = document.getElementById('present-bar');
+    if (presentRatioEl) presentRatioEl.textContent = presentCount + ':' + absentCount;
+    if (presentBar) presentBar.style.width = presentRate + '%';
+
+    const lastActivityEl = document.getElementById('last-activity');
+    if (lastActivityEl && activityLog.length > 0) {
+        lastActivityEl.textContent = activityLog[0].message;
+    }
+}
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    document.body.classList.toggle('compact-mode', compactMode);
+
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        if (compactMode) {
+            item.style.padding = '8px 12px';
+            item.querySelector('img, .rounded-circle')?.classList?.add('d-none');
+        } else {
+            item.style.padding = '12px 16px';
+            item.querySelector('img, .rounded-circle')?.classList?.remove('d-none');
+        }
+    });
+
+    addActivityLog(compactMode ? 'Mode compact activé' : 'Mode compact désactivé', 'info');
+}
+
+// Logistics functions
+function getCategoryLabel(cat) {
+    const labels = { furniture: 'Mobilier', equipment: 'Équipement', consumable: 'Consommable', other: 'Autre' };
+    return labels[cat] || cat;
+}
+
+function deleteItem(id) {
+    if (confirm('Supprimer cet article ?')) {
+        window.location.href = `/logistics/${id}/delete/`;
+    }
+}
+
+function editItem(id) {
+    window.location.href = `/logistics/${id}/edit/`;
+}
+
+function saveItem() {
+    alert('Fonctionnalité à implémenter - sauvegarde article logistique');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveStats();
+    if (document.getElementById('membersList')) {
+        addActivityLog('Page de pointage chargée', 'info');
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('memberSearch')?.focus();
+    }
+    if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+            bootstrap.Modal.getInstance(modal).hide();
+        }
+    }
+});
+
 // Mark attendance via AJAX
 {% if selected_event %}
 function markAttendance(memberId, action, button) {
@@ -776,7 +906,7 @@ function markAttendance(memberId, action, button) {
     formData.append('member_id', memberId);
     formData.append('action', action);
 
-    fetch('{% url "attendance-event" selected_event.pk %}', {
+    fetch('{% url "diaconat" %}?event={{ selected_event.pk }}', {
         method: 'POST',
         body: formData,
         headers: {
@@ -933,5 +1063,8 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
-{% endblock extra_js %}
 {% endblock content %}
+
+{% block extra_js %}
+<!-- Additional JavaScript can go here -->
+{% endblock extra_js %}

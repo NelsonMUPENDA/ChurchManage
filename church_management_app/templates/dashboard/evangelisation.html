@@ -160,6 +160,20 @@
         </div>
     </div>
 
+    <!-- Alerte membres non baptisés -->
+    {% if unbaptized_count > 0 %}
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Attention :</strong> {{ unbaptized_count }} membre{{ unbaptized_count|pluralize:"s" }} non baptisé{{ unbaptized_count|pluralize:"s" }}.
+                <a href="{% url 'member-list' %}" class="alert-link">Voir la liste des membres</a>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
     <!-- Actions Toolbar -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body py-3">

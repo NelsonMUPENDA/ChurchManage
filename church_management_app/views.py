@@ -2072,6 +2072,84 @@ def diaconat(request):
     attendance_rate = 0
     attendance_offset = 326.73
 
+    # Handle POST actions for attendance
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        selected_event_id = request.GET.get('event') or request.POST.get('event_id')
+
+        if selected_event_id:
+            try:
+                selected_event = Event.objects.get(pk=selected_event_id)
+
+                if action == 'mark_all_present':
+                    members = Member.objects.filter(is_active=True)
+                    for member in members:
+                        attendance, created = Attendance.objects.get_or_create(
+                            event=selected_event,
+                            member=member,
+                            defaults={'attended': True, 'checked_in_at': timezone.now()}
+                        )
+                        if not created:
+                            attendance.attended = True
+                            attendance.checked_in_at = timezone.now()
+                            attendance.save()
+                    messages.success(request, 'Tous les membres ont été marqués présents!')
+                    return redirect(f'{request.path}?event={selected_event_id}')
+
+                elif action == 'mark_all_absent':
+                    members = Member.objects.filter(is_active=True)
+                    for member in members:
+                        attendance, created = Attendance.objects.get_or_create(
+                            event=selected_event,
+                            member=member,
+                            defaults={'attended': False, 'checked_in_at': None}
+                        )
+                        if not created:
+                            attendance.attended = False
+                            attendance.checked_in_at = None
+                            attendance.save()
+                    messages.success(request, 'Tous les membres ont été marqués absents!')
+                    return redirect(f'{request.path}?event={selected_event_id}')
+
+                elif action == 'reset':
+                    Attendance.objects.filter(event=selected_event).delete()
+                    messages.success(request, 'Pointage réinitialisé!')
+                    return redirect(f'{request.path}?event={selected_event_id}')
+
+                elif action in ['present', 'absent']:
+                    member_id = request.POST.get('member_id')
+                    if member_id:
+                        member = get_object_or_404(Member, pk=member_id)
+                        attended = action == 'present'
+                        attendance, created = Attendance.objects.get_or_create(
+                            event=selected_event,
+                            member=member,
+                            defaults={'attended': attended, 'checked_in_at': timezone.now() if attended else None}
+                        )
+                        if not created:
+                            attendance.attended = attended
+                            attendance.checked_in_at = timezone.now() if attended else None
+                            attendance.save()
+
+                        # Return JSON response for AJAX
+                        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                            present_count = Attendance.objects.filter(event=selected_event, attended=True).count()
+                            absent_count = Attendance.objects.filter(event=selected_event, attended=False).count()
+                            return JsonResponse({
+                                'success': True,
+                                'present_count': present_count,
+                                'absent_count': absent_count,
+                                'member_name': member.get_full_name(),
+                                'action': action
+                            })
+
+                        messages.success(request, f'Présence enregistrée pour {member.get_full_name()}!')
+                        return redirect(f'{request.path}?event={selected_event_id}')
+
+            except Event.DoesNotExist:
+                pass
+
+    # Load event data for display
     if selected_event_id:
         try:
             selected_event = Event.objects.get(pk=selected_event_id)
@@ -2242,9 +2320,14 @@ def evangelisation_list(request):
     """Liste des activités d'évangélisation"""
     activities = EvangelismActivity.objects.all().order_by('-date', '-time')
     activity_choices = EvangelismActivity.ACTIVITY_TYPE_CHOICES
+    
+    # Compter les membres non baptisés pour alerte
+    unbaptized_count = Member.objects.filter(is_active=True, baptism_date__isnull=True).count()
+    
     return render(request, 'dashboard/evangelisation.html', {
         'activities': activities,
-        'activity_choices': activity_choices
+        'activity_choices': activity_choices,
+        'unbaptized_count': unbaptized_count
     })
 
 

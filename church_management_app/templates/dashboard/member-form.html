@@ -51,8 +51,11 @@
                         {% endif %}
                     </div>
                     <div class="col-md-4">
-                        <label for="{{ form.phone.id_for_label }}" class="form-label">Téléphone</label>
-                        {{ form.phone }}
+                        <label class="form-label">Téléphone</label>
+                        <div class="input-group">
+                            {{ form.phone_country_code }}
+                            {{ form.phone }}
+                        </div>
                         {% if form.phone.errors %}
                         <div class="text-danger small">{{ form.phone.errors.0 }}</div>
                         {% endif %}
@@ -210,11 +213,15 @@
                         <label for="{{ form.education_level.id_for_label }}" class="form-label">Niveau d'études</label>
                         {{ form.education_level }}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="form-check mt-4">
                             {{ form.is_active }}
                             <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Membre actif</label>
                         </div>
+                    </div>
+                    <div class="col-md-3" id="inactive_reason_container" style="display: none;">
+                        <label for="{{ form.inactive_reason.id_for_label }}" class="form-label">Cause de l'inactivité</label>
+                        {{ form.inactive_reason }}
                     </div>
                 </div>
 
@@ -232,3 +239,27 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// Afficher/masquer la cause d'inactivité selon le statut
+const isActiveCheck = document.getElementById('is_active_check');
+const inactiveReasonContainer = document.getElementById('inactive_reason_container');
+
+function toggleInactiveReason() {
+    if (isActiveCheck && inactiveReasonContainer) {
+        if (isActiveCheck.checked) {
+            inactiveReasonContainer.style.display = 'none';
+        } else {
+            inactiveReasonContainer.style.display = 'block';
+        }
+    }
+}
+
+if (isActiveCheck) {
+    isActiveCheck.addEventListener('change', toggleInactiveReason);
+    // Initial state
+    toggleInactiveReason();
+}
+</script>
+{% endblock extra_js %}

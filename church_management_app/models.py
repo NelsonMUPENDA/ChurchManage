@@ -27,9 +27,17 @@ class User(AbstractUser):
 
 class Member(models.Model):
     GENDER_CHOICES = [
-        ('M', 'Male'),
-        ('F', 'Female'),
-        ('O', 'Other'),
+        ('M', 'Masculin'),
+        ('F', 'Féminin'),
+    ]
+    
+    INACTIVE_REASON_CHOICES = [
+        ('deceased', 'Décédé'),
+        ('excluded', 'Exclu'),
+        ('resigned', 'Démissionné'),
+        ('transferred', 'Transféré'),
+        ('absent', 'Absent prolongé'),
+        ('other', 'Autre'),
     ]
     user = models.OneToOneField(User, on_delete=models.SET_NULL, blank=True, null=True)
     member_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
@@ -60,7 +68,7 @@ class Member(models.Model):
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, blank=True, null=True, related_name='members')
     ministry = models.ForeignKey('Ministry', on_delete=models.SET_NULL, blank=True, null=True, related_name='members')
     is_active = models.BooleanField(default=True)
-    inactive_reason = models.CharField(max_length=30, blank=True, null=True)
+    inactive_reason = models.CharField(max_length=30, choices=INACTIVE_REASON_CHOICES, blank=True, null=True)
     archived_date = models.DateTimeField(blank=True, null=True)
     qr_code = models.ImageField(upload_to='qr_codes/members/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
