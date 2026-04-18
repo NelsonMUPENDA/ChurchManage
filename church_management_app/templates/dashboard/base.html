@@ -232,9 +232,9 @@
             <div class="nav-section-title">Ressources</div>
             
             {% if user|can_access_menu:"logistics" %}
-            <a href="{% url 'logistics-list' %}" class="nav-link {% if active_page == 'logistics' %}active{% endif %}">
+            <a href="{% url 'diaconat' %}" class="nav-link {% if active_page == 'diaconat' %}active{% endif %}">
                 <i class="bi bi-box-seam"></i>
-                <span>Logistique</span>
+                <span>Diaconat</span>
             </a>
             {% endif %}
             

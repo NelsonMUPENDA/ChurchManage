@@ -7,12 +7,14 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from datetime import timedelta
 
 from .models import (
     Member, Family, HomeGroup, Department, Ministry, Event, Attendance,
     EvangelismActivity, TrainingEvent, MarriageRecord,
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
+    LogisticsCategory, LogisticsCondition,
     ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate
 )
 from .forms import (
@@ -2178,6 +2180,23 @@ def diaconat(request):
         except Event.DoesNotExist:
             pass
 
+    # Récupérer les catégories et états dynamiques depuis la BD
+    logistics_categories_db = LogisticsCategory.objects.filter(is_active=True).values_list('code', 'name')
+    logistics_conditions_db = LogisticsCondition.objects.filter(is_active=True).values_list('code', 'name')
+
+    # Catégories par défaut + celles de la BD
+    default_categories = [
+        ('furniture', 'Mobilier'),
+        ('equipment', 'Équipement'),
+        ('consumable', 'Consommable'),
+        ('other', 'Autre'),
+    ]
+    logistics_categories = list(logistics_categories_db) or default_categories
+
+    # États par défaut + ceux de la BD
+    default_conditions = LogisticsItem.CONDITION_CHOICES
+    condition_choices = list(logistics_conditions_db) or default_conditions
+
     context = {
         'events': events,
         'selected_event': selected_event,
@@ -2190,13 +2209,8 @@ def diaconat(request):
         'attendance_rate': attendance_rate,
         'attendance_offset': attendance_offset,
         'logistics_items': LogisticsItem.objects.filter(is_active=True).order_by('-created_at')[:50],
-        'logistics_categories': [
-            ('furniture', 'Mobilier'),
-            ('equipment', 'Équipement'),
-            ('consumable', 'Consommable'),
-            ('other', 'Autre'),
-        ],
-        'condition_choices': LogisticsItem.CONDITION_CHOICES,
+        'logistics_categories': logistics_categories,
+        'condition_choices': condition_choices,
         'currency_choices': LogisticsItem.CURRENCY_CHOICES,
     }
     return render(request, 'dashboard/diaconat.html', context)
@@ -2286,6 +2300,46 @@ def logistics_edit(request, pk):
             messages.error(request, f'Erreur lors de la modification: {str(e)}')
 
     return redirect('diaconat')
+
+
+@login_required
+@require_http_methods(['POST'])
+def logistics_create_category_ajax(request):
+    """Créer une nouvelle catégorie via AJAX"""
+    name = request.POST.get('name', '').strip()
+    if name:
+        code = name.lower().replace(' ', '_')
+        category, created = LogisticsCategory.objects.get_or_create(
+            code=code,
+            defaults={'name': name}
+        )
+        return JsonResponse({
+            'success': True,
+            'code': category.code,
+            'name': category.name,
+            'created': created
+        })
+    return JsonResponse({'success': False, 'error': 'Nom requis'})
+
+
+@login_required
+@require_http_methods(['POST'])
+def logistics_create_condition_ajax(request):
+    """Créer un nouvel état via AJAX"""
+    name = request.POST.get('name', '').strip()
+    if name:
+        code = name.lower().replace(' ', '_')
+        condition, created = LogisticsCondition.objects.get_or_create(
+            code=code,
+            defaults={'name': name}
+        )
+        return JsonResponse({
+            'success': True,
+            'code': condition.code,
+            'name': condition.name,
+            'created': created
+        })
+    return JsonResponse({'success': False, 'error': 'Nom requis'})
 
 
 @login_required

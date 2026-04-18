@@ -524,10 +524,10 @@
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{% url 'logistics-detail' item.id %}"><i class="bi bi-eye me-2"></i>Voir</a></li>
-                                    <li><a class="dropdown-item" href="{% url 'logistics-edit' item.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'diaconat-logistics-detail' item.id %}"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'diaconat-logistics-edit' item.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="{% url 'logistics-delete' item.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'diaconat-logistics-delete' item.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -592,7 +592,7 @@
                     <h5 class="modal-title fw-semibold">Nouvel article logistique</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="itemForm" method="post" action="{% url 'logistics-create' %}">
+                <form id="itemForm" method="post" action="{% url 'diaconat-logistics-create' %}">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="row g-3">
@@ -605,38 +605,61 @@
                             <!-- category -->
                             <div class="col-md-6">
                                 <label class="form-label">Catégorie</label>
-                                <select class="form-select" name="category">
-                                    <option value="">-- Sélectionner --</option>
-                                    {% for cat_value, cat_label in logistics_categories %}
-                                    <option value="{{ cat_value }}">{{ cat_label }}</option>
-                                    {% endfor %}
-                                </select>
+                                <div class="input-group">
+                                    <select class="form-select" name="category" id="categorySelect">
+                                        <option value="">-- Sélectionner --</option>
+                                        {% for cat_value, cat_label in logistics_categories %}
+                                        <option value="{{ cat_value }}">{{ cat_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" onclick="toggleNewCategory()" title="Ajouter une catégorie">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="newCategoryInput" placeholder="Nouvelle catégorie...">
                             </div>
 
                             <!-- asset_tag -->
                             <div class="col-md-6">
-                                <label class="form-label">Code/Tag d'actif</label>
-                                <input type="text" class="form-control" name="asset_tag" placeholder="Ex: ASSET-001">
+                                <label class="form-label">Code/Tag d'actif <small class="text-muted">(généré auto)</small></label>
+                                <input type="text" class="form-control bg-light" name="asset_tag" id="assetTagInput" placeholder="Généré automatiquement" readonly>
                             </div>
 
-                            <!-- quantity + unit -->
-                            <div class="col-md-6">
+                            <!-- quantity + unit_price (reorganized) -->
+                            <div class="col-md-3">
                                 <label class="form-label">Quantité *</label>
-                                <input type="number" class="form-control" name="quantity" min="0" value="1" required>
+                                <input type="number" class="form-control" name="quantity" id="quantityInput" min="0" value="1" required oninput="calculateTotal()">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Unité</label>
-                                <input type="text" class="form-control" name="unit" placeholder="Ex: pièces, litres, kg">
+                            <div class="col-md-5">
+                                <label class="form-label">Prix unitaire</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="purchase_currency" id="currencySelect" style="max-width: 100px;">
+                                        {% for curr_value, curr_label in currency_choices %}
+                                        <option value="{{ curr_value }}" {% if curr_value == 'CDF' %}selected{% endif %}>{{ curr_value }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="unit_price" id="unitPriceInput" step="0.01" min="0" placeholder="0.00" oninput="calculateTotal()">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Prix total <small class="text-muted">(auto)</small></label>
+                                <input type="text" class="form-control bg-light" id="totalPriceInput" placeholder="0.00" readonly>
                             </div>
 
                             <!-- condition -->
                             <div class="col-md-6">
                                 <label class="form-label">État</label>
-                                <select class="form-select" name="condition">
-                                    {% for cond_value, cond_label in condition_choices %}
-                                    <option value="{{ cond_value }}" {% if cond_value == 'good' %}selected{% endif %}>{{ cond_label }}</option>
-                                    {% endfor %}
-                                </select>
+                                <div class="input-group">
+                                    <select class="form-select" name="condition" id="conditionSelect">
+                                        {% for cond_value, cond_label in condition_choices %}
+                                        <option value="{{ cond_value }}" {% if cond_value == 'good' %}selected{% endif %}>{{ cond_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" onclick="toggleNewCondition()" title="Ajouter un état">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="newConditionInput" placeholder="Nouvel état...">
                             </div>
 
                             <!-- location -->
@@ -649,19 +672,6 @@
                             <div class="col-md-6">
                                 <label class="form-label">Date d'acquisition</label>
                                 <input type="date" class="form-control" name="acquired_date">
-                            </div>
-
-                            <!-- unit_price + currency -->
-                            <div class="col-md-6">
-                                <label class="form-label">Prix unitaire</label>
-                                <div class="input-group">
-                                    <select class="form-select" name="purchase_currency" style="max-width: 100px;">
-                                        {% for curr_value, curr_label in currency_choices %}
-                                        <option value="{{ curr_value }}" {% if curr_value == 'CDF' %}selected{% endif %}>{{ curr_value }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    <input type="number" class="form-control" name="unit_price" step="0.01" min="0" placeholder="0.00">
-                                </div>
                             </div>
 
                             <!-- supplier -->
@@ -1062,6 +1072,191 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// Search and Filter for Logistics Items
+function filterItems() {
+    const searchTerm = document.getElementById('itemSearch')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+    const items = document.querySelectorAll('.item-card');
+
+    items.forEach(item => {
+        const name = item.querySelector('.card-title')?.textContent.toLowerCase() || '';
+        const category = item.getAttribute('data-category') || '';
+        const assetTag = item.querySelector('.bi-upc-scan')?.parentElement?.textContent.toLowerCase() || '';
+
+        const matchesSearch = name.includes(searchTerm) || assetTag.includes(searchTerm);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Attach filter events
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('itemSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterItems);
+    }
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterItems);
+    }
+});
+
+// Logistics functions - Calculate total price
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantityInput')?.value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unitPriceInput')?.value) || 0;
+    const currency = document.getElementById('currencySelect')?.value || 'CDF';
+    const total = (quantity * unitPrice).toFixed(2);
+    const totalInput = document.getElementById('totalPriceInput');
+    if (totalInput) {
+        totalInput.value = quantity > 0 && unitPrice > 0 ? `${total} ${currency}` : '';
+    }
+}
+
+// Toggle new category input with AJAX save
+function toggleNewCategory() {
+    const select = document.getElementById('categorySelect');
+    const newInput = document.getElementById('newCategoryInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+            
+            // Handler pour sauvegarder via AJAX
+            const saveCategory = function() {
+                const categoryName = newInput.value.trim();
+                if (categoryName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', categoryName);
+                    
+                    fetch('{% url "logistics-category-ajax" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Créer l'option dans le select
+                            const newOption = new Option(data.name, data.code);
+                            select.add(newOption, 1);
+                            select.value = data.code;
+                            alert('Catégorie "' + data.name + '" créée avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer la catégorie'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Fallback: ajouter localement seulement
+                        const newValue = categoryName.toLowerCase().replace(/\s+/g, '_');
+                        const newOption = new Option(categoryName, newValue);
+                        select.add(newOption, 1);
+                        select.value = newValue;
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveCategory);
+            };
+            
+            newInput.addEventListener('blur', saveCategory);
+            // Sauvegarder aussi sur touche Enter
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCategory();
+                }
+            });
+        }
+    }
+}
+
+// Toggle new condition input with AJAX save
+function toggleNewCondition() {
+    const select = document.getElementById('conditionSelect');
+    const newInput = document.getElementById('newConditionInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+            
+            // Handler pour sauvegarder via AJAX
+            const saveCondition = function() {
+                const conditionName = newInput.value.trim();
+                if (conditionName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', conditionName);
+                    
+                    fetch('{% url "logistics-condition-ajax" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Créer l'option dans le select
+                            const newOption = new Option(data.name, data.code);
+                            select.add(newOption, 1);
+                            select.value = data.code;
+                            alert('État "' + data.name + '" créé avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer l\'état'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Fallback: ajouter localement seulement
+                        const newValue = conditionName.toLowerCase().replace(/\s+/g, '_');
+                        const newOption = new Option(conditionName, newValue);
+                        select.add(newOption, 1);
+                        select.value = newValue;
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveCondition);
+            };
+            
+            newInput.addEventListener('blur', saveCondition);
+            // Sauvegarder aussi sur touche Enter
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCondition();
+                }
+            });
+        }
+    }
+}
 </script>
 {% endblock content %}
 

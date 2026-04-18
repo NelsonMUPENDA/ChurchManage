@@ -85,8 +85,18 @@ urlpatterns = [
     # Diaconat (Pointage et Logistique)
     path('diaconat/', views.diaconat, name='diaconat'),
     path('diaconat/attendance/', views.diaconat_attendance, name='diaconat-attendance'),
-    
-    # Logistique - CRUD
+
+    # Logistique - CRUD (alias sous diaconat pour cohérence)
+    path('diaconat/logistics/create/', views.logistics_create, name='diaconat-logistics-create'),
+    path('diaconat/logistics/<int:pk>/', views.logistics_detail, name='diaconat-logistics-detail'),
+    path('diaconat/logistics/<int:pk>/edit/', views.logistics_edit, name='diaconat-logistics-edit'),
+    path('diaconat/logistics/<int:pk>/delete/', views.logistics_delete, name='diaconat-logistics-delete'),
+
+    # Logistique - AJAX pour catégories et états dynamiques
+    path('diaconat/logistics/category/create-ajax/', views.logistics_create_category_ajax, name='logistics-category-ajax'),
+    path('diaconat/logistics/condition/create-ajax/', views.logistics_create_condition_ajax, name='logistics-condition-ajax'),
+
+    # Logistique - CRUD (URLs originales)
     path('logistics/', views.logistics_list, name='logistics-list'),
     path('logistics/<int:pk>/', views.logistics_detail, name='logistics-detail'),
     path('logistics/create/', views.logistics_create, name='logistics-create'),

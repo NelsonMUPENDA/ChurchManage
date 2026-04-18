@@ -608,6 +608,52 @@ class LogisticsItem(models.Model):
             super().save(update_fields=['asset_tag'])
 
 
+class LogisticsCategory(models.Model):
+    """Catégories dynamiques pour les articles logistiques"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.SlugField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Catégorie logistique"
+        verbose_name_plural = "Catégories logistiques"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.name.lower().replace(' ', '_')
+        super().save(*args, **kwargs)
+
+
+class LogisticsCondition(models.Model):
+    """États/conditions dynamiques pour les articles logistiques"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.SlugField(max_length=50, unique=True)
+    display_color = models.CharField(max_length=20, default='secondary', help_text="Couleur du badge (success, warning, danger, info, secondary)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "État logistique"
+        verbose_name_plural = "États logistiques"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.name.lower().replace(' ', '_')
+        super().save(*args, **kwargs)
+
+
 class AuditLogEntry(models.Model):
     ACTION_CHOICES = [
         ('create', 'Create'),
