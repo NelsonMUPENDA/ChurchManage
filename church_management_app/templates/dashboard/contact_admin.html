@@ -1,0 +1,194 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Messages de Contact{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Messages de Contact</h2>
+            <p class="text-muted mb-0">Gérer les messages reçus via le formulaire de contact</p>
+        </div>
+        <div class="d-flex gap-2">
+            <select class="form-select" onchange="window.location.href='?status=' + this.value">
+                <option value="">Tous les statuts</option>
+                <option value="new" {% if status_filter == 'new' %}selected{% endif %}>Nouveaux</option>
+                <option value="read" {% if status_filter == 'read' %}selected{% endif %}>Lus</option>
+                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>En cours</option>
+                <option value="answered" {% if status_filter == 'answered' %}selected{% endif %}>Répondus</option>
+                <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Archivés</option>
+            </select>
+        </div>
+    </div>
+
+    {% if view == 'list' %}
+    <!-- Liste des messages -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if contacts %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Expéditeur</th>
+                            <th>Sujet</th>
+                            <th>Message</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contact in contacts %}
+                        <tr class="{% if contact.status == 'new' %}table-warning{% endif %}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        <i class="bi bi-person small"></i>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0 fw-semibold">{{ contact.name }}</p>
+                                        <small class="text-muted">{{ contact.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ contact.get_subject_display }}</span>
+                            </td>
+                            <td>
+                                <p class="mb-0 text-truncate" style="max-width: 300px;">{{ contact.message }}</p>
+                            </td>
+                            <td>
+                                {% if contact.status == 'new' %}
+                                    <span class="badge bg-danger">Nouveau</span>
+                                {% elif contact.status == 'read' %}
+                                    <span class="badge bg-info">Lu</span>
+                                {% elif contact.status == 'in_progress' %}
+                                    <span class="badge bg-warning">En cours</span>
+                                {% elif contact.status == 'answered' %}
+                                    <span class="badge bg-success">Répondu</span>
+                                {% elif contact.status == 'archived' %}
+                                    <span class="badge bg-secondary">Archivé</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ contact.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'contact-admin-detail' contact.pk %}" class="btn btn-outline-primary" title="Voir">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if contact.status != 'read' and contact.status != 'archived' %}
+                                    <a href="{% url 'contact-mark-read' contact.pk %}" class="btn btn-outline-info" title="Marquer comme lu">
+                                        <i class="bi bi-check"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if contact.status != 'archived' %}
+                                    <a href="{% url 'contact-archive' contact.pk %}" class="btn btn-outline-secondary" title="Archiver">
+                                        <i class="bi bi-archive"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-envelope fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucun message de contact</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'detail' %}
+    <!-- Détail du message -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Détail du message</h5>
+                    <div>
+                        {% if contact.status != 'read' and contact.status != 'archived' %}
+                        <a href="{% url 'contact-mark-read' contact.pk %}" class="btn btn-sm btn-outline-info me-1">
+                            <i class="bi bi-check me-1"></i>Marquer comme lu
+                        </a>
+                        {% endif %}
+                        {% if contact.status != 'archived' %}
+                        <a href="{% url 'contact-archive' contact.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-archive me-1"></i>Archiver
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Nom</p>
+                            <p class="fw-semibold">{{ contact.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Email</p>
+                            <p class="fw-semibold">
+                                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Téléphone</p>
+                            <p class="fw-semibold">{{ contact.phone|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Sujet</p>
+                            <span class="badge bg-light text-dark">{{ contact.get_subject_display }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Statut</p>
+                            <p>
+                                {% if contact.status == 'new' %}
+                                    <span class="badge bg-danger">Nouveau</span>
+                                {% elif contact.status == 'read' %}
+                                    <span class="badge bg-info">Lu</span>
+                                {% elif contact.status == 'in_progress' %}
+                                    <span class="badge bg-warning">En cours</span>
+                                {% elif contact.status == 'answered' %}
+                                    <span class="badge bg-success">Répondu</span>
+                                {% elif contact.status == 'archived' %}
+                                    <span class="badge bg-secondary">Archivé</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Date d'envoi</p>
+                            <p class="fw-semibold">{{ contact.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6 class="mb-3">Message</h6>
+                    <div class="p-3 bg-light rounded">
+                        <p class="mb-0" style="white-space: pre-wrap;">{{ contact.message }}</p>
+                    </div>
+
+                    {% if contact.notes %}
+                    <hr>
+                    <h6 class="mb-3">Notes internes</h6>
+                    <div class="p-3 bg-light rounded">
+                        <p class="mb-0">{{ contact.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <a href="{% url 'contact-admin-list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

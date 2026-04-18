@@ -157,7 +157,13 @@
                     </div>
                     <div class="col-md-4">
                         <label for="{{ form.family.id_for_label }}" class="form-label">Famille</label>
-                        {{ form.family }}
+                        <div class="input-group">
+                            {{ form.family }}
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewFamily()" title="Ajouter une famille">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mt-2 d-none" id="newFamilyInput" placeholder="Nouvelle famille...">
                     </div>
                 </div>
 
@@ -187,15 +193,23 @@
                     </div>
                     <div class="col-md-3">
                         <label for="{{ form.department.id_for_label }}" class="form-label">Département</label>
-                        {{ form.department }}
+                        <div class="input-group">
+                            {{ form.department }}
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewDepartment()" title="Ajouter un département">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mt-2 d-none" id="newDepartmentInput" placeholder="Nouveau département...">
                     </div>
                     <div class="col-md-3">
                         <label for="{{ form.ministry.id_for_label }}" class="form-label">Ministère</label>
-                        {{ form.ministry }}
-                    </div>
-                    <div class="col-md-3">
-                        <label for="{{ form.home_group.id_for_label }}" class="form-label">Groupe de maison</label>
-                        {{ form.home_group }}
+                        <div class="input-group">
+                            {{ form.ministry }}
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewMinistry()" title="Ajouter un ministère">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mt-2 d-none" id="newMinistryInput" placeholder="Nouveau ministère...">
                     </div>
                     <div class="col-md-4">
                         <label for="{{ form.occupation.id_for_label }}" class="form-label">Profession</label>
@@ -260,6 +274,194 @@ if (isActiveCheck) {
     isActiveCheck.addEventListener('change', toggleInactiveReason);
     // Initial state
     toggleInactiveReason();
+}
+
+// ============================================================
+// Fonctions pour création dynamique via AJAX
+// ============================================================
+
+// Toggle new Family input with AJAX save
+function toggleNewFamily() {
+    const select = document.getElementById('family_select');
+    const newInput = document.getElementById('newFamilyInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+
+            const saveFamily = function() {
+                const familyName = newInput.value.trim();
+                if (familyName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', familyName);
+
+                    fetch('{% url "ajax-create-family" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Créer l'option dans le select
+                            const newOption = new Option(data.name, data.id);
+                            select.add(newOption, 1);
+                            select.value = data.id;
+                            alert('Famille "' + data.name + '" créée avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer la famille'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveFamily);
+            };
+
+            newInput.addEventListener('blur', saveFamily);
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveFamily();
+                }
+            });
+        }
+    }
+}
+
+// Toggle new Department input with AJAX save
+function toggleNewDepartment() {
+    const select = document.getElementById('department_select');
+    const newInput = document.getElementById('newDepartmentInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+
+            const saveDepartment = function() {
+                const deptName = newInput.value.trim();
+                if (deptName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', deptName);
+
+                    fetch('{% url "ajax-create-department" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const newOption = new Option(data.name, data.id);
+                            select.add(newOption, 1);
+                            select.value = data.id;
+                            alert('Département "' + data.name + '" créé avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer le département'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveDepartment);
+            };
+
+            newInput.addEventListener('blur', saveDepartment);
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveDepartment();
+                }
+            });
+        }
+    }
+}
+
+// Toggle new Ministry input with AJAX save
+function toggleNewMinistry() {
+    const select = document.getElementById('ministry_select');
+    const newInput = document.getElementById('newMinistryInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+
+            const saveMinistry = function() {
+                const ministryName = newInput.value.trim();
+                if (ministryName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', ministryName);
+
+                    fetch('{% url "ajax-create-ministry" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const newOption = new Option(data.name, data.id);
+                            select.add(newOption, 1);
+                            select.value = data.id;
+                            alert('Ministère "' + data.name + '" créé avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer le ministère'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveMinistry);
+            };
+
+            newInput.addEventListener('blur', saveMinistry);
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveMinistry();
+                }
+            });
+        }
+    }
 }
 </script>
 {% endblock extra_js %}

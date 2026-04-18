@@ -195,6 +195,34 @@
                 {% endif %}
             </a>
             {% endif %}
+
+            {% if user|can_access_menu:"families" %}
+            <a href="{% url 'family-list' %}" class="nav-link {% if active_page == 'families' %}active{% endif %}">
+                <i class="bi bi-house-heart"></i>
+                <span>Familles</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"home_groups" %}
+            <a href="{% url 'homegroup-list' %}" class="nav-link {% if active_page == 'home_groups' %}active{% endif %}">
+                <i class="bi bi-houses"></i>
+                <span>Groupes de maison</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"departments" %}
+            <a href="{% url 'department-list' %}" class="nav-link {% if active_page == 'departments' %}active{% endif %}">
+                <i class="bi bi-building"></i>
+                <span>Départements</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"ministries" %}
+            <a href="{% url 'ministry-list' %}" class="nav-link {% if active_page == 'ministries' %}active{% endif %}">
+                <i class="bi bi-person-workspace"></i>
+                <span>Ministères</span>
+            </a>
+            {% endif %}
             
             {% if user|can_access_menu:"events" %}
             <a href="{% url 'event-list' %}" class="nav-link {% if active_page == 'events' %}active{% endif %}">
@@ -228,27 +256,67 @@
             {% endif %}
             
             <!-- Ressources -->
-            {% if user|can_access_menu:"logistics" or user|can_access_menu:"evangelisation" or user|can_access_menu:"marriages" %}
+            {% if user|can_access_menu:"logistics" or user|can_access_menu:"evangelisation" or user|can_access_menu:"marriages" or user|can_access_menu:"baptisms" or user|can_access_menu:"trainings" %}
             <div class="nav-section-title">Ressources</div>
-            
+
             {% if user|can_access_menu:"logistics" %}
             <a href="{% url 'diaconat' %}" class="nav-link {% if active_page == 'diaconat' %}active{% endif %}">
                 <i class="bi bi-box-seam"></i>
                 <span>Diaconat</span>
             </a>
             {% endif %}
-            
+
+            {% if user|can_access_menu:"baptisms" %}
+            <a href="{% url 'baptism-list' %}" class="nav-link {% if active_page == 'baptisms' %}active{% endif %}">
+                <i class="bi bi-droplet"></i>
+                <span>Baptêmes</span>
+            </a>
+            {% endif %}
+
             {% if user|can_access_menu:"evangelisation" %}
             <a href="{% url 'evangelisation-list' %}" class="nav-link {% if active_page == 'evangelisation' %}active{% endif %}">
                 <i class="bi bi-globe"></i>
                 <span>Évangélisation</span>
             </a>
             {% endif %}
-            
+
+            {% if user|can_access_menu:"trainings" %}
+            <a href="{% url 'training-list' %}" class="nav-link {% if active_page == 'trainings' %}active{% endif %}">
+                <i class="bi bi-mortarboard"></i>
+                <span>Formations</span>
+            </a>
+            {% endif %}
+
             {% if user|can_access_menu:"marriages" %}
             <a href="{% url 'marriage-list' %}" class="nav-link {% if active_page == 'marriages' %}active{% endif %}">
                 <i class="bi bi-heart"></i>
                 <span>Mariages</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"documents" %}
+            <a href="{% url 'document-list' %}" class="nav-link {% if active_page == 'documents' %}active{% endif %}">
+                <i class="bi bi-files"></i>
+                <span>Documents</span>
+            </a>
+            {% endif %}
+            {% endif %}
+
+            <!-- Administration -->
+            {% if user|can_access_menu:"contacts" or user|can_access_menu:"audit_logs" or user|can_access_menu:"approvals" %}
+            <div class="nav-section-title">Administration</div>
+
+            {% if user|can_access_menu:"contacts" %}
+            <a href="{% url 'contact-admin-list' %}" class="nav-link {% if active_page == 'contacts' %}active{% endif %}">
+                <i class="bi bi-envelope"></i>
+                <span>Messages contact</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"audit_logs" %}
+            <a href="{% url 'audit-log-list' %}" class="nav-link {% if active_page == 'audit_logs' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i>
+                <span>Logs système</span>
             </a>
             {% endif %}
             {% endif %}

@@ -1,0 +1,173 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Formations{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Gestion des Formations</h2>
+            <p class="text-muted mb-0">Organiser les formations et enseignements</p>
+        </div>
+        <a href="{% url 'training-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Nouvelle formation
+        </a>
+    </div>
+
+    {% if view == 'trainings' %}
+    <!-- Liste des formations -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-mortarboard-fill text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total formations</p>
+                        <h4 class="mb-0 fw-bold">{{ trainings.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-calendar-check text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">À venir</p>
+                        <h4 class="mb-0 fw-bold">{{ upcoming_count|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-people-fill text-info fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Participants totaux</p>
+                        <h4 class="mb-0 fw-bold">{{ total_participants|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trainings List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if trainings %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="trainingsTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0 fw-semibold ps-4">Titre</th>
+                            <th class="border-0 fw-semibold">Date</th>
+                            <th class="border-0 fw-semibold">Heure</th>
+                            <th class="border-0 fw-semibold">Lieu</th>
+                            <th class="border-0 fw-semibold">Formateur</th>
+                            <th class="border-0 fw-semibold">Participants</th>
+                            <th class="border-0 fw-semibold text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for training in trainings %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-book text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ training.title }}</h6>
+                                        <small class="text-muted">{{ training.description|truncatechars:50|default:"-" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ training.date|date:"d/m/Y" }}</td>
+                            <td>{{ training.time|time:"H:i" }}</td>
+                            <td>{{ training.location|default:"-" }}</td>
+                            <td>{{ training.trainer|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ training.participants.count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a href="{% url 'training-edit' training.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'training-delete' training.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-mortarboard fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucune formation programmée</p>
+                <a href="{% url 'training-create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>Planifier une formation
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'form' %}
+    <!-- Formulaire création/édition -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} une formation</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'training-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'delete_confirm' %}
+    <!-- Confirmation suppression -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3"></i>
+                    <h5 class="mb-3">Confirmer la suppression</h5>
+                    <p class="text-muted mb-4">
+                        Êtes-vous sûr de vouloir supprimer la formation "{{ training.title }}" ?
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'training-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">Supprimer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

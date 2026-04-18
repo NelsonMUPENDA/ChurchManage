@@ -138,7 +138,29 @@ urlpatterns = [
     path('account/users/<int:pk>/edit/', user_edit_admin, name='user-edit-admin'),
     path('account/users/<int:pk>/delete/', user_delete_admin, name='user-delete-admin'),
     path('account/users/<int:pk>/toggle/', user_toggle_active, name='user-toggle-active'),
-    
+
+    # Baptêmes - CRUD
+    path('baptisms/', views.baptism_list, name='baptism-list'),
+    path('baptisms/create/', views.baptism_create, name='baptism-create'),
+    path('baptisms/<int:pk>/', views.baptism_detail, name='baptism-detail'),
+    path('baptisms/<int:pk>/edit/', views.baptism_edit, name='baptism-edit'),
+    path('baptisms/<int:pk>/delete/', views.baptism_delete, name='baptism-delete'),
+    path('baptisms/<int:pk>/candidates/add/', views.baptism_candidate_add, name='baptism-candidate-add'),
+
+    # Contact Admin (gestion des messages reçus)
+    path('management/contacts/', views.contact_admin_list, name='contact-admin-list'),
+    path('management/contacts/<int:pk>/', views.contact_admin_detail, name='contact-admin-detail'),
+    path('management/contacts/<int:pk>/mark-read/', views.contact_mark_read, name='contact-mark-read'),
+    path('management/contacts/<int:pk>/archive/', views.contact_archive, name='contact-archive'),
+
+    # Audit Logs (Logs système)
+    path('management/audit-logs/', views.audit_log_list, name='audit-log-list'),
+
+    # AJAX Endpoints pour création dynamique
+    path('ajax/family/create/', views.ajax_create_family, name='ajax-create-family'),
+    path('ajax/department/create/', views.ajax_create_department, name='ajax-create-department'),
+    path('ajax/ministry/create/', views.ajax_create_ministry, name='ajax-create-ministry'),
+
     # Pages publiques
     path('about/', views.public_about, name='about'),
     path('contact/', views.contact, name='contact'),

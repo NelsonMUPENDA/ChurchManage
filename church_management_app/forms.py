@@ -250,7 +250,7 @@ class MemberForm(forms.ModelForm):
             'education_level', 'father_full_name', 'mother_full_name',
             'province', 'city', 'commune', 'quarter', 'avenue', 'house_number',
             'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relation',
-            'baptism_date', 'family', 'home_group', 'department', 'ministry',
+            'baptism_date', 'family', 'department', 'ministry',
             'is_active', 'inactive_reason'
         ]
         widgets = {
@@ -259,7 +259,7 @@ class MemberForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-control'}),
             'nationality': forms.TextInput(attrs={'class': 'form-control'}),
-            'marital_status': forms.Select(attrs={'class': 'form-select'}),
+            'marital_status': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Célibataire, Marié(e), Divorcé(e)...'}),
             'occupation': forms.TextInput(attrs={'class': 'form-control'}),
             'public_function': forms.TextInput(attrs={'class': 'form-control'}),
             'church_position': forms.TextInput(attrs={'class': 'form-control'}),
@@ -275,10 +275,9 @@ class MemberForm(forms.ModelForm):
             'emergency_contact_name': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
             'emergency_contact_relation': forms.TextInput(attrs={'class': 'form-control'}),
-            'family': forms.Select(attrs={'class': 'form-select'}),
-            'home_group': forms.Select(attrs={'class': 'form-select'}),
-            'department': forms.Select(attrs={'class': 'form-select'}),
-            'ministry': forms.Select(attrs={'class': 'form-select'}),
+            'family': forms.Select(attrs={'class': 'form-select', 'id': 'family_select'}),
+            'department': forms.Select(attrs={'class': 'form-select', 'id': 'department_select'}),
+            'ministry': forms.Select(attrs={'class': 'form-select', 'id': 'ministry_select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'is_active_check'}),
             'inactive_reason': forms.Select(attrs={'class': 'form-select', 'id': 'inactive_reason_select'}),
         }

@@ -1,0 +1,124 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Groupes de Maison{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Groupes de Maison</h2>
+            <p class="text-muted mb-0">Gérer les cellules et groupes de maison</p>
+        </div>
+        <a href="{% url 'homegroup-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Nouveau groupe
+        </a>
+    </div>
+
+    {% if view == 'list' %}
+    <!-- Liste des groupes -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if homegroups %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nom du groupe</th>
+                            <th>Responsable</th>
+                            <th>Jour de réunion</th>
+                            <th>Heure</th>
+                            <th>Lieu</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in homegroups %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">{{ group.name }}</span>
+                            </td>
+                            <td>
+                                {% if group.leader %}
+                                    {{ group.leader.get_full_name|default:group.leader.user.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ group.meeting_day|default:"-" }}</td>
+                            <td>{{ group.meeting_time|time:"H:i"|default:"-" }}</td>
+                            <td>{{ group.location|default:"-"|truncatechars:40 }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'homegroup-edit' group.pk %}" class="btn btn-outline-secondary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'homegroup-delete' group.pk %}" class="btn btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-houses fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucun groupe de maison enregistré</p>
+                <a href="{% url 'homegroup-create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>Ajouter un groupe
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'form' %}
+    <!-- Formulaire création/édition -->
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} un groupe de maison</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'homegroup-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'delete_confirm' %}
+    <!-- Confirmation suppression -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3"></i>
+                    <h5 class="mb-3">Confirmer la suppression</h5>
+                    <p class="text-muted mb-4">
+                        Êtes-vous sûr de vouloir supprimer le groupe "{{ homegroup.name }}" ?
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'homegroup-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">Supprimer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

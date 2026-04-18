@@ -15,12 +15,14 @@ from .models import (
     EvangelismActivity, TrainingEvent, MarriageRecord,
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
     LogisticsCategory, LogisticsCondition,
-    ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate
+    ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate,
+    BaptismEvent, BaptismCandidate, AuditLogEntry
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
     EventForm, AttendanceForm, EvangelismActivityForm, TrainingEventForm, MarriageRecordForm,
     FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, LogisticsItemForm,
+    BaptismCandidateForm,
     LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm,
     EventAttendanceAggregateForm
 )
@@ -969,7 +971,7 @@ def member_print_card(request, pk):
 def family_list(request):
     """Liste des familles"""
     families = Family.objects.all().prefetch_related('members')
-    return render(request, 'dashboard/members.html', {'families': families, 'view': 'families'})
+    return render(request, 'dashboard/families.html', {'families': families, 'view': 'list'})
 
 
 @login_required
@@ -984,7 +986,7 @@ def family_create(request):
     else:
         form = FamilyForm()
     
-    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'family_form'})
+    return render(request, 'dashboard/families.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -1001,11 +1003,11 @@ def family_edit(request, pk):
     else:
         form = FamilyForm(instance=family)
     
-    return render(request, 'dashboard/members.html', {
+    return render(request, 'dashboard/families.html', {
         'form': form,
         'family': family,
         'action': 'Modifier',
-        'view': 'family_form'
+        'view': 'form'
     })
 
 
@@ -1019,7 +1021,7 @@ def family_delete(request, pk):
         messages.success(request, 'Famille supprimée avec succès!')
         return redirect('family-list')
     
-    return render(request, 'dashboard/members.html', {'family': family, 'delete_confirm': True, 'view': 'families'})
+    return render(request, 'dashboard/families.html', {'family': family, 'view': 'delete_confirm'})
 
 
 # ============================================================
@@ -1030,7 +1032,7 @@ def family_delete(request, pk):
 def homegroup_list(request):
     """Liste des groupes de maison"""
     homegroups = HomeGroup.objects.all().select_related('leader')
-    return render(request, 'dashboard/members.html', {'homegroups': homegroups, 'view': 'homegroups'})
+    return render(request, 'dashboard/homegroups.html', {'homegroups': homegroups, 'view': 'list'})
 
 
 @login_required
@@ -1045,7 +1047,7 @@ def homegroup_create(request):
     else:
         form = HomeGroupForm()
     
-    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'homegroup_form'})
+    return render(request, 'dashboard/homegroups.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -1062,11 +1064,11 @@ def homegroup_edit(request, pk):
     else:
         form = HomeGroupForm(instance=homegroup)
     
-    return render(request, 'dashboard/members.html', {
+    return render(request, 'dashboard/homegroups.html', {
         'form': form,
         'homegroup': homegroup,
         'action': 'Modifier',
-        'view': 'homegroup_form'
+        'view': 'form'
     })
 
 
@@ -1080,7 +1082,7 @@ def homegroup_delete(request, pk):
         messages.success(request, 'Groupe de maison supprimé avec succès!')
         return redirect('homegroup-list')
     
-    return render(request, 'dashboard/members.html', {'homegroup': homegroup, 'delete_confirm': True, 'view': 'homegroups'})
+    return render(request, 'dashboard/homegroups.html', {'homegroup': homegroup, 'view': 'delete_confirm'})
 
 
 # ============================================================
@@ -1091,7 +1093,7 @@ def homegroup_delete(request, pk):
 def department_list(request):
     """Liste des départements"""
     departments = Department.objects.all().select_related('head')
-    return render(request, 'dashboard/members.html', {'departments': departments, 'view': 'departments'})
+    return render(request, 'dashboard/departments.html', {'departments': departments, 'view': 'list'})
 
 
 @login_required
@@ -1106,7 +1108,7 @@ def department_create(request):
     else:
         form = DepartmentForm()
     
-    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'department_form'})
+    return render(request, 'dashboard/departments.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -1123,11 +1125,11 @@ def department_edit(request, pk):
     else:
         form = DepartmentForm(instance=department)
     
-    return render(request, 'dashboard/members.html', {
+    return render(request, 'dashboard/departments.html', {
         'form': form,
         'department': department,
         'action': 'Modifier',
-        'view': 'department_form'
+        'view': 'form'
     })
 
 
@@ -1135,13 +1137,13 @@ def department_edit(request, pk):
 def department_delete(request, pk):
     """Supprimer un département"""
     department = get_object_or_404(Department, pk=pk)
-    
+
     if request.method == 'POST':
         department.delete()
         messages.success(request, 'Département supprimé avec succès!')
         return redirect('department-list')
-    
-    return render(request, 'dashboard/members.html', {'department': department, 'delete_confirm': True, 'view': 'departments'})
+
+    return render(request, 'dashboard/departments.html', {'department': department, 'view': 'delete_confirm'})
 
 
 # ============================================================
@@ -1152,7 +1154,7 @@ def department_delete(request, pk):
 def ministry_list(request):
     """Liste des ministères"""
     ministries = Ministry.objects.all().select_related('leader')
-    return render(request, 'dashboard/members.html', {'ministries': ministries, 'view': 'ministries'})
+    return render(request, 'dashboard/ministries.html', {'ministries': ministries, 'view': 'list'})
 
 
 @login_required
@@ -1167,7 +1169,7 @@ def ministry_create(request):
     else:
         form = MinistryForm()
     
-    return render(request, 'dashboard/members.html', {'form': form, 'action': 'Créer', 'view': 'ministry_form'})
+    return render(request, 'dashboard/ministries.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -1184,11 +1186,11 @@ def ministry_edit(request, pk):
     else:
         form = MinistryForm(instance=ministry)
     
-    return render(request, 'dashboard/members.html', {
+    return render(request, 'dashboard/ministries.html', {
         'form': form,
         'ministry': ministry,
         'action': 'Modifier',
-        'view': 'ministry_form'
+        'view': 'form'
     })
 
 
@@ -1196,13 +1198,13 @@ def ministry_edit(request, pk):
 def ministry_delete(request, pk):
     """Supprimer un ministère"""
     ministry = get_object_or_404(Ministry, pk=pk)
-    
+
     if request.method == 'POST':
         ministry.delete()
         messages.success(request, 'Ministère supprimé avec succès!')
         return redirect('ministry-list')
-    
-    return render(request, 'dashboard/members.html', {'ministry': ministry, 'delete_confirm': True, 'view': 'ministries'})
+
+    return render(request, 'dashboard/ministries.html', {'ministry': ministry, 'view': 'delete_confirm'})
 
 
 # ============================================================
@@ -2366,6 +2368,67 @@ def logistics_detail(request, pk):
 
 
 # ============================================================
+# AJAX Endpoints pour création dynamique (Famille, Département, Ministère)
+# ============================================================
+
+@login_required
+@require_http_methods(['POST'])
+def ajax_create_family(request):
+    """Créer une nouvelle famille via AJAX"""
+    name = request.POST.get('name', '').strip()
+    if name:
+        family, created = Family.objects.get_or_create(
+            name=name,
+            defaults={'address': '', 'phone': ''}
+        )
+        return JsonResponse({
+            'success': True,
+            'id': family.id,
+            'name': family.name,
+            'created': created
+        })
+    return JsonResponse({'success': False, 'error': 'Nom de famille requis'})
+
+
+@login_required
+@require_http_methods(['POST'])
+def ajax_create_department(request):
+    """Créer un nouveau département via AJAX"""
+    name = request.POST.get('name', '').strip()
+    if name:
+        department, created = Department.objects.get_or_create(
+            name=name,
+            defaults={'description': ''}
+        )
+        return JsonResponse({
+            'success': True,
+            'id': department.id,
+            'name': department.name,
+            'created': created
+        })
+    return JsonResponse({'success': False, 'error': 'Nom du département requis'})
+
+
+@login_required
+@require_http_methods(['POST'])
+def ajax_create_ministry(request):
+    """Créer un nouveau ministère via AJAX"""
+    name = request.POST.get('name', '').strip()
+    if name:
+        ministry, created = Ministry.objects.get_or_create(
+            name=name,
+            defaults={'description': ''}
+        )
+        return JsonResponse({
+            'success': True,
+            'id': ministry.id,
+            'name': ministry.name,
+            'created': created
+        })
+    return JsonResponse({'success': False, 'error': 'Nom du ministère requis'})
+
+
+# ============================================================
 # Évangélisation - CRUD
 # ============================================================
 
@@ -2461,7 +2524,7 @@ def evangelisation_delete(request, pk):
 def training_list(request):
     """Liste des formations"""
     trainings = TrainingEvent.objects.all().order_by('-date', '-time')
-    return render(request, 'dashboard/evangelisation.html', {'trainings': trainings, 'view': 'trainings'})
+    return render(request, 'dashboard/trainings.html', {'trainings': trainings, 'view': 'trainings'})
 
 
 @login_required
@@ -2476,7 +2539,7 @@ def training_create(request):
     else:
         form = TrainingEventForm()
     
-    return render(request, 'dashboard/evangelisation.html', {'form': form, 'action': 'Créer', 'view': 'training_form'})
+    return render(request, 'dashboard/trainings.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required
@@ -2493,11 +2556,11 @@ def training_edit(request, pk):
     else:
         form = TrainingEventForm(instance=training)
     
-    return render(request, 'dashboard/evangelisation.html', {
+    return render(request, 'dashboard/trainings.html', {
         'form': form,
         'training': training,
         'action': 'Modifier',
-        'view': 'training_form'
+        'view': 'form'
     })
 
 
@@ -2511,11 +2574,9 @@ def training_delete(request, pk):
         messages.success(request, 'Formation supprimée avec succès!')
         return redirect('training-list')
     
-    return render(request, 'dashboard/evangelisation.html', {'training': training, 'delete_confirm': True, 'view': 'trainings'})
+    return render(request, 'dashboard/trainings.html', {'training': training, 'view': 'delete_confirm'})
 
 
-# ============================================================
-# Mariages - CRUD
 # ============================================================
 # Mariages - CRUD
 # ============================================================
@@ -2667,6 +2728,189 @@ def document_delete(request, pk):
         return redirect('document-list')
     
     return render(request, 'dashboard/account.html', {'document': document, 'delete_confirm': True, 'view': 'documents'})
+
+
+# ============================================================
+# Baptêmes - CRUD
+# ============================================================
+
+@login_required
+def baptism_list(request):
+    """Liste des événements de baptême"""
+    baptisms = BaptismEvent.objects.all().select_related('event').prefetch_related('candidates').order_by('-event__date')
+    return render(request, 'dashboard/baptism.html', {'baptisms': baptisms, 'view': 'list'})
+
+
+@login_required
+def baptism_detail(request, pk):
+    """Détail d'un événement de baptême"""
+    baptism = get_object_or_404(BaptismEvent.objects.select_related('event').prefetch_related('candidates'), pk=pk)
+    return render(request, 'dashboard/baptism.html', {'baptism': baptism, 'view': 'detail'})
+
+
+@login_required
+def baptism_create(request):
+    """Créer un événement de baptême"""
+    if request.method == 'POST':
+        # Créer l'événement associé
+        event_form = EventForm(request.POST, prefix='event')
+        if event_form.is_valid():
+            event = event_form.save()
+            baptism = BaptismEvent.objects.create(event=event, created_by=request.user)
+            messages.success(request, 'Événement de baptême créé avec succès!')
+            return redirect('baptism-list')
+    else:
+        event_form = EventForm(prefix='event')
+
+    return render(request, 'dashboard/baptism.html', {
+        'event_form': event_form,
+        'view': 'form',
+        'action': 'Créer'
+    })
+
+
+@login_required
+def baptism_edit(request, pk):
+    """Modifier un événement de baptême"""
+    baptism = get_object_or_404(BaptismEvent.objects.select_related('event'), pk=pk)
+
+    if request.method == 'POST':
+        event_form = EventForm(request.POST, instance=baptism.event, prefix='event')
+        if event_form.is_valid():
+            event_form.save()
+            messages.success(request, 'Événement de baptême modifié avec succès!')
+            return redirect('baptism-list')
+    else:
+        event_form = EventForm(instance=baptism.event, prefix='event')
+
+    return render(request, 'dashboard/baptism.html', {
+        'event_form': event_form,
+        'baptism': baptism,
+        'view': 'form',
+        'action': 'Modifier'
+    })
+
+
+@login_required
+def baptism_delete(request, pk):
+    """Supprimer un événement de baptême"""
+    baptism = get_object_or_404(BaptismEvent, pk=pk)
+
+    if request.method == 'POST':
+        baptism.event.delete()  # Supprime aussi l'événement associé
+        messages.success(request, 'Événement de baptême supprimé avec succès!')
+        return redirect('baptism-list')
+
+    return render(request, 'dashboard/baptism.html', {
+        'baptism': baptism,
+        'view': 'delete_confirm'
+    })
+
+
+@login_required
+def baptism_candidate_add(request, pk):
+    """Ajouter un candidat au baptême"""
+    baptism = get_object_or_404(BaptismEvent, pk=pk)
+
+    if request.method == 'POST':
+        form = BaptismCandidateForm(request.POST, request.FILES)
+        if form.is_valid():
+            candidate = form.save(commit=False)
+            candidate.baptism_event = baptism
+            candidate.save()
+            messages.success(request, 'Candidat ajouté avec succès!')
+            return redirect('baptism-detail', pk=pk)
+    else:
+        form = BaptismCandidateForm()
+
+    return render(request, 'dashboard/baptism.html', {
+        'form': form,
+        'baptism': baptism,
+        'view': 'candidate_form'
+    })
+
+
+# ============================================================
+# Contact Admin (Gestion des messages reçus)
+# ============================================================
+
+@login_required
+def contact_admin_list(request):
+    """Liste des messages de contact reçus"""
+    contacts = Contact.objects.all().order_by('-created_at')
+    status_filter = request.GET.get('status', '')
+
+    if status_filter:
+        contacts = contacts.filter(status=status_filter)
+
+    return render(request, 'dashboard/contact_admin.html', {
+        'contacts': contacts,
+        'status_filter': status_filter,
+        'view': 'list'
+    })
+
+
+@login_required
+def contact_admin_detail(request, pk):
+    """Détail d'un message de contact"""
+    contact = get_object_or_404(Contact, pk=pk)
+
+    # Marquer comme lu automatiquement
+    if contact.status == 'new':
+        contact.status = 'read'
+        contact.save(update_fields=['status'])
+
+    return render(request, 'dashboard/contact_admin.html', {
+        'contact': contact,
+        'view': 'detail'
+    })
+
+
+@login_required
+def contact_mark_read(request, pk):
+    """Marquer un message comme lu"""
+    contact = get_object_or_404(Contact, pk=pk)
+    contact.status = 'read'
+    contact.save(update_fields=['status'])
+    messages.success(request, 'Message marqué comme lu.')
+    return redirect('contact-admin-list')
+
+
+@login_required
+def contact_archive(request, pk):
+    """Archiver un message"""
+    contact = get_object_or_404(Contact, pk=pk)
+    contact.status = 'archived'
+    contact.save(update_fields=['status'])
+    messages.success(request, 'Message archivé.')
+    return redirect('contact-admin-list')
+
+
+# ============================================================
+# Audit Logs (Logs système)
+# ============================================================
+
+@login_required
+@admin_required
+def audit_log_list(request):
+    """Liste des logs système"""
+    logs = AuditLogEntry.objects.all().select_related('actor').order_by('-created_at')[:500]
+
+    # Filtres
+    action_filter = request.GET.get('action', '')
+    model_filter = request.GET.get('model', '')
+
+    if action_filter:
+        logs = logs.filter(action=action_filter)
+    if model_filter:
+        logs = logs.filter(model__icontains=model_filter)
+
+    return render(request, 'dashboard/audit_logs.html', {
+        'logs': logs,
+        'action_filter': action_filter,
+        'model_filter': model_filter,
+        'action_choices': AuditLogEntry.ACTION_CHOICES
+    })
 
 
 # ============================================================

@@ -1,0 +1,238 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Gestion des Baptêmes{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Gestion des Baptêmes</h2>
+            <p class="text-muted mb-0">Organiser les cérémonies de baptême</p>
+        </div>
+        <a href="{% url 'baptism-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>Nouvel événement
+        </a>
+    </div>
+
+    {% if view == 'list' %}
+    <!-- Liste des événements de baptême -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if baptisms %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Titre</th>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Lieu</th>
+                            <th>Candidats</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for baptism in baptisms %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'baptism-detail' baptism.pk %}" class="fw-semibold text-decoration-none">
+                                    {{ baptism.event.title }}
+                                </a>
+                            </td>
+                            <td>{{ baptism.event.date|date:"d/m/Y" }}</td>
+                            <td>{{ baptism.event.time|time:"H:i" }}</td>
+                            <td>{{ baptism.event.location|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ baptism.candidates.count }} candidat{{ baptism.candidates.count|pluralize }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'baptism-detail' baptism.pk %}" class="btn btn-outline-primary" title="Voir">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'baptism-edit' baptism.pk %}" class="btn btn-outline-secondary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'baptism-delete' baptism.pk %}" class="btn btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-droplet fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucun événement de baptême enregistré</p>
+                <a href="{% url 'baptism-create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>Créer un événement
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'detail' %}
+    <!-- Détail d'un événement de baptême -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ baptism.event.title }}</h5>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'baptism-edit' baptism.pk %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-pencil me-1"></i>Modifier
+                            </a>
+                            <a href="{% url 'baptism-delete' baptism.pk %}" class="btn btn-outline-danger">
+                                <i class="bi bi-trash me-1"></i>Supprimer
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Date</p>
+                            <p class="fw-semibold">{{ baptism.event.date|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Heure</p>
+                            <p class="fw-semibold">{{ baptism.event.time|time:"H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Lieu</p>
+                            <p class="fw-semibold">{{ baptism.event.location|default:"-" }}</p>
+                        </div>
+                        <div class="col-12">
+                            <p class="text-muted mb-1">Description</p>
+                            <p>{{ baptism.event.description|default:"-"|linebreaks }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des candidats -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Candidats ({{ baptism.candidates.count }})</h5>
+                    <a href="{% url 'baptism-candidate-add' baptism.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter un candidat
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if baptism.candidates.all %}
+                    <div class="row g-3">
+                        {% for candidate in baptism.candidates.all %}
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ candidate.name }} {{ candidate.post_name }}</h6>
+                                    <p class="card-text small text-muted">
+                                        <i class="bi bi-geo-alt me-1"></i>{{ candidate.address|default:"-" }}<br>
+                                        <i class="bi bi-telephone me-1"></i>{{ candidate.phone_number|default:"-" }}<br>
+                                        <i class="bi bi-calendar me-1"></i>Né(e) le {{ candidate.birth_date|date:"d/m/Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">Aucun candidat inscrit</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Informations</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Créé par</p>
+                    <p class="fw-semibold">{{ baptism.created_by.get_full_name|default:baptism.created_by.username }}</p>
+                    <p class="text-muted small mb-1">Date de création</p>
+                    <p class="fw-semibold">{{ baptism.created_at|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'form' %}
+    <!-- Formulaire de création/édition -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} un événement de baptême</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ event_form.as_p }}
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'baptism-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'candidate_form' %}
+    <!-- Formulaire d'ajout de candidat -->
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Ajouter un candidat au baptême</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'baptism-detail' baptism.pk %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">Ajouter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'delete_confirm' %}
+    <!-- Confirmation de suppression -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3"></i>
+                    <h5 class="mb-3">Confirmer la suppression</h5>
+                    <p class="text-muted mb-4">
+                        Êtes-vous sûr de vouloir supprimer l'événement de baptême "{{ baptism.event.title }}" ?<br>
+                        Cette action est irréversible.
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'baptism-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">Supprimer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
