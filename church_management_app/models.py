@@ -74,6 +74,12 @@ class Member(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_full_name(self):
+        """Retourne le nom complet du membre"""
+        if self.user:
+            return f"{self.user.first_name} {self.user.last_name}".strip()
+        return self.member_number or "Membre inconnu"
+
     def save(self, *args, **kwargs):
         # Générer le numéro de membre si nécessaire
         is_new = not self.pk

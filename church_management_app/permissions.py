@@ -12,7 +12,7 @@ ROLE_PERMISSIONS = {
         'menu': ['dashboard', 'members', 'families', 'home_groups', 'departments', 'ministries',
                  'events', 'attendance', 'finances', 'announcements',
                  'trainings', 'logistics', 'diaconat', 'baptisms', 'evangelisation', 'marriages',
-                 'documents', 'contacts', 'audit_logs', 'reports', 'account'],
+                 'documents', 'contacts', 'audit_logs', 'notifications', 'approvals', 'reports', 'account'],
         'can_create': True,
         'can_edit': True,
         'can_delete': True,

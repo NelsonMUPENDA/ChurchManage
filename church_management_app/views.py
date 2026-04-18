@@ -16,12 +16,12 @@ from .models import (
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
     LogisticsCategory, LogisticsCondition,
     ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate,
-    BaptismEvent, BaptismCandidate, AuditLogEntry
+    BaptismEvent, BaptismCandidate, AuditLogEntry, ApprovalRequest, Notification
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
     EventForm, AttendanceForm, EvangelismActivityForm, TrainingEventForm, MarriageRecordForm,
-    FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, LogisticsItemForm,
+    FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, DocumentEditForm, LogisticsItemForm,
     BaptismCandidateForm,
     LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm,
     EventAttendanceAggregateForm
@@ -1884,23 +1884,439 @@ def category_delete(request, pk):
 
 @login_required
 def reports(request):
-    """Rapports et statistiques"""
+    """Rapports et statistiques complets avec filtres de période"""
+    # Récupérer les paramètres de période
+    period = request.GET.get('period', 'month')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    # Calculer les dates par défaut selon la période
     today = timezone.now().date()
-    week_ago = today - timedelta(days=7)
-    month_ago = today - timedelta(days=30)
-    
+    if period == 'week':
+        default_from = today - timedelta(days=7)
+    elif period == 'month':
+        default_from = today - timedelta(days=30)
+    elif period == 'quarter':
+        default_from = today - timedelta(days=90)
+    elif period == 'year':
+        default_from = today - timedelta(days=365)
+    else:
+        default_from = today - timedelta(days=30)
+
+    # Utiliser les dates fournies ou les défauts
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+        except:
+            from_date = default_from
+    else:
+        from_date = default_from
+
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+        except:
+            to_date = today
+    else:
+        to_date = today
+
+    # Statistiques membres
+    members_total = Member.objects.count()
+    members_new = Member.objects.filter(created_at__date__range=[from_date, to_date]).count()
+    members_active = Member.objects.filter(is_active=True).count()
+    members_by_gender = {
+        'male': Member.objects.filter(gender='male').count(),
+        'female': Member.objects.filter(gender='female').count(),
+    }
+    members_by_status = {
+        'active': Member.objects.filter(is_active=True, inactive_reason__isnull=True).count(),
+        'inactive': Member.objects.filter(is_active=False).count(),
+        'visitor': Member.objects.filter(is_active=True, inactive_reason='visitor').count(),
+    }
+
+    # Statistiques présences
+    attendance_records = Attendance.objects.filter(event__date__range=[from_date, to_date])
+    attendance_total = attendance_records.count()
+    attendance_present = attendance_records.filter(attended=True).count()
+    attendance_rate = round((attendance_present / attendance_total * 100), 1) if attendance_total > 0 else 0
+
+    # Statistiques finances
+    transactions_period = FinancialTransaction.objects.filter(date__range=[from_date, to_date])
+    finances_in = transactions_period.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0
+    finances_out = transactions_period.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0
+    finances_total_in = FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0
+    finances_total_out = FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0
+
+    # Statistiques événements
+    events_total = Event.objects.filter(date__range=[from_date, to_date]).count()
+    events_all = Event.objects.count()
+    upcoming_events = Event.objects.filter(date__gte=today).count()
+
+    # Autres statistiques
+    families_total = Family.objects.count()
+    departments_total = Department.objects.count()
+    ministries_total = Ministry.objects.count()
+    homegroups_total = HomeGroup.objects.count()
+    marriages_total = MarriageRecord.objects.count()
+    baptisms_total = BaptismEvent.objects.count()
+    trainings_total = TrainingEvent.objects.count()
+    documents_total = Document.objects.count()
+    announcements_total = Announcement.objects.count()
+
+    # Statistiques par mois pour graphiques (6 derniers mois)
+    monthly_stats = []
+    for i in range(5, -1, -1):
+        month_date = today - timedelta(days=i*30)
+        month_start = month_date.replace(day=1)
+        month_members = Member.objects.filter(created_at__year=month_date.year, created_at__month=month_date.month).count()
+        month_events = Event.objects.filter(date__year=month_date.year, date__month=month_date.month).count()
+        month_finances = FinancialTransaction.objects.filter(
+            date__year=month_date.year, date__month=month_date.month, direction='in'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        monthly_stats.append({
+            'month': month_date.strftime('%b'),
+            'members': month_members,
+            'events': month_events,
+            'finances': month_finances
+        })
+
     context = {
+        'period': period,
+        'date_from': from_date,
+        'date_to': to_date,
         'stats': {
-            'members': Member.objects.count(),
-            'members_new_week': Member.objects.filter(created_at__date__gte=week_ago).count(),
-            'members_new_month': Member.objects.filter(created_at__date__gte=month_ago).count(),
-            'events_week': Event.objects.filter(date__range=[week_ago, today]).count(),
-            'events_month': Event.objects.filter(date__range=[month_ago, today]).count(),
-            'total_in': FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
-            'total_out': FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
-        }
+            'members_total': members_total,
+            'members_new': members_new,
+            'members_active': members_active,
+            'members_by_gender': members_by_gender,
+            'members_by_status': members_by_status,
+            'attendance_total': attendance_total,
+            'attendance_present': attendance_present,
+            'attendance_rate': attendance_rate,
+            'finances_in': finances_in,
+            'finances_out': finances_out,
+            'finances_balance': finances_in - finances_out,
+            'finances_total_in': finances_total_in,
+            'finances_total_out': finances_total_out,
+            'events_total': events_total,
+            'events_all': events_all,
+            'upcoming_events': upcoming_events,
+            'families_total': families_total,
+            'departments_total': departments_total,
+            'ministries_total': ministries_total,
+            'homegroups_total': homegroups_total,
+            'marriages_total': marriages_total,
+            'baptisms_total': baptisms_total,
+            'trainings_total': trainings_total,
+            'documents_total': documents_total,
+            'announcements_total': announcements_total,
+        },
+        'monthly_stats': monthly_stats,
     }
     return render(request, 'dashboard/reports.html', context)
+
+
+@login_required
+def report_members_detail(request):
+    """Rapport détaillé des membres"""
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    members = Member.objects.all().select_related('family', 'department', 'home_group')
+
+    if date_from and date_to:
+        members = members.filter(created_at__date__range=[date_from, date_to])
+
+    context = {
+        'members': members,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total': members.count(),
+        'by_gender': {
+            'male': members.filter(gender='male').count(),
+            'female': members.filter(gender='female').count(),
+        },
+        'by_status': {
+            'active': members.filter(is_active=True, inactive_reason__isnull=True).count(),
+            'inactive': members.filter(is_active=False).count(),
+        }
+    }
+    return render(request, 'dashboard/report_members_detail.html', context)
+
+
+@login_required
+def report_finances_detail(request):
+    """Rapport détaillé des finances"""
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    transactions = FinancialTransaction.objects.all().select_related('category', 'member')
+
+    if date_from and date_to:
+        transactions = transactions.filter(date__range=[date_from, date_to])
+
+    context = {
+        'transactions': transactions,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_in': transactions.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
+        'total_out': transactions.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
+    }
+    return render(request, 'dashboard/report_finances_detail.html', context)
+
+
+@login_required
+def report_activities_detail(request):
+    """Rapport détaillé des activités"""
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    events = Event.objects.all().prefetch_related('attendances')
+
+    if date_from and date_to:
+        events = events.filter(date__range=[date_from, date_to])
+
+    context = {
+        'events': events,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_events': events.count(),
+    }
+    return render(request, 'dashboard/report_activities_detail.html', context)
+
+
+@login_required
+def report_attendance_detail(request):
+    """Rapport détaillé des présences"""
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    attendances = Attendance.objects.all().select_related('event', 'member')
+
+    if date_from and date_to:
+        attendances = attendances.filter(event__date__range=[date_from, date_to])
+
+    total = attendances.count()
+    present = attendances.filter(attended=True).count()
+    rate = round((present / total * 100), 1) if total > 0 else 0
+
+    context = {
+        'attendances': attendances,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total': total,
+        'present': present,
+        'rate': rate,
+    }
+    return render(request, 'dashboard/report_attendance_detail.html', context)
+
+
+@login_required
+def report_sacraments_detail(request):
+    """Rapport détaillé des sacrements (mariages et baptêmes)"""
+    marriages = MarriageRecord.objects.all().select_related('groom', 'bride')
+    baptisms = BaptismEvent.objects.all().prefetch_related('candidates')
+
+    context = {
+        'marriages': marriages,
+        'baptisms': baptisms,
+        'marriages_count': marriages.count(),
+        'baptisms_count': baptisms.count(),
+    }
+    return render(request, 'dashboard/report_sacraments_detail.html', context)
+
+
+@login_required
+def export_reports_excel(request):
+    """Export global des rapports en fichier Excel XLSX formaté"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from django.http import HttpResponse
+
+    # Créer le workbook
+    wb = Workbook()
+
+    # Style commun
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    title_font = Font(bold=True, size=14)
+
+    # ===== FEUILLE 1: RAPPORT GLOBAL =====
+    ws_summary = wb.active
+    ws_summary.title = "Rapport Global"
+
+    # Titre
+    ws_summary['A1'] = "RAPPORT GLOBAL DE L'ÉGLISE"
+    ws_summary['A1'].font = Font(bold=True, size=16)
+    ws_summary.merge_cells('A1:D1')
+    ws_summary['A1'].alignment = Alignment(horizontal="center")
+
+    today = timezone.now().date()
+    ws_summary['A2'] = f"Généré le {today.strftime('%d/%m/%Y')}"
+    ws_summary['A2'].alignment = Alignment(horizontal="center")
+    ws_summary.merge_cells('A2:D2')
+
+    # Statistiques générales
+    row = 4
+    ws_summary[f'A{row}'] = "CATÉGORIE"
+    ws_summary[f'B{row}'] = "TOTAL"
+    ws_summary[f'C{row}'] = "ACTIFS"
+    ws_summary[f'D{row}'] = "NOTES"
+
+    for col in ['A', 'B', 'C', 'D']:
+        cell = ws_summary[f'{col}{row}']
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    # Données
+    data = [
+        ["Membres", Member.objects.count(), Member.objects.filter(is_active=True).count(), "Total inscrits"],
+        ["Familles", Family.objects.count(), "-", "Nombre de familles"],
+        ["Groupes de maison", HomeGroup.objects.count(), "-", "Cellules"],
+        ["Départements", Department.objects.count(), "-", "Ministères"],
+        ["Événements", Event.objects.count(), Event.objects.filter(date__gte=today).count(), "À venir"],
+        ["Mariages", MarriageRecord.objects.count(), "-", "Cérémonies"],
+        ["Baptêmes", BaptismEvent.objects.count(), "-", "Événements"],
+        ["Formations", TrainingEvent.objects.count(), "-", "Sessions"],
+        ["Documents", Document.objects.count(), "-", "Fichiers"],
+    ]
+
+    for i, row_data in enumerate(data, start=5):
+        for j, value in enumerate(row_data, start=1):
+            cell = ws_summary.cell(row=i, column=j, value=value)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center")
+
+    # Finances
+    ws_summary['A15'] = "FINANCES"
+    ws_summary['A15'].font = title_font
+    ws_summary.merge_cells('A15:D15')
+
+    row = 16
+    ws_summary[f'A{row}'] = "TYPE"
+    ws_summary[f'B{row}'] = "MONTANT ($)"
+    ws_summary[f'C{row}'] = "DÉTAILS"
+
+    for col in ['A', 'B', 'C']:
+        cell = ws_summary[f'{col}{row}']
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    finances_data = [
+        ["Entrées totales", FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0, "Dons et contributions"],
+        ["Sorties totales", FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0, "Dépenses"],
+        ["Solde", (FinancialTransaction.objects.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0) -
+                  (FinancialTransaction.objects.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0), "Balance"],
+    ]
+
+    for i, row_data in enumerate(finances_data, start=17):
+        for j, value in enumerate(row_data, start=1):
+            cell = ws_summary.cell(row=i, column=j, value=value)
+            cell.border = thin_border
+            if j == 2 and isinstance(value, (int, float)):
+                cell.number_format = '#,##0.00'
+
+    # Ajuster les largeurs
+    ws_summary.column_dimensions['A'].width = 25
+    ws_summary.column_dimensions['B'].width = 15
+    ws_summary.column_dimensions['C'].width = 15
+    ws_summary.column_dimensions['D'].width = 30
+
+    # ===== FEUILLE 2: LISTE DES MEMBRES =====
+    ws_members = wb.create_sheet("Membres")
+
+    headers = ["N° Membre", "Nom", "Prénom", "Genre", "Téléphone", "Email", "Famille", "Département", "Statut"]
+    for col, header in enumerate(headers, 1):
+        cell = ws_members.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    members = Member.objects.all().select_related('family', 'department', 'user')
+    for i, member in enumerate(members, start=2):
+        ws_members.cell(row=i, column=1, value=member.member_number).border = thin_border
+        ws_members.cell(row=i, column=2, value=member.user.last_name if member.user else "").border = thin_border
+        ws_members.cell(row=i, column=3, value=member.user.first_name if member.user else "").border = thin_border
+        ws_members.cell(row=i, column=4, value=member.get_gender_display() if member.gender else "").border = thin_border
+        ws_members.cell(row=i, column=5, value=member.user.phone if member.user else "").border = thin_border
+        ws_members.cell(row=i, column=6, value=member.user.email if member.user else "").border = thin_border
+        ws_members.cell(row=i, column=7, value=member.family.name if member.family else "").border = thin_border
+        ws_members.cell(row=i, column=8, value=member.department.name if member.department else "").border = thin_border
+        ws_members.cell(row=i, column=9, value="Actif" if member.is_active else "Inactif").border = thin_border
+
+    for col in range(1, 10):
+        ws_members.column_dimensions[get_column_letter(col)].width = 18
+
+    # ===== FEUILLE 3: FINANCES =====
+    ws_finances = wb.create_sheet("Finances")
+
+    headers = ["Date", "Description", "Catégorie", "Membre", "Type", "Montant ($)", "Méthode"]
+    for col, header in enumerate(headers, 1):
+        cell = ws_finances.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    transactions = FinancialTransaction.objects.all().select_related('category', 'member', 'member__user')
+    for i, trans in enumerate(transactions, start=2):
+        ws_finances.cell(row=i, column=1, value=trans.date.strftime('%d/%m/%Y')).border = thin_border
+        ws_finances.cell(row=i, column=2, value=trans.description).border = thin_border
+        ws_finances.cell(row=i, column=3, value=trans.category.name if trans.category else "").border = thin_border
+        ws_finances.cell(row=i, column=4, value=trans.member.get_full_name() if trans.member else "").border = thin_border
+        ws_finances.cell(row=i, column=5, value="Entrée" if trans.direction == 'in' else "Sortie").border = thin_border
+        cell_montant = ws_finances.cell(row=i, column=6, value=float(trans.amount))
+        cell_montant.border = thin_border
+        cell_montant.number_format = '#,##0.00'
+        ws_finances.cell(row=i, column=7, value=trans.payment_method or "").border = thin_border
+
+    for col in range(1, 8):
+        ws_finances.column_dimensions[get_column_letter(col)].width = 18
+
+    # ===== FEUILLE 4: ÉVÉNEMENTS =====
+    ws_events = wb.create_sheet("Événements")
+
+    headers = ["Date", "Titre", "Type", "Lieu", "Heure", "Description"]
+    for col, header in enumerate(headers, 1):
+        cell = ws_events.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    events = Event.objects.all()
+    for i, event in enumerate(events, start=2):
+        ws_events.cell(row=i, column=1, value=event.date.strftime('%d/%m/%Y')).border = thin_border
+        ws_events.cell(row=i, column=2, value=event.title).border = thin_border
+        ws_events.cell(row=i, column=3, value=event.event_type).border = thin_border
+        ws_events.cell(row=i, column=4, value=event.location).border = thin_border
+        ws_events.cell(row=i, column=5, value=str(event.time)).border = thin_border
+        ws_events.cell(row=i, column=6, value=event.description[:100] if event.description else "").border = thin_border
+
+    for col in range(1, 7):
+        ws_events.column_dimensions[get_column_letter(col)].width = 20
+
+    # Générer la réponse
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=rapport_global_{today.strftime("%Y%m%d")}.xlsx'
+
+    wb.save(response)
+    return response
 
 
 # ============================================================
@@ -2693,11 +3109,64 @@ def marriage_delete(request, pk):
 # Documents - CRUD
 # ============================================================
 
+def format_file_size(size):
+    """Formate la taille d'un fichier"""
+    if size < 1024:
+        return f"{size} o"
+    elif size < 1024 * 1024:
+        return f"{size / 1024:.1f} Ko"
+    elif size < 1024 * 1024 * 1024:
+        return f"{size / (1024 * 1024):.1f} Mo"
+    else:
+        return f"{size / (1024 * 1024 * 1024):.1f} Go"
+
+
 @login_required
 def document_list(request):
-    """Liste des documents"""
+    """Liste des documents avec recherche et filtres"""
     documents = Document.objects.all().order_by('-uploaded_at')
-    return render(request, 'dashboard/account.html', {'documents': documents, 'view': 'documents'})
+
+    # Recherche
+    search_query = request.GET.get('search', '')
+    if search_query:
+        documents = documents.filter(title__icontains=search_query)
+
+    # Filtre par type de document
+    doc_type_filter = request.GET.get('doc_type', '')
+    if doc_type_filter:
+        documents = documents.filter(document_type=doc_type_filter)
+
+    # Filtre par format de fichier
+    type_filter = request.GET.get('type', '')
+    if type_filter:
+        if type_filter == 'pdf':
+            documents = documents.filter(file__iendswith='.pdf')
+        elif type_filter == 'word':
+            documents = documents.filter(file__iregex=r'\.(docx?)$')
+        elif type_filter == 'excel':
+            documents = documents.filter(file__iregex=r'\.(xlsx?)$')
+        elif type_filter == 'image':
+            documents = documents.filter(file__iregex=r'\.(jpe?g|png|gif|bmp)$')
+
+    # Statistiques
+    pdf_count = documents.filter(file__iendswith='.pdf').count()
+    office_count = documents.filter(file__iregex=r'\.(docx?|xlsx?)$').count()
+    image_count = documents.filter(file__iregex=r'\.(jpe?g|png|gif|bmp)$').count()
+
+    # Ajouter taille formatée à chaque document
+    for doc in documents:
+        doc.file_size_formatted = format_file_size(doc.file.size) if doc.file else "0 o"
+
+    return render(request, 'dashboard/documents.html', {
+        'documents': documents,
+        'view': 'list',
+        'search_query': search_query,
+        'doc_type_filter': doc_type_filter,
+        'type_filter': type_filter,
+        'pdf_count': pdf_count,
+        'office_count': office_count,
+        'image_count': image_count
+    })
 
 
 @login_required
@@ -2714,7 +3183,38 @@ def document_create(request):
     else:
         form = DocumentForm()
     
-    return render(request, 'dashboard/account.html', {'form': form, 'action': 'Uploader', 'view': 'document_form'})
+    return render(request, 'dashboard/documents.html', {'form': form, 'action': 'Uploader', 'view': 'form'})
+
+
+@login_required
+def document_detail(request, pk):
+    """Détail d'un document"""
+    document = get_object_or_404(Document, pk=pk)
+    document.file_size_formatted = format_file_size(document.file.size) if document.file else "0 o"
+    return render(request, 'dashboard/documents.html', {'document': document, 'view': 'detail'})
+
+
+@login_required
+def document_edit(request, pk):
+    """Modifier un document (métadonnées uniquement, pas le fichier)"""
+    document = get_object_or_404(Document, pk=pk)
+
+    if request.method == 'POST':
+        form = DocumentEditForm(request.POST, instance=document)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Document {document.title} modifié avec succès!')
+            return redirect('document-list')
+    else:
+        form = DocumentEditForm(instance=document)
+
+    document.file_size_formatted = format_file_size(document.file.size) if document.file else "0 o"
+    return render(request, 'dashboard/documents.html', {
+        'form': form,
+        'document': document,
+        'action': 'Modifier',
+        'view': 'form'
+    })
 
 
 @login_required
@@ -2727,7 +3227,7 @@ def document_delete(request, pk):
         messages.success(request, 'Document supprimé avec succès!')
         return redirect('document-list')
     
-    return render(request, 'dashboard/account.html', {'document': document, 'delete_confirm': True, 'view': 'documents'})
+    return render(request, 'dashboard/documents.html', {'document': document, 'view': 'delete_confirm'})
 
 
 # ============================================================
@@ -2893,24 +3393,213 @@ def contact_archive(request, pk):
 @login_required
 @admin_required
 def audit_log_list(request):
-    """Liste des logs système"""
-    logs = AuditLogEntry.objects.all().select_related('actor').order_by('-created_at')[:500]
+    """Liste des logs système avec filtres avancés"""
+    logs = AuditLogEntry.objects.all().select_related('actor').order_by('-created_at')
 
     # Filtres
     action_filter = request.GET.get('action', '')
     model_filter = request.GET.get('model', '')
+    user_filter = request.GET.get('user', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
 
     if action_filter:
         logs = logs.filter(action=action_filter)
     if model_filter:
         logs = logs.filter(model__icontains=model_filter)
+    if user_filter:
+        logs = logs.filter(
+            actor__username__icontains=user_filter
+        ) | logs.filter(
+            actor__first_name__icontains=user_filter
+        ) | logs.filter(
+            actor__last_name__icontains=user_filter
+        )
+    if date_from:
+        logs = logs.filter(created_at__gte=date_from)
+    if date_to:
+        logs = logs.filter(created_at__lte=date_to + ' 23:59:59')
+
+    # Pagination manuelle - limiter à 500
+    logs = logs[:500]
+
+    # Statistiques
+    total_logs = AuditLogEntry.objects.count()
+    create_count = AuditLogEntry.objects.filter(action='create').count()
+    update_count = AuditLogEntry.objects.filter(action='update').count()
+    delete_count = AuditLogEntry.objects.filter(action='delete').count()
+
+    # Liste des modèles uniques pour le filtre
+    unique_models = AuditLogEntry.objects.values_list('model', flat=True).distinct().order_by('model')
 
     return render(request, 'dashboard/audit_logs.html', {
         'logs': logs,
         'action_filter': action_filter,
         'model_filter': model_filter,
-        'action_choices': AuditLogEntry.ACTION_CHOICES
+        'user_filter': user_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'action_choices': AuditLogEntry.ACTION_CHOICES,
+        'unique_models': unique_models,
+        'total_logs': total_logs,
+        'create_count': create_count,
+        'update_count': update_count,
+        'delete_count': delete_count
     })
+
+
+# ============================================================
+# Demandes d'approbation (ApprovalRequest)
+# ============================================================
+
+@login_required
+def approval_request_list(request):
+    """Liste des demandes d'approbation"""
+    # Les demandes créées par l'utilisateur
+    my_requests = ApprovalRequest.objects.filter(requested_by=request.user).order_by('-created_at')
+
+    # Les demandes en attente de décision (pour les admins)
+    if request.user.is_superuser or request.user.role in ['admin', 'pastor', 'super_admin']:
+        pending_requests = ApprovalRequest.objects.filter(status='pending').order_by('-created_at')
+    else:
+        pending_requests = ApprovalRequest.objects.none()
+
+    # Filtres
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        my_requests = my_requests.filter(status=status_filter)
+
+    return render(request, 'dashboard/approval_requests.html', {
+        'my_requests': my_requests,
+        'pending_requests': pending_requests,
+        'status_filter': status_filter,
+        'view': 'list'
+    })
+
+
+@login_required
+def approval_request_detail(request, pk):
+    """Détail d'une demande d'approbation"""
+    approval_request = get_object_or_404(ApprovalRequest, pk=pk)
+
+    # Vérifier les permissions
+    is_owner = approval_request.requested_by == request.user
+    can_decide = request.user.is_superuser or request.user.role in ['admin', 'pastor', 'super_admin']
+
+    return render(request, 'dashboard/approval_requests.html', {
+        'approval_request': approval_request,
+        'is_owner': is_owner,
+        'can_decide': can_decide,
+        'view': 'detail'
+    })
+
+
+@login_required
+@admin_required
+def approval_request_approve(request, pk):
+    """Approuver une demande"""
+    approval_request = get_object_or_404(ApprovalRequest, pk=pk)
+
+    if request.method == 'POST':
+        approval_request.status = 'approved'
+        approval_request.decided_by = request.user
+        approval_request.decided_at = timezone.now()
+        approval_request.save()
+
+        # Créer une notification pour le demandeur
+        Notification.objects.create(
+            title='Demande approuvée',
+            message=f'Votre demande de {approval_request.get_action_display()} pour {approval_request.object_repr} a été approuvée.',
+            recipient=approval_request.requested_by
+        )
+
+        messages.success(request, 'Demande approuvée avec succès!')
+        return redirect('approval-request-list')
+
+    return redirect('approval-request-detail', pk=pk)
+
+
+@login_required
+@admin_required
+def approval_request_reject(request, pk):
+    """Rejeter une demande"""
+    approval_request = get_object_or_404(ApprovalRequest, pk=pk)
+
+    if request.method == 'POST':
+        reason = request.POST.get('rejection_reason', '')
+        approval_request.status = 'rejected'
+        approval_request.decided_by = request.user
+        approval_request.decided_at = timezone.now()
+        approval_request.rejection_reason = reason
+        approval_request.save()
+
+        # Créer une notification pour le demandeur
+        Notification.objects.create(
+            title='Demande rejetée',
+            message=f'Votre demande de {approval_request.get_action_display()} pour {approval_request.object_repr} a été rejetée. Raison: {reason}',
+            recipient=approval_request.requested_by
+        )
+
+        messages.success(request, 'Demande rejetée.')
+        return redirect('approval-request-list')
+
+    return redirect('approval-request-detail', pk=pk)
+
+
+# ============================================================
+# Notifications
+# ============================================================
+
+@login_required
+def notification_list(request):
+    """Liste des notifications de l'utilisateur"""
+    notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
+
+    # Statistiques
+    unread_count = notifications.filter(is_read=False).count()
+    total_count = notifications.count()
+
+    # Filtre lu/non lu
+    filter_type = request.GET.get('filter', '')
+    if filter_type == 'unread':
+        notifications = notifications.filter(is_read=False)
+    elif filter_type == 'read':
+        notifications = notifications.filter(is_read=True)
+
+    return render(request, 'dashboard/notifications.html', {
+        'notifications': notifications,
+        'unread_count': unread_count,
+        'total_count': total_count,
+        'filter_type': filter_type,
+        'view': 'list'
+    })
+
+
+@login_required
+def notification_mark_read(request, pk):
+    """Marquer une notification comme lue"""
+    notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    notification.is_read = True
+    notification.save(update_fields=['is_read'])
+    messages.success(request, 'Notification marquée comme lue.')
+    return redirect('notification-list')
+
+
+@login_required
+def notification_mark_all_read(request):
+    """Marquer toutes les notifications comme lues"""
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'Toutes les notifications ont été marquées comme lues.')
+    return redirect('notification-list')
+
+
+@login_required
+def notification_delete(request, pk):
+    """Supprimer une notification"""
+    notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    notification.delete()
+    messages.success(request, 'Notification supprimée.')
+    return redirect('notification-list')
 
 
 # ============================================================

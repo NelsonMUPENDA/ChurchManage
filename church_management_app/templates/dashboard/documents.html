@@ -1,0 +1,326 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Documents{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Gestion des Documents</h2>
+            <p class="text-muted mb-0">Documents et fichiers de l'église</p>
+        </div>
+        <a href="{% url 'document-create' %}" class="btn btn-primary">
+            <i class="bi bi-upload me-2"></i>Uploader un document
+        </a>
+    </div>
+
+    {% if view == 'list' %}
+    <!-- Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-files text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total documents</p>
+                        <h4 class="mb-0 fw-bold">{{ documents.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-file-earmark-pdf text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">PDFs</p>
+                        <h4 class="mb-0 fw-bold">{{ pdf_count|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-file-earmark-word text-info fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Word/Excel</p>
+                        <h4 class="mb-0 fw-bold">{{ office_count|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-images text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Images</p>
+                        <h4 class="mb-0 fw-bold">{{ image_count|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-0 bg-light" name="search" 
+                               placeholder="Rechercher un document..." value="{{ search_query|default:'' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" name="doc_type">
+                        <option value="">Tous les types</option>
+                        <option value="sermon" {% if doc_type_filter == 'sermon' %}selected{% endif %}>Sermon</option>
+                        <option value="official" {% if doc_type_filter == 'official' %}selected{% endif %}>Document officiel</option>
+                        <option value="report" {% if doc_type_filter == 'report' %}selected{% endif %}>Rapport</option>
+                        <option value="other" {% if doc_type_filter == 'other' %}selected{% endif %}>Autre</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" name="type">
+                        <option value="">Tous les types</option>
+                        <option value="pdf" {% if type_filter == 'pdf' %}selected{% endif %}>PDF</option>
+                        <option value="word" {% if type_filter == 'word' %}selected{% endif %}>Word</option>
+                        <option value="excel" {% if type_filter == 'excel' %}selected{% endif %}>Excel</option>
+                        <option value="image" {% if type_filter == 'image' %}selected{% endif %}>Image</option>
+                        <option value="other" {% if type_filter == 'other' %}selected{% endif %}>Autre</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-secondary w-100">Filtrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Documents List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            {% if documents %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="border-0 fw-semibold ps-4">Document</th>
+                            <th class="border-0 fw-semibold">Catégorie</th>
+                            <th class="border-0 fw-semibold">Taille</th>
+                            <th class="border-0 fw-semibold">Uploadé par</th>
+                            <th class="border-0 fw-semibold">Date</th>
+                            <th class="border-0 fw-semibold text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for document in documents %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        {% if document.file.name|lower|slice:"-4:" == '.pdf' %}
+                                            <i class="bi bi-file-earmark-pdf text-danger fs-4"></i>
+                                        {% elif document.file.name|lower|slice:"-5:" == '.docx' or document.file.name|lower|slice:"-4:" == '.doc' %}
+                                            <i class="bi bi-file-earmark-word text-primary fs-4"></i>
+                                        {% elif document.file.name|lower|slice:"-5:" == '.xlsx' or document.file.name|lower|slice:"-4:" == '.xls' %}
+                                            <i class="bi bi-file-earmark-excel text-success fs-4"></i>
+                                        {% elif document.file.name|lower|slice:"-4:" == '.jpg' or document.file.name|lower|slice:"-5:" == '.jpeg' or document.file.name|lower|slice:"-4:" == '.png' %}
+                                            <i class="bi bi-file-earmark-image text-info fs-4"></i>
+                                        {% else %}
+                                            <i class="bi bi-file-earmark text-secondary fs-4"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ document.title }}</h6>
+                                        <small class="text-muted">{{ document.file.name|default:"-"|truncatechars:30 }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark">{{ document.get_document_type_display|default:"-" }}</span>
+                            </td>
+                            <td>
+                                {{ document.file_size_formatted }}
+                            </td>
+                            <td>{{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }}</td>
+                            <td>{{ document.uploaded_at|date:"d/m/Y H:i" }}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'document-detail' document.pk %}" class="btn btn-outline-info" title="Détails">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ document.file.url }}" class="btn btn-outline-primary" target="_blank" title="Télécharger">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <a href="{% url 'document-edit' document.pk %}" class="btn btn-outline-secondary" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'document-delete' document.pk %}" class="btn btn-outline-danger" title="Supprimer">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-folder fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucun document</p>
+                <a href="{% url 'document-create' %}" class="btn btn-primary">
+                    <i class="bi bi-upload me-2"></i>Uploader un document
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'detail' %}
+    <!-- Détail du document -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Détails du document</h5>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ document.file.url }}" class="btn btn-outline-primary" target="_blank">
+                            <i class="bi bi-download me-1"></i>Télécharger
+                        </a>
+                        <a href="{% url 'document-edit' document.pk %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-pencil me-1"></i>Modifier
+                        </a>
+                        <a href="{% url 'document-delete' document.pk %}" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Supprimer
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Titre</p>
+                            <p class="fw-semibold">{{ document.title }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Type</p>
+                            <span class="badge bg-light text-dark">{{ document.get_document_type_display|default:"-" }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Nom du fichier</p>
+                            <p class="fw-semibold">{{ document.file.name|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Taille</p>
+                            <p class="fw-semibold">{{ document.file_size_formatted }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Uploadé par</p>
+                            <p class="fw-semibold">{{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Date d'upload</p>
+                            <p class="fw-semibold">{{ document.uploaded_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'document-list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+                        </a>
+                        <a href="{{ document.file.url }}" class="btn btn-primary" target="_blank">
+                            <i class="bi bi-eye me-2"></i>Voir le fichier
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'form' %}
+    <!-- Formulaire upload -->
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">{{ action }} un document</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Titre</label>
+                            {{ form.title }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type de document</label>
+                            {{ form.document_type }}
+                        </div>
+                        {% if action == 'Créer' %}
+                        <div class="mb-3">
+                            <label class="form-label">Fichier</label>
+                            {{ form.file }}
+                        </div>
+                        {% else %}
+                        <div class="mb-3">
+                            <label class="form-label">Fichier actuel</label>
+                            <div class="p-2 bg-light rounded">
+                                <small class="text-muted">{{ document.file.name|default:"-" }} ({{ document.file_size_formatted }})</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'document-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if action == 'Créer' %}
+                                    <i class="bi bi-upload me-2"></i>Uploader
+                                {% else %}
+                                    <i class="bi bi-save me-2"></i>Enregistrer
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif view == 'delete_confirm' %}
+    <!-- Confirmation suppression -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3"></i>
+                    <h5 class="mb-3">Confirmer la suppression</h5>
+                    <p class="text-muted mb-4">
+                        Êtes-vous sûr de vouloir supprimer le document "{{ document.title }}" ?<br>
+                        Le fichier sera également supprimé du serveur.
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'document-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-danger">Supprimer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

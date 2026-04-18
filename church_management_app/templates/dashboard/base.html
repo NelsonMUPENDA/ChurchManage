@@ -321,6 +321,31 @@
             {% endif %}
             {% endif %}
             
+            <!-- Personnel -->
+            {% if user|can_access_menu:"notifications" or user|can_access_menu:"approvals" %}
+            <div class="nav-section-title">Personnel</div>
+
+            {% if user|can_access_menu:"notifications" %}
+            <a href="{% url 'notification-list' %}" class="nav-link {% if active_page == 'notifications' %}active{% endif %}">
+                <i class="bi bi-bell"></i>
+                <span>Notifications</span>
+                {% if unread_notifications_count > 0 %}
+                <span class="badge bg-danger ms-auto">{{ unread_notifications_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"approvals" %}
+            <a href="{% url 'approval-request-list' %}" class="nav-link {% if active_page == 'approvals' %}active{% endif %}">
+                <i class="bi bi-check2-square"></i>
+                <span>Demandes d'approbation</span>
+                {% if pending_approvals_count > 0 %}
+                <span class="badge bg-warning ms-auto">{{ pending_approvals_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+            {% endif %}
+
             <!-- Rapports & Compte -->
             {% if user|can_access_menu:"reports" or user|can_access_menu:"account" %}
             <div class="nav-section-title">Rapports & Compte</div>

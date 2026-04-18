@@ -1,0 +1,293 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Demandes d'approbation{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Demandes d'approbation</h2>
+            <p class="text-muted mb-0">Gérer les demandes de validation</p>
+        </div>
+    </div>
+
+    {% if view == 'list' %}
+    <!-- Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-clock text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">En attente</p>
+                        <h4 class="mb-0 fw-bold">{{ pending_requests.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-check-circle text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Mes demandes approuvées</p>
+                        <h4 class="mb-0 fw-bold">{{ my_requests.approved.count|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                        <i class="bi bi-list-check text-info fs-4"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Total mes demandes</p>
+                        <h4 class="mb-0 fw-bold">{{ my_requests.count }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demandes en attente (pour admins) -->
+    {% if pending_requests.count > 0 %}
+    <div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0 text-warning"><i class="bi bi-clock me-2"></i>Demandes en attente de décision</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="fw-semibold ps-4">Objet</th>
+                            <th class="fw-semibold">Action</th>
+                            <th class="fw-semibold">Demandeur</th>
+                            <th class="fw-semibold">Date</th>
+                            <th class="fw-semibold text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in pending_requests %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-semibold">{{ req.object_repr|default:req.model }}</span>
+                                <br><small class="text-muted">{{ req.model }}</small>
+                            </td>
+                            <td>
+                                {% if req.action == 'create' %}
+                                    <span class="badge bg-success">Création</span>
+                                {% elif req.action == 'update' %}
+                                    <span class="badge bg-warning text-dark">Modification</span>
+                                {% elif req.action == 'delete' %}
+                                    <span class="badge bg-danger">Suppression</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ req.requested_by.get_full_name|default:req.requested_by.username }}</td>
+                            <td>{{ req.created_at|date:"d/m/Y H:i" }}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'approval-request-detail' req.pk %}" class="btn btn-outline-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mes demandes -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Mes demandes</h5>
+            <select class="form-select form-select-sm w-auto" onchange="window.location.href='?status=' + this.value">
+                <option value="">Tous les statuts</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>En attente</option>
+                <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approuvées</option>
+                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejetées</option>
+            </select>
+        </div>
+        <div class="card-body p-0">
+            {% if my_requests %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="fw-semibold ps-4">Objet</th>
+                            <th class="fw-semibold">Action</th>
+                            <th class="fw-semibold">Statut</th>
+                            <th class="fw-semibold">Date</th>
+                            <th class="fw-semibold text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in my_requests %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-semibold">{{ req.object_repr|default:req.model }}</span>
+                                <br><small class="text-muted">{{ req.model }}</small>
+                            </td>
+                            <td>
+                                {% if req.action == 'create' %}
+                                    <span class="badge bg-success">Création</span>
+                                {% elif req.action == 'update' %}
+                                    <span class="badge bg-warning text-dark">Modification</span>
+                                {% elif req.action == 'delete' %}
+                                    <span class="badge bg-danger">Suppression</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                    <span class="badge bg-warning"><i class="bi bi-clock me-1"></i>En attente</span>
+                                {% elif req.status == 'approved' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approuvée</span>
+                                {% elif req.status == 'rejected' %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rejetée</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ req.created_at|date:"d/m/Y H:i" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'approval-request-detail' req.pk %}" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Aucune demande</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif view == 'detail' %}
+    <!-- Détail d'une demande -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Détails de la demande</h5>
+                    <span class="badge {% if approval_request.status == 'pending' %}bg-warning{% elif approval_request.status == 'approved' %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ approval_request.get_status_display }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Objet</p>
+                            <p class="fw-semibold">{{ approval_request.object_repr|default:approval_request.model }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Modèle</p>
+                            <p class="fw-semibold">{{ approval_request.model }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Action demandée</p>
+                            <p>
+                                {% if approval_request.action == 'create' %}
+                                    <span class="badge bg-success">Création</span>
+                                {% elif approval_request.action == 'update' %}
+                                    <span class="badge bg-warning text-dark">Modification</span>
+                                {% elif approval_request.action == 'delete' %}
+                                    <span class="badge bg-danger">Suppression</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Demandeur</p>
+                            <p class="fw-semibold">{{ approval_request.requested_by.get_full_name|default:approval_request.requested_by.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Date de demande</p>
+                            <p class="fw-semibold">{{ approval_request.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        {% if approval_request.decided_by %}
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Décision par</p>
+                            <p class="fw-semibold">{{ approval_request.decided_by.get_full_name|default:approval_request.decided_by.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Date de décision</p>
+                            <p class="fw-semibold">{{ approval_request.decided_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if approval_request.rejection_reason %}
+                        <div class="col-12">
+                            <p class="text-muted mb-1">Motif du rejet</p>
+                            <div class="p-3 bg-light rounded">
+                                <p class="mb-0">{{ approval_request.rejection_reason }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if can_decide and approval_request.status == 'pending' %}
+                    <hr class="my-4">
+                    <div class="d-flex gap-2 justify-content-center">
+                        <form method="post" action="{% url 'approval-request-approve' approval_request.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>Approuver
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="bi bi-x-circle me-2"></i>Rejeter
+                        </button>
+                    </div>
+
+                    <!-- Modal de rejet -->
+                    <div class="modal fade" id="rejectModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Rejeter la demande</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="post" action="{% url 'approval-request-reject' approval_request.pk %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Motif du rejet (optionnel)</label>
+                                            <textarea class="form-control" name="rejection_reason" rows="3" placeholder="Expliquez pourquoi vous rejetez cette demande..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                                        <button type="submit" class="btn btn-danger">Rejeter la demande</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'approval-request-list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

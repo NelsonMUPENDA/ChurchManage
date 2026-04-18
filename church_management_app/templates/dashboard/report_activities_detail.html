@@ -1,0 +1,62 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Rapport d'Activités{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Rapport d'Activités</h2>
+            <p class="text-muted mb-0">Période: {{ date_from }} au {{ date_to }}</p>
+        </div>
+        <a href="{% url 'reports' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-primary">{{ total_events }}</h4>
+                    <small class="text-muted">Total événements</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Événements -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Liste des événements</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Titre</th>
+                            <th>Type</th>
+                            <th>Lieu</th>
+                            <th>Présents</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in events %}
+                        <tr>
+                            <td>{{ event.date|date:"d/m/Y" }}</td>
+                            <td>{{ event.title }}</td>
+                            <td>{{ event.event_type|default:"-" }}</td>
+                            <td>{{ event.location|default:"-" }}</td>
+                            <td>{{ event.attendances.filter.filter.attended.count|default:"0" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,261 +3,576 @@
 
 {% block title %}Rapports & Statistiques{% endblock %}
 
-{% block page_title %}Rapports & Statistiques{% endblock %}
-
 {% block extra_css %}
 <style>
     .report-card { transition: all 0.2s; cursor: pointer; }
     .report-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-    .chart-placeholder { height: 200px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; }
+    .stat-value { font-size: 2rem; font-weight: 700; }
+    .chart-bar { height: 150px; display: flex; align-items: flex-end; gap: 8px; padding: 10px; }
+    .bar { flex: 1; border-radius: 4px 4px 0 0; min-height: 20px; position: relative; }
+    .bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; }
+    .bar-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; font-weight: 600; }
+    .gender-m { background: #6366f1; }
+    .gender-f { background: #ec4899; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-4">
-            <!-- Period Selector -->
-            <div class="card border-0 shadow-sm mb-4">
+<div class="container-fluid py-4">
+    <!-- Header avec boutons Compile -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Rapports & Statistiques</h2>
+            <p class="text-muted mb-0">Période: {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="generateCompileReport()">
+                <i class="bi bi-file-earmark-text me-2"></i>Rapport Compile
+            </button>
+            <button class="btn btn-primary" onclick="generateGlobalCompile()">
+                <i class="bi bi-globe me-2"></i>Global Compile
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtres de période -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Période rapide</label>
+                    <select class="form-select" name="period" onchange="this.form.submit()">
+                        <option value="week" {% if period == 'week' %}selected{% endif %}>Cette semaine</option>
+                        <option value="month" {% if period == 'month' %}selected{% endif %}>Ce mois</option>
+                        <option value="quarter" {% if period == 'quarter' %}selected{% endif %}>Ce trimestre</option>
+                        <option value="year" {% if period == 'year' %}selected{% endif %}>Cette année</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date début</label>
+                    <input type="date" class="form-control" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date fin</label>
+                    <input type="date" class="form-control" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-funnel me-2"></i>Filtrer
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'reports-export-excel' %}" class="btn btn-success w-100">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm report-card h-100">
                 <div class="card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-3">
-                            <label class="form-label">Période</label>
-                            <select class="form-select" id="periodSelect">
-                                <option value="week">Cette semaine</option>
-                                <option value="month" selected>Ce mois</option>
-                                <option value="quarter">Ce trimestre</option>
-                                <option value="year">Cette année</option>
-                            </select>
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3 bg-primary bg-opacity-10">
+                            <i class="bi bi-people fs-4 text-primary"></i>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Du</label>
-                            <input type="date" class="form-control" id="dateFrom">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Au</label>
-                            <input type="date" class="form-control" id="dateTo">
-                        </div>
-                        <div class="col-md-3 text-md-end">
-                            <button class="btn btn-primary" onclick="generateReports()">
-                                <i class="bi bi-arrow-clockwise me-2"></i>Générer
-                            </button>
+                        <div>
+                            <p class="text-muted mb-0 small">Total Membres</p>
+                            <h4 class="mb-0 fw-bold">{{ stats.members_total }}</h4>
+                            <small class="text-success">+{{ stats.members_new }} nouveaux</small>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Stats Overview -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm report-card" onclick="showReport('members')">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(99,102,241,0.1);">
-                                    <i class="bi bi-people fs-4" style="color: #6366f1;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Total Membres</p>
-                                    <h4 class="mb-0 fw-bold" id="totalMembers">-</h4>
-                                </div>
-                            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm report-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3 bg-success bg-opacity-10">
+                            <i class="bi bi-calendar-check fs-4 text-success"></i>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm report-card" onclick="showReport('attendance')">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(16,185,129,0.1);">
-                                    <i class="bi bi-calendar-check fs-4" style="color: #10b981;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Présence moyenne</p>
-                                    <h4 class="mb-0 fw-bold" id="avgAttendance">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm report-card" onclick="showReport('finances')">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(245,158,11,0.1);">
-                                    <i class="bi bi-currency-dollar fs-4" style="color: #f59e0b;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Dons total</p>
-                                    <h4 class="mb-0 fw-bold" id="totalDonations">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm report-card" onclick="showReport('events')">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-3 p-3 me-3" style="background: rgba(239,68,68,0.1);">
-                                    <i class="bi bi-calendar-event fs-4" style="color: #ef4444;"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Événements</p>
-                                    <h4 class="mb-0 fw-bold" id="totalEvents">-</h4>
-                                </div>
-                            </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Taux de présence</p>
+                            <h4 class="mb-0 fw-bold">{{ stats.attendance_rate }}%</h4>
+                            <small class="text-muted">{{ stats.attendance_present }}/{{ stats.attendance_total }}</small>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Charts Row -->
-            <div class="row g-4 mb-4">
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold">Évolution des membres</h6>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm report-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3 bg-warning bg-opacity-10">
+                            <i class="bi bi-cash-stack fs-4 text-warning"></i>
                         </div>
-                        <div class="card-body">
-                            <div class="chart-placeholder">
-                                <div class="text-center text-muted">
-                                    <i class="bi bi-graph-up fs-1 mb-2 d-block"></i>
-                                    <p class="mb-0">Graphique d'évolution</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="mb-0 fw-semibold">Répartition par genre</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-placeholder">
-                                <div class="text-center text-muted">
-                                    <i class="bi bi-pie-chart fs-1 mb-2 d-block"></i>
-                                    <p class="mb-0">Graphique circulaire</p>
-                                </div>
-                            </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Entrées (période)</p>
+                            <h4 class="mb-0 fw-bold">{{ stats.finances_in|floatformat:2 }} $</h4>
+                            <small class="{% if stats.finances_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                Solde: {{ stats.finances_balance|floatformat:2 }} $
+                            </small>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Available Reports -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-semibold">Rapports disponibles</h6>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Rapport</th>
-                                    <th>Description</th>
-                                    <th>Dernière génération</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><i class="bi bi-people me-2 text-primary"></i>Rapport des membres</td>
-                                    <td>Liste complète des membres avec statistiques</td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light" onclick="generateReport('members')"><i class="bi bi-download me-1"></i>PDF</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-currency-dollar me-2 text-success"></i>Rapport financier</td>
-                                    <td>Bilan des entrées et sorties</td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light" onclick="generateReport('finances')"><i class="bi bi-download me-1"></i>PDF</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-calendar-event me-2 text-warning"></i>Rapport d'activités</td>
-                                    <td>Événements et participation</td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light" onclick="generateReport('activities')"><i class="bi bi-download me-1"></i>PDF</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-clipboard-check me-2 text-info"></i>Rapport de présence</td>
-                                    <td>Statistiques de présence aux cultes</td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light" onclick="generateReport('attendance')"><i class="bi bi-download me-1"></i>PDF</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-heart me-2 text-danger"></i>Rapport de mariage</td>
-                                    <td>Registre des mariages célébrés</td>
-                                    <td><span class="text-muted">-</span></td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-light" onclick="generateReport('marriages')"><i class="bi bi-download me-1"></i>PDF</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm report-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-3 p-3 me-3 bg-danger bg-opacity-10">
+                            <i class="bi bi-calendar-event fs-4 text-danger"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Événements</p>
+                            <h4 class="mb-0 fw-bold">{{ stats.events_total }}</h4>
+                            <small class="text-primary">{{ stats.upcoming_events }} à venir</small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Row: Charts & Details -->
+    <div class="row g-4 mb-4">
+        <!-- Monthly Stats Chart -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between">
+                    <h6 class="mb-0 fw-semibold">Évolution mensuelle (6 derniers mois)</h6>
+                    <span class="badge bg-primary">Nouveaux membres</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar">
+                        {% for stat in monthly_stats %}
+                        <div class="bar bg-primary" style="height: {% widthratio stat.members 10 100 %}%;">
+                            <span class="bar-value">{{ stat.members }}</span>
+                            <span class="bar-label">{{ stat.month }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Gender Distribution -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold">Répartition par genre</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded text-center">
+                                <i class="bi bi-gender-male fs-1 text-primary mb-2"></i>
+                                <h4 class="mb-0">{{ stats.members_by_gender.male }}</h4>
+                                <small class="text-muted">Hommes</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-danger bg-opacity-10 rounded text-center">
+                                <i class="bi bi-gender-female fs-1 text-danger mb-2"></i>
+                                <h4 class="mb-0">{{ stats.members_by_gender.female }}</h4>
+                                <small class="text-muted">Femmes</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between text-center">
+                            <div>
+                                <span class="badge bg-success">{{ stats.members_by_status.active }} Actifs</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-warning">{{ stats.members_by_status.inactive }} Inactifs</span>
+                            </div>
+                            <div>
+                                <span class="badge bg-info">{{ stats.members_by_status.visitor }} Visiteurs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row: Structure & Resources -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold">Structure de l'église</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-house-door me-2 text-primary"></i>Familles</span>
+                            <span class="fw-bold">{{ stats.families_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-people-fill me-2 text-success"></i>Groupes de maison</span>
+                            <span class="fw-bold">{{ stats.homegroups_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-building me-2 text-warning"></i>Départements</span>
+                            <span class="fw-bold">{{ stats.departments_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-briefcase me-2 text-info"></i>Ministères</span>
+                            <span class="fw-bold">{{ stats.ministries_total }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold">Activités sacramentelles</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-heart me-2 text-danger"></i>Mariages</span>
+                            <span class="fw-bold">{{ stats.marriages_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-droplet me-2 text-primary"></i>Baptêmes</span>
+                            <span class="fw-bold">{{ stats.baptisms_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-book me-2 text-success"></i>Formations</span>
+                            <span class="fw-bold">{{ stats.trainings_total }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-file-earmark me-2 text-warning"></i>Documents</span>
+                            <span class="fw-bold">{{ stats.documents_total }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-semibold">Finances globales</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-arrow-down-circle me-2 text-success"></i>Total entrées</span>
+                            <span class="fw-bold text-success">{{ stats.finances_total_in|floatformat:2 }} $</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-arrow-up-circle me-2 text-danger"></i>Total sorties</span>
+                            <span class="fw-bold text-danger">{{ stats.finances_total_out|floatformat:2 }} $</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-wallet2 me-2 text-primary"></i>Solde</span>
+                            <span class="fw-bold {% if stats.finances_balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ stats.finances_balance|floatformat:2 }} $
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span><i class="bi bi-megaphone me-2 text-info"></i>Annonces</span>
+                            <span class="fw-bold">{{ stats.announcements_total }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Reports Section -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h6 class="mb-0 fw-semibold">Rapports détaillés disponibles</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rapport</th>
+                            <th>Description</th>
+                            <th>Période</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><i class="bi bi-people me-2 text-primary"></i><strong>Rapport des membres</strong></td>
+                            <td>Liste complète avec statistiques par genre, âge, statut</td>
+                            <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('members')">
+                                    <i class="bi bi-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-light" onclick="generateReport('members')">
+                                    <i class="bi bi-download me-1"></i>PDF
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-currency-dollar me-2 text-success"></i><strong>Rapport financier</strong></td>
+                            <td>Bilan détaillé des entrées et sorties par catégorie</td>
+                            <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('finances')">
+                                    <i class="bi bi-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-light" onclick="generateReport('finances')">
+                                    <i class="bi bi-download me-1"></i>PDF
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-calendar-event me-2 text-warning"></i><strong>Rapport d'activités</strong></td>
+                            <td>Événements, participations et statistiques</td>
+                            <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('activities')">
+                                    <i class="bi bi-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-light" onclick="generateReport('activities')">
+                                    <i class="bi bi-download me-1"></i>PDF
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-clipboard-check me-2 text-info"></i><strong>Rapport de présence</strong></td>
+                            <td>Taux de présence aux cultes et événements</td>
+                            <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('attendance')">
+                                    <i class="bi bi-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-light" onclick="generateReport('attendance')">
+                                    <i class="bi bi-download me-1"></i>PDF
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-heart me-2 text-danger"></i><strong>Rapport de mariage</strong></td>
+                            <td>Registre des mariages et baptêmes célébrés</td>
+                            <td>Tout l'historique</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewReport('sacraments')">
+                                    <i class="bi bi-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-light" onclick="generateReport('sacraments')">
+                                    <i class="bi bi-download me-1"></i>PDF
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td><i class="bi bi-file-earmark-zip me-2 text-primary"></i><strong>Rapport Compile</strong></td>
+                            <td>Rapport consolidé de toutes les activités de la période</td>
+                            <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary" onclick="generateCompileReport()">
+                                    <i class="bi bi-file-earmark-text me-1"></i>Générer
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><i class="bi bi-globe me-2 text-success"></i><strong>Global Compile</strong></td>
+                            <td>Rapport global annuel avec toutes les statistiques</td>
+                            <td>Année complète</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-success" onclick="generateGlobalCompile()">
+                                    <i class="bi bi-globe me-1"></i>Générer
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals pour les rapports -->
+<div class="modal fade" id="compileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rapport Compile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="compileContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2">Génération du rapport en cours...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary" onclick="downloadCompileReport()">
+                    <i class="bi bi-download me-2"></i>Télécharger PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let currentPeriod = 'month';
-
-    document.addEventListener('DOMContentLoaded', function() {
-        setDefaultDates();
-        document.getElementById('generateBtn').addEventListener('click', generateReports);
-    });
-
-    function setDefaultDates() {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        document.getElementById('dateTo').valueAsDate = today;
-        document.getElementById('dateFrom').valueAsDate = firstDay;
-    }
-
-    function handlePeriodChange(e) {
-        const today = new Date();
-        let from = new Date();
-        
-        switch(e.target.value) {
-            case 'week':
-                from.setDate(today.getDate() - 7);
-                break;
-            case 'month':
-                from = new Date(today.getFullYear(), today.getMonth(), 1);
-                break;
-            case 'quarter':
-                from = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
-                break;
-            case 'year':
-                from = new Date(today.getFullYear(), 0, 1);
-                break;
-        }
-        
-        document.getElementById('dateFrom').valueAsDate = from;
-        document.getElementById('dateTo').valueAsDate = today;
-    }
-
-    function generateReports() {
-        alert('Génération des rapports en cours...');
+    function viewReport(type) {
+        // Ouvrir une nouvelle fenêtre avec les détails du rapport
+        const url = `/reports/${type}/?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}`;
+        window.open(url, '_blank');
     }
 
     function generateReport(type) {
-        alert('Rapport ' + type + ' généré avec succès');
+        // Simuler la génération d'un rapport PDF
+        const btn = event.target.closest('button');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Génération...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            alert(`Rapport ${type} généré avec succès! (Simulation - intégrer avec votre générateur PDF)`);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }, 1500);
     }
 
-    function showReport(type) {
-        alert('Affichage du rapport ' + type);
+    function generateCompileReport() {
+        const modal = new bootstrap.Modal(document.getElementById('compileModal'));
+        modal.show();
+
+        // Simuler le chargement des données
+        setTimeout(() => {
+            document.getElementById('compileContent').innerHTML = `
+                <div class="report-preview">
+                    <h5 class="border-bottom pb-2 mb-3">Rapport Compile - Période du {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}</h5>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Membres</h6>
+                            <p class="mb-1">Total: {{ stats.members_total }} membres</p>
+                            <p class="mb-1">Nouveaux: {{ stats.members_new }}</p>
+                            <p class="mb-1">Actifs: {{ stats.members_by_status.active }} | Inactifs: {{ stats.members_by_status.inactive }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Finances</h6>
+                            <p class="mb-1">Entrées: {{ stats.finances_in|floatformat:2 }} $</p>
+                            <p class="mb-1">Sorties: {{ stats.finances_out|floatformat:2 }} $</p>
+                            <p class="mb-1">Solde: {{ stats.finances_balance|floatformat:2 }} $</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Activités</h6>
+                            <p class="mb-1">Événements: {{ stats.events_total }}</p>
+                            <p class="mb-1">Taux de présence: {{ stats.attendance_rate }}%</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Structure</h6>
+                            <p class="mb-1">Familles: {{ stats.families_total }}</p>
+                            <p class="mb-1">Départements: {{ stats.departments_total }}</p>
+                            <p class="mb-1">Groupes: {{ stats.homegroups_total }}</p>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Ce rapport compile toutes les activités de la période sélectionnée.
+                    </div>
+                </div>
+            `;
+        }, 1000);
+    }
+
+    function generateGlobalCompile() {
+        const modal = new bootstrap.Modal(document.getElementById('compileModal'));
+        document.querySelector('#compileModal .modal-title').textContent = 'Global Compile - Rapport Annuel';
+        modal.show();
+
+        setTimeout(() => {
+            document.getElementById('compileContent').innerHTML = `
+                <div class="report-preview">
+                    <h5 class="border-bottom pb-2 mb-3">Rapport Global Annuel {{ date_from|date:"Y" }}</h5>
+
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-globe me-2"></i>
+                        <strong>Rapport Global Compile</strong> - Vue d'ensemble complète de l'année
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th>Total</th>
+                                    <th>Évolution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="bi bi-people me-2"></i>Membres</td>
+                                    <td class="fw-bold">{{ stats.members_total }}</td>
+                                    <td><span class="text-success">+{{ stats.members_new }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-house-door me-2"></i>Familles</td>
+                                    <td class="fw-bold">{{ stats.families_total }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-calendar-event me-2"></i>Événements</td>
+                                    <td class="fw-bold">{{ stats.events_all }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-cash-stack me-2"></i>Entrées financières</td>
+                                    <td class="fw-bold text-success">{{ stats.finances_total_in|floatformat:2 }} $</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-cash-stack me-2"></i>Sorties financières</td>
+                                    <td class="fw-bold text-danger">{{ stats.finances_total_out|floatformat:2 }} $</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-heart me-2"></i>Mariages</td>
+                                    <td class="fw-bold">{{ stats.marriages_total }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-droplet me-2"></i>Baptêmes</td>
+                                    <td class="fw-bold">{{ stats.baptisms_total }}</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="bi bi-book me-2"></i>Formations</td>
+                                    <td class="fw-bold">{{ stats.trainings_total }}</td>
+                                    <td>-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }, 1000);
+    }
+
+    function downloadCompileReport() {
+        alert('Téléchargement du rapport PDF... (Intégrer avec votre générateur PDF)');
     }
 </script>
 {% endblock %}

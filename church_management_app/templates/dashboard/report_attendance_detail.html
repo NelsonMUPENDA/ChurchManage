@@ -1,0 +1,84 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Rapport de Présence{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Rapport de Présence</h2>
+            <p class="text-muted mb-0">Période: {{ date_from }} au {{ date_to }}</p>
+        </div>
+        <a href="{% url 'reports' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-primary">{{ total }}</h4>
+                    <small class="text-muted">Total enregistrements</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-success">{{ present }}</h4>
+                    <small class="text-muted">Présents</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-info">{{ rate }}%</h4>
+                    <small class="text-muted">Taux de présence</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Présences -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Détails des présences</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date événement</th>
+                            <th>Événement</th>
+                            <th>Membre</th>
+                            <th>Statut</th>
+                            <th>Heure d'arrivée</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attendance in attendances %}
+                        <tr>
+                            <td>{{ attendance.event.date|date:"d/m/Y" }}</td>
+                            <td>{{ attendance.event.title }}</td>
+                            <td>{{ attendance.member.get_full_name }}</td>
+                            <td>
+                                {% if attendance.attended %}
+                                    <span class="badge bg-success">Présent</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ attendance.checked_in_at|time:"H:i"|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

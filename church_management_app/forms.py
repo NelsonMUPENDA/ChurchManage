@@ -658,7 +658,7 @@ class AnnouncementDeckItemForm(forms.ModelForm):
 
 class DocumentForm(forms.ModelForm):
     """Formulaire pour uploader un document"""
-    
+
     class Meta:
         model = Document
         fields = ['title', 'document_type', 'file']
@@ -666,6 +666,18 @@ class DocumentForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'document_type': forms.Select(attrs={'class': 'form-select'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+
+class DocumentEditForm(forms.ModelForm):
+    """Formulaire pour modifier les métadonnées d'un document (sans changer le fichier)"""
+
+    class Meta:
+        model = Document
+        fields = ['title', 'document_type']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'document_type': forms.Select(attrs={'class': 'form-select'}),
         }
 
 

@@ -125,6 +125,8 @@ urlpatterns = [
     # Documents - CRUD
     path('documents/', views.document_list, name='document-list'),
     path('documents/create/', views.document_create, name='document-create'),
+    path('documents/<int:pk>/', views.document_detail, name='document-detail'),
+    path('documents/<int:pk>/edit/', views.document_edit, name='document-edit'),
     path('documents/<int:pk>/delete/', views.document_delete, name='document-delete'),
     
     # Compte utilisateur
@@ -155,6 +157,26 @@ urlpatterns = [
 
     # Audit Logs (Logs système)
     path('management/audit-logs/', views.audit_log_list, name='audit-log-list'),
+
+    # Demandes d'approbation
+    path('approval-requests/', views.approval_request_list, name='approval-request-list'),
+    path('approval-requests/<int:pk>/', views.approval_request_detail, name='approval-request-detail'),
+    path('approval-requests/<int:pk>/approve/', views.approval_request_approve, name='approval-request-approve'),
+    path('approval-requests/<int:pk>/reject/', views.approval_request_reject, name='approval-request-reject'),
+
+    # Rapports détaillés
+    path('reports/members/', views.report_members_detail, name='report-members-detail'),
+    path('reports/finances/', views.report_finances_detail, name='report-finances-detail'),
+    path('reports/activities/', views.report_activities_detail, name='report-activities-detail'),
+    path('reports/attendance/', views.report_attendance_detail, name='report-attendance-detail'),
+    path('reports/sacraments/', views.report_sacraments_detail, name='report-sacraments-detail'),
+    path('reports/export-excel/', views.export_reports_excel, name='reports-export-excel'),
+
+    # Notifications
+    path('notifications/', views.notification_list, name='notification-list'),
+    path('notifications/<int:pk>/mark-read/', views.notification_mark_read, name='notification-mark-read'),
+    path('notifications/mark-all-read/', views.notification_mark_all_read, name='notification-mark-all-read'),
+    path('notifications/<int:pk>/delete/', views.notification_delete, name='notification-delete'),
 
     # AJAX Endpoints pour création dynamique
     path('ajax/family/create/', views.ajax_create_family, name='ajax-create-family'),
