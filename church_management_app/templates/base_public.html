@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Accueil{% endblock %} - {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</title>
+    <title>{% block title %}Accueil{% endblock %} - {% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}</title>
     {% if church_settings and church_settings.logo %}
     <link rel="icon" type="image/png" href="{{ church_settings.logo.url }}">
     {% else %}
@@ -29,7 +29,7 @@
                     <i class="bi bi-layers"></i>
                     {% endif %}
                 </div>
-                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
                 <span class="navbar-toggler-icon"></span>
@@ -101,7 +101,7 @@
                             <i class="bi bi-layers"></i>
                             {% endif %}
                         </div>
-                        <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
+                        <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}</span>
                     </div>
                     <p class="cpd-footer-text">
                         {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service.{% endif %}
@@ -121,7 +121,7 @@
                     <ul class="cpd-footer-contact">
                         <li>
                             <i class="bi bi-geo-alt"></i>
-                            <span>{% if church_settings and church_settings.address %}{{ church_settings.address }}{% else %}123 Avenue de la Foi{% endif %}, {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}</span>
+                            <span>{% if church_settings and church_settings.address %}{{ church_settings.address }}{% else %}123 Avenue de la Foi{% endif %}, {% if church_settings %}{{ church_settings.city }}{% else %}Goma{% endif %}</span>
                         </li>
                         <li>
                             <i class="bi bi-telephone"></i>
@@ -129,7 +129,7 @@
                         </li>
                         <li>
                             <i class="bi bi-envelope"></i>
-                            <span>{% if church_settings and church_settings.email_primary %}{{ church_settings.email_primary }}{% else %}contact@consolationetpaix.org{% endif %}</span>
+                            <span>{% if church_settings and church_settings.email_primary %}{{ church_settings.email_primary }}{% else %}contact@consolation.org{% endif %}</span>
                         </li>
                     </ul>
                 </div>
@@ -171,10 +171,10 @@
             </div>
             <div class="cpd-footer-bottom">
                 <p class="cpd-footer-copyright">
-                    © {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}. Tous droits réservés.
+                    © {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}. Tous droits réservés.
                 </p>
                 <p class="cpd-footer-copyright">
-                    Propulsé par <a href="https://www.mupenda.cd" style="color: var(--cpd-primary);">Mupenda Company</a>
+                    Dévéloppé et Propulsé par <a href="https://www.mupenda.cd" style="color: var(--cpd-primary);">Mupenda Company</a>
                 </p>
             </div>
         </div>

@@ -1,0 +1,425 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Paramètres de l'église{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-gear-fill me-2 text-primary"></i>Paramètres de l'église</h2>
+            <p class="text-muted mb-0">Gérez les informations globales de votre église</p>
+        </div>
+        <div>
+            <span class="badge bg-secondary">Dernière mise à jour: {{ settings.updated_at|date:"d/m/Y H:i" }}</span>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <!-- Onglets -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white p-0">
+                <ul class="nav nav-tabs nav-fill" id="settingsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                            <i class="bi bi-info-circle me-2"></i>Général
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">
+                            <i class="bi bi-geo-alt me-2"></i>Adresse
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button" role="tab">
+                            <i class="bi bi-telephone me-2"></i>Contacts
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">
+                            <i class="bi bi-share me-2"></i>Réseaux
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
+                            <i class="bi bi-calendar-event me-2"></i>Cultes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab">
+                            <i class="bi bi-stars me-2"></i>Activités
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="settingsTabContent">
+
+                    <!-- Onglet Général -->
+                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                        <h5 class="text-primary mb-4"><i class="bi bi-info-circle me-2"></i>Informations générales</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.church_name.id_for_label }}" class="form-label fw-semibold">Nom de l'église</label>
+                                {{ form.church_name }}
+                                {% if form.church_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.church_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.church_slogan.id_for_label }}" class="form-label fw-semibold">Slogan</label>
+                                {{ form.church_slogan }}
+                                {% if form.church_slogan.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.church_slogan.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.logo.id_for_label }}" class="form-label fw-semibold">Logo</label>
+                                {{ form.logo }}
+                                {% if form.logo.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.logo.errors.0 }}</div>
+                                {% endif %}
+                                {% if settings.logo %}
+                                <div class="mt-2">
+                                    <img src="{{ settings.logo.url }}" alt="Logo" class="img-thumbnail" style="max-height: 100px;">
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.favicon.id_for_label }}" class="form-label fw-semibold">Favicon</label>
+                                {{ form.favicon }}
+                                {% if form.favicon.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.favicon.errors.0 }}</div>
+                                {% endif %}
+                                {% if settings.favicon %}
+                                <div class="mt-2">
+                                    <img src="{{ settings.favicon.url }}" alt="Favicon" class="img-thumbnail" style="max-height: 50px;">
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet Adresse -->
+                    <div class="tab-pane fade" id="address" role="tabpanel">
+                        <h5 class="text-success mb-4"><i class="bi bi-geo-alt me-2"></i>Adresse</h5>
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label for="{{ form.address.id_for_label }}" class="form-label fw-semibold">Adresse complète</label>
+                                {{ form.address }}
+                                {% if form.address.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.city.id_for_label }}" class="form-label fw-semibold">Ville</label>
+                                {{ form.city }}
+                                {% if form.city.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.city.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.country.id_for_label }}" class="form-label fw-semibold">Pays</label>
+                                {{ form.country }}
+                                {% if form.country.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.country.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet Contacts -->
+                    <div class="tab-pane fade" id="contacts" role="tabpanel">
+                        <h5 class="text-info mb-4"><i class="bi bi-telephone me-2"></i>Contacts</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.phone_primary.id_for_label }}" class="form-label fw-semibold">Téléphone principal</label>
+                                {{ form.phone_primary }}
+                                {% if form.phone_primary.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.phone_primary.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.phone_secondary.id_for_label }}" class="form-label fw-semibold">Téléphone secondaire</label>
+                                {{ form.phone_secondary }}
+                                {% if form.phone_secondary.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.phone_secondary.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.email_primary.id_for_label }}" class="form-label fw-semibold">Email principal</label>
+                                {{ form.email_primary }}
+                                {% if form.email_primary.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.email_primary.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.email_secondary.id_for_label }}" class="form-label fw-semibold">Email secondaire</label>
+                                {{ form.email_secondary }}
+                                {% if form.email_secondary.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.email_secondary.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h6 class="text-warning mb-3"><i class="bi bi-clock me-2"></i>Horaires de bureau</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="{{ form.office_hours_weekdays.id_for_label }}" class="form-label fw-semibold">Jours de semaine</label>
+                                {{ form.office_hours_weekdays }}
+                                <small class="text-muted">Ex: Lun-Ven: 8h00 - 17h00</small>
+                                {% if form.office_hours_weekdays.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.office_hours_weekdays.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.office_hours_saturday.id_for_label }}" class="form-label fw-semibold">Samedi</label>
+                                {{ form.office_hours_saturday }}
+                                <small class="text-muted">Ex: 9h00 - 14h00</small>
+                                {% if form.office_hours_saturday.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.office_hours_saturday.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="{{ form.office_hours_sunday.id_for_label }}" class="form-label fw-semibold">Dimanche</label>
+                                {{ form.office_hours_sunday }}
+                                <small class="text-muted">Ex: Fermé ou Culte: 9h00 - 12h00</small>
+                                {% if form.office_hours_sunday.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.office_hours_sunday.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet Réseaux sociaux -->
+                    <div class="tab-pane fade" id="social" role="tabpanel">
+                        <h5 class="text-dark mb-4"><i class="bi bi-share me-2"></i>Réseaux sociaux</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.facebook_url.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-facebook me-1 text-primary"></i>Facebook
+                                </label>
+                                {{ form.facebook_url }}
+                                {% if form.facebook_url.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.facebook_url.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.youtube_url.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-youtube me-1 text-danger"></i>YouTube
+                                </label>
+                                {{ form.youtube_url }}
+                                {% if form.youtube_url.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.youtube_url.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.instagram_url.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-instagram me-1 text-danger"></i>Instagram
+                                </label>
+                                {{ form.instagram_url }}
+                                {% if form.instagram_url.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.instagram_url.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.twitter_url.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-twitter-x me-1 text-dark"></i>Twitter/X
+                                </label>
+                                {{ form.twitter_url }}
+                                {% if form.twitter_url.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.twitter_url.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.whatsapp_number.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-whatsapp me-1 text-success"></i>WhatsApp
+                                </label>
+                                {{ form.whatsapp_number }}
+                                {% if form.whatsapp_number.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.whatsapp_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.telegram_url.id_for_label }}" class="form-label fw-semibold">
+                                    <i class="bi bi-telegram me-1 text-info"></i>Telegram
+                                </label>
+                                {{ form.telegram_url }}
+                                {% if form.telegram_url.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.telegram_url.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet Cultes -->
+                    <div class="tab-pane fade" id="services" role="tabpanel">
+                        <h5 class="text-danger mb-4"><i class="bi bi-calendar-event me-2"></i>Horaires des cultes</h5>
+                        
+                        <div class="card mb-3 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-sun me-2"></i>Culte du Dimanche
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_sunday_title.id_for_label }}" class="form-label fw-semibold">Titre</label>
+                                        {{ form.service_sunday_title }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_sunday_time.id_for_label }}" class="form-label fw-semibold">Horaire</label>
+                                        {{ form.service_sunday_time }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_sunday_desc.id_for_label }}" class="form-label fw-semibold">Description</label>
+                                        {{ form.service_sunday_desc }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-success">
+                            <div class="card-header bg-success text-white">
+                                <i class="bi bi-book me-2"></i>Culte du Mardi
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_tuesday_title.id_for_label }}" class="form-label fw-semibold">Titre</label>
+                                        {{ form.service_tuesday_title }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_tuesday_time.id_for_label }}" class="form-label fw-semibold">Horaire</label>
+                                        {{ form.service_tuesday_time }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_tuesday_desc.id_for_label }}" class="form-label fw-semibold">Description</label>
+                                        {{ form.service_tuesday_desc }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <i class="bi bi-moon me-2"></i>Culte du Jeudi
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_thursday_title.id_for_label }}" class="form-label fw-semibold">Titre</label>
+                                        {{ form.service_thursday_title }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_thursday_time.id_for_label }}" class="form-label fw-semibold">Horaire</label>
+                                        {{ form.service_thursday_time }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_thursday_desc.id_for_label }}" class="form-label fw-semibold">Description</label>
+                                        {{ form.service_thursday_desc }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-info">
+                            <div class="card-header bg-info text-white">
+                                <i class="bi bi-people me-2"></i>Culte du Samedi
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_saturday_title.id_for_label }}" class="form-label fw-semibold">Titre</label>
+                                        {{ form.service_saturday_title }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_saturday_time.id_for_label }}" class="form-label fw-semibold">Horaire</label>
+                                        {{ form.service_saturday_time }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="{{ form.service_saturday_desc.id_for_label }}" class="form-label fw-semibold">Description</label>
+                                        {{ form.service_saturday_desc }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Onglet Activités -->
+                    <div class="tab-pane fade" id="activities" role="tabpanel">
+                        <h5 class="text-secondary mb-4"><i class="bi bi-stars me-2"></i>Section Nos Activités</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="{{ form.activities_section_title.id_for_label }}" class="form-label fw-semibold">Titre de la section</label>
+                                {{ form.activities_section_title }}
+                                {% if form.activities_section_title.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.activities_section_title.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.activities_section_subtitle.id_for_label }}" class="form-label fw-semibold">Sous-titre de la section</label>
+                                {{ form.activities_section_subtitle }}
+                                {% if form.activities_section_subtitle.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.activities_section_subtitle.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">Gestion des activités</h6>
+                            <a href="{% url 'church-activities' %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil me-1"></i>Gérer les activités
+                            </a>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            Les activités sont gérées dans une page dédiée. Vous pouvez y ajouter, modifier ou supprimer des activités.
+                        </p>
+
+                        <h6 class="mt-4 mb-3">Aperçu des activités actives</h6>
+                        <div class="row g-3">
+                            {% for activity in activities_preview %}
+                            <div class="col-md-4">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <i class="bi {{ activity.icon }} fs-1 text-{{ activity.color }} mb-2"></i>
+                                        <h6>{{ activity.title }}</h6>
+                                        <small class="text-muted">{{ activity.description|truncatewords:10 }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="col-12">
+                                <p class="text-muted">Aucune activité configurée.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 justify-content-end">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">
+                <i class="bi bi-x-lg me-2"></i>Annuler
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import User, Member, Family, HomeGroup, Department, Ministry, ActivityDuration, Event, Attendance, FinancialCategory, FinancialTransaction, Announcement, AnnouncementDeck, AnnouncementDeckItem, Document, Notification, AuditLogEntry, ChurchBiography, ChurchConsistory, Contact, ChurchSettings
+from .models import User, Member, Family, HomeGroup, Department, Ministry, ActivityDuration, Event, Attendance, FinancialCategory, FinancialTransaction, Announcement, AnnouncementDeck, AnnouncementDeckItem, Document, Notification, AuditLogEntry, ChurchBiography, ChurchConsistory, Contact, ChurchSettings, ChurchActivity
 from .forms import ChurchBiographyForm, ChurchConsistoryForm
 
 @admin.register(User)
@@ -392,6 +392,19 @@ class ChurchSettingsAdmin(admin.ModelAdmin):
             'fields': ('facebook_url', 'youtube_url', 'instagram_url', 'twitter_url', 'whatsapp_number', 'telegram_url'),
             'classes': ('collapse',)
         }),
+        ('Horaires des cultes', {
+            'fields': (
+                ('service_sunday_title', 'service_sunday_time', 'service_sunday_desc'),
+                ('service_tuesday_title', 'service_tuesday_time', 'service_tuesday_desc'),
+                ('service_thursday_title', 'service_thursday_time', 'service_thursday_desc'),
+                ('service_saturday_title', 'service_saturday_time', 'service_saturday_desc'),
+            ),
+            'description': 'Configurez les horaires des cultes affichés sur la page d\'accueil'
+        }),
+        ('Section Nos Activités', {
+            'fields': ('activities_section_title', 'activities_section_subtitle'),
+            'description': 'Titre et sous-titre de la section Nos Activités sur la page d\'accueil'
+        }),
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -448,3 +461,26 @@ class ChurchSettingsAdmin(admin.ModelAdmin):
         """Personnaliser l'affichage par défaut"""
         qs = super().get_queryset(request)
         return qs
+
+
+@admin.register(ChurchActivity)
+class ChurchActivityAdmin(admin.ModelAdmin):
+    """Admin pour la gestion des activités de l'église"""
+    list_display = ['title', 'icon', 'color', 'order', 'is_active', 'updated_at']
+    list_filter = ['color', 'is_active']
+    search_fields = ['title', 'description']
+    ordering = ['order', 'title']
+    
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('title', 'description', 'is_active')
+        }),
+        ('Apparence', {
+            'fields': ('icon', 'color'),
+            'description': 'Sélectionnez une icône Bootstrap et une couleur'
+        }),
+        ('Ordre d\'affichage', {
+            'fields': ('order',),
+            'description': 'Les activités sont triées par ordre croissant'
+        }),
+    )

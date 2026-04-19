@@ -14,7 +14,7 @@
                         {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}, RDC
                     </span>
                     <h1 class="cpd-hero-title cpd-animate-delay-1">
-                        Bienvenue à<br>{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}
+                        Bienvenue à<br> L' {% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}
                     </h1>
                     <p class="cpd-hero-description cpd-animate-delay-2">
                         {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service. Rejoignez-nous pour vivre une expérience de foi authentique.{% endif %}
@@ -32,44 +32,32 @@
         </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Features Section - Activités dynamiques -->
     <section class="cpd-section cpd-section-alt">
         <div class="container">
-            <h2 class="cpd-section-title">Nos Activités</h2>
-            <p class="cpd-section-subtitle">Découvrez ce que nous offrons à notre communauté</p>
+            <h2 class="cpd-section-title">{% if church_settings and church_settings.activities_section_title %}{{ church_settings.activities_section_title }}{% else %}Nos Activités{% endif %}</h2>
+            <p class="cpd-section-subtitle">{% if church_settings and church_settings.activities_section_subtitle %}{{ church_settings.activities_section_subtitle }}{% else %}Découvrez ce que nous offrons à notre communauté{% endif %}</p>
             <div class="row g-4">
+                {% for activity in activities %}
                 <div class="col-md-4">
                     <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon primary">
-                            <i class="bi bi-book"></i>
+                        <div class="cpd-feature-icon {{ activity.color }}">
+                            <i class="bi {{ activity.icon }}"></i>
                         </div>
-                        <h5 class="cpd-feature-title">Étude Biblique</h5>
-                        <p class="cpd-feature-text">Approfondissez votre compréhension des Écritures avec nos études interactives et enrichissantes.</p>
+                        <h5 class="cpd-feature-title">{{ activity.title }}</h5>
+                        <p class="cpd-feature-text">{{ activity.description }}</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon success">
-                            <i class="bi bi-heart"></i>
-                        </div>
-                        <h5 class="cpd-feature-title">Actions Sociales</h5>
-                        <p class="cpd-feature-text">Participez à nos initiatives de solidarité et de soutien aux plus démunis de notre communauté.</p>
-                    </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <p class="text-muted">Aucune activité configurée pour le moment.</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon warning">
-                            <i class="bi bi-people"></i>
-                        </div>
-                        <h5 class="cpd-feature-title">Communauté</h5>
-                        <p class="cpd-feature-text">Rejoignez une famille de croyants unis par la foi et l'amour du Christ.</p>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </section>
 
-    <!-- Service Times Section -->
+    <!-- Service Times Section - Horaires dynamiques -->
     <section class="cpd-section">
         <div class="container">
             <div class="row g-5">
@@ -77,31 +65,31 @@
                     <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 2rem;">Horaires des Cultes</h2>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>Culte Dominical</h6>
-                            <small>Célébration et prédication</small>
+                            <h6>{% if church_settings and church_settings.service_sunday_title %}{{ church_settings.service_sunday_title }}{% else %}Culte Dominical{% endif %}</h6>
+                            <small>{% if church_settings and church_settings.service_sunday_desc %}{{ church_settings.service_sunday_desc }}{% else %}Célébration et prédication{% endif %}</small>
                         </div>
-                        <span class="cpd-service-badge primary">Dim 9h00 - 12h00</span>
+                        <span class="cpd-service-badge primary">{% if church_settings and church_settings.service_sunday_time %}{{ church_settings.service_sunday_time }}{% else %}Dim 9h00 - 12h00{% endif %}</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>Étude Biblique</h6>
-                            <small>Approfondissement de la Parole</small>
+                            <h6>{% if church_settings and church_settings.service_tuesday_title %}{{ church_settings.service_tuesday_title }}{% else %}Étude Biblique{% endif %}</h6>
+                            <small>{% if church_settings and church_settings.service_tuesday_desc %}{{ church_settings.service_tuesday_desc }}{% else %}Approfondissement de la Parole{% endif %}</small>
                         </div>
-                        <span class="cpd-service-badge success">Mar 17h00 - 19h00</span>
+                        <span class="cpd-service-badge success">{% if church_settings and church_settings.service_tuesday_time %}{{ church_settings.service_tuesday_time }}{% else %}Mar 17h00 - 19h00{% endif %}</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>Prière et Intercession</h6>
-                            <small>Moment de communion avec Dieu</small>
+                            <h6>{% if church_settings and church_settings.service_thursday_title %}{{ church_settings.service_thursday_title }}{% else %}Prière et Intercession{% endif %}</h6>
+                            <small>{% if church_settings and church_settings.service_thursday_desc %}{{ church_settings.service_thursday_desc }}{% else %}Moment de communion avec Dieu{% endif %}</small>
                         </div>
-                        <span class="cpd-service-badge warning">Jeu 17h00 - 19h00</span>
+                        <span class="cpd-service-badge warning">{% if church_settings and church_settings.service_thursday_time %}{{ church_settings.service_thursday_time }}{% else %}Jeu 17h00 - 19h00{% endif %}</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>Réunion Jeunes</h6>
-                            <small>Édification de la jeunesse</small>
+                            <h6>{% if church_settings and church_settings.service_saturday_title %}{{ church_settings.service_saturday_title }}{% else %}Réunion Jeunes{% endif %}</h6>
+                            <small>{% if church_settings and church_settings.service_saturday_desc %}{{ church_settings.service_saturday_desc }}{% else %}Édification de la jeunesse{% endif %}</small>
                         </div>
-                        <span class="cpd-service-badge info">Sam 14h00 - 16h00</span>
+                        <span class="cpd-service-badge info">{% if church_settings and church_settings.service_saturday_time %}{{ church_settings.service_saturday_time }}{% else %}Sam 14h00 - 16h00{% endif %}</span>
                     </div>
                 </div>
                 <div class="col-lg-6">

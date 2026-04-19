@@ -10,7 +10,7 @@ from .models import (
     FinancialCategory, FinancialTransaction,
     Announcement, AnnouncementDeck, AnnouncementDeckItem,
     Document, LogisticsItem, ChurchSettings,
-    EventAttendanceAggregate
+    EventAttendanceAggregate, ChurchActivity
 )
 from .widgets import ServiceTimesWidget
 
@@ -731,7 +731,12 @@ class ChurchSettingsForm(forms.ModelForm):
             'address', 'city', 'country',
             'phone_primary', 'phone_secondary', 'email_primary', 'email_secondary',
             'office_hours_weekdays', 'office_hours_saturday', 'office_hours_sunday',
-            'facebook_url', 'youtube_url', 'instagram_url', 'twitter_url', 'whatsapp_number', 'telegram_url'
+            'facebook_url', 'youtube_url', 'instagram_url', 'twitter_url', 'whatsapp_number', 'telegram_url',
+            'service_sunday_title', 'service_sunday_time', 'service_sunday_desc',
+            'service_tuesday_title', 'service_tuesday_time', 'service_tuesday_desc',
+            'service_thursday_title', 'service_thursday_time', 'service_thursday_desc',
+            'service_saturday_title', 'service_saturday_time', 'service_saturday_desc',
+            'activities_section_title', 'activities_section_subtitle'
         ]
         widgets = {
             'church_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -754,6 +759,36 @@ class ChurchSettingsForm(forms.ModelForm):
             'twitter_url': forms.URLInput(attrs={'class': 'form-control'}),
             'whatsapp_number': forms.TextInput(attrs={'class': 'form-control'}),
             'telegram_url': forms.URLInput(attrs={'class': 'form-control'}),
+            'service_sunday_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_sunday_time': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_sunday_desc': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_tuesday_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_tuesday_time': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_tuesday_desc': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_thursday_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_thursday_time': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_thursday_desc': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_saturday_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_saturday_time': forms.TextInput(attrs={'class': 'form-control'}),
+            'service_saturday_desc': forms.TextInput(attrs={'class': 'form-control'}),
+            'activities_section_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'activities_section_subtitle': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class ChurchActivityForm(forms.ModelForm):
+    """Formulaire pour gérer les activités de l'église"""
+    
+    class Meta:
+        model = ChurchActivity
+        fields = ['title', 'description', 'icon', 'color', 'order', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Titre de l\'activité'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description de l\'activité'}),
+            'icon': forms.Select(attrs={'class': 'form-select'}),
+            'color': forms.Select(attrs={'class': 'form-select'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 

@@ -178,6 +178,13 @@ urlpatterns = [
     path('notifications/mark-all-read/', views.notification_mark_all_read, name='notification-mark-all-read'),
     path('notifications/<int:pk>/delete/', views.notification_delete, name='notification-delete'),
 
+    # Paramètres de l'église
+    path('settings/', views.church_settings_view, name='church-settings'),
+    path('settings/activities/', views.church_activities_view, name='church-activities'),
+    path('settings/activities/create/', views.activity_create_view, name='activity-create'),
+    path('settings/activities/<int:pk>/edit/', views.activity_edit_view, name='activity-edit'),
+    path('settings/activities/<int:pk>/delete/', views.activity_delete_view, name='activity-delete'),
+
     # AJAX Endpoints pour création dynamique
     path('ajax/family/create/', views.ajax_create_family, name='ajax-create-family'),
     path('ajax/department/create/', views.ajax_create_department, name='ajax-create-department'),

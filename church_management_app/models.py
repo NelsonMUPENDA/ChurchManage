@@ -812,7 +812,28 @@ class ChurchSettings(models.Model):
     twitter_url = models.URLField(blank=True, null=True, help_text="URL Twitter/X")
     whatsapp_number = models.CharField(max_length=30, blank=True, null=True, help_text="Numéro WhatsApp")
     telegram_url = models.URLField(blank=True, null=True, help_text="URL Telegram")
-    
+
+    # Horaires des cultes
+    service_sunday_title = models.CharField(max_length=100, default="Culte Dominical", help_text="Titre du culte du dimanche")
+    service_sunday_time = models.CharField(max_length=50, default="Dim 9h00 - 12h00", help_text="Horaire du culte du dimanche")
+    service_sunday_desc = models.CharField(max_length=200, default="Célébration et prédication", help_text="Description du culte du dimanche")
+
+    service_tuesday_title = models.CharField(max_length=100, default="Étude Biblique", help_text="Titre du culte du mardi")
+    service_tuesday_time = models.CharField(max_length=50, default="Mar 17h00 - 19h00", help_text="Horaire du culte du mardi")
+    service_tuesday_desc = models.CharField(max_length=200, default="Approfondissement de la Parole", help_text="Description du culte du mardi")
+
+    service_thursday_title = models.CharField(max_length=100, default="Prière et Intercession", help_text="Titre du culte du jeudi")
+    service_thursday_time = models.CharField(max_length=50, default="Jeu 17h00 - 19h00", help_text="Horaire du culte du jeudi")
+    service_thursday_desc = models.CharField(max_length=200, default="Moment de communion avec Dieu", help_text="Description du culte du jeudi")
+
+    service_saturday_title = models.CharField(max_length=100, default="Réunion Jeunes", help_text="Titre du culte du samedi")
+    service_saturday_time = models.CharField(max_length=50, default="Sam 14h00 - 16h00", help_text="Horaire du culte du samedi")
+    service_saturday_desc = models.CharField(max_length=200, default="Édification de la jeunesse", help_text="Description du culte du samedi")
+
+    # Section Nos Activités
+    activities_section_title = models.CharField(max_length=100, default="Nos Activités", help_text="Titre de la section activités")
+    activities_section_subtitle = models.CharField(max_length=300, default="Découvrez ce que nous offrons à notre communauté", help_text="Sous-titre de la section activités")
+
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -837,3 +858,56 @@ class ChurchSettings(models.Model):
         """Récupérer ou créer les paramètres"""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
+
+
+class ChurchActivity(models.Model):
+    """Activités de l'église affichées sur la page d'accueil"""
+
+    ICON_CHOICES = [
+        ('bi-book', 'Bible (book)'),
+        ('bi-heart', 'Coeur (heart)'),
+        ('bi-people', 'Gens (people)'),
+        ('bi-music-note-beamed', 'Musique (music)'),
+        ('bi-calendar-event', 'Calendrier (calendar)'),
+        ('bi-hand-thumbs-up', 'Pouce levé (thumbs-up)'),
+        ('bi-star', 'Étoile (star)'),
+        ('bi-lightbulb', 'Idée (lightbulb)'),
+        ('bi-globe', 'Monde (globe)'),
+        ('bi-emoji-smile', 'Sourire (smile)'),
+        ('bi-basket', 'Panier (basket)'),
+        ('bi-tree', 'Arbre (tree)'),
+        ('bi-trophy', 'Trophée (trophy)'),
+        ('bi-camera', 'Caméra (camera)'),
+        ('bi-film', 'Film (film)'),
+        ('bi-controller', 'Manette (controller)'),
+        ('bi-gift', 'Cadeau (gift)'),
+        ('bi-geo-alt', 'Localisation (geo-alt)'),
+        ('bi-house', 'Maison (house)'),
+        ('bi-briefcase', 'Mallette (briefcase)'),
+    ]
+
+    COLOR_CHOICES = [
+        ('primary', 'Bleu (Primary)'),
+        ('success', 'Vert (Success)'),
+        ('warning', 'Jaune (Warning)'),
+        ('danger', 'Rouge (Danger)'),
+        ('info', 'Cyan (Info)'),
+        ('dark', 'Noir (Dark)'),
+    ]
+
+    title = models.CharField(max_length=100, help_text="Titre de l'activité")
+    description = models.TextField(help_text="Description de l'activité")
+    icon = models.CharField(max_length=50, choices=ICON_CHOICES, default='bi-star', help_text="Icône Bootstrap")
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='primary', help_text="Couleur de l'icône")
+    order = models.PositiveIntegerField(default=0, help_text="Ordre d'affichage")
+    is_active = models.BooleanField(default=True, help_text="Activité visible sur le site")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Activité de l'église"
+        verbose_name_plural = "Activités de l'église"
+        ordering = ['order', 'title']
+
+    def __str__(self):
+        return self.title

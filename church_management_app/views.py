@@ -16,7 +16,8 @@ from .models import (
     FinancialCategory, FinancialTransaction, Announcement, Document, LogisticsItem,
     LogisticsCategory, LogisticsCondition,
     ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate,
-    BaptismEvent, BaptismCandidate, AuditLogEntry, ApprovalRequest, Notification
+    BaptismEvent, BaptismCandidate, AuditLogEntry, ApprovalRequest, Notification,
+    ChurchActivity
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
@@ -24,7 +25,7 @@ from .forms import (
     FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, DocumentEditForm, LogisticsItemForm,
     BaptismCandidateForm,
     LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm,
-    EventAttendanceAggregateForm
+    EventAttendanceAggregateForm, ChurchSettingsForm, ChurchActivityForm
 )
 from .permissions import (
     role_required, admin_required, finance_required, pastor_required,
@@ -84,6 +85,7 @@ def index(request):
             date__gte=timezone.now().date(),
             is_published=True
         ).order_by('date', 'time')[:5],
+        'activities': ChurchActivity.objects.filter(is_active=True).order_by('order', 'title'),
     }
     return render(request, 'index.html', context)
 
@@ -3744,3 +3746,103 @@ def account_edit(request):
                 return render(request, 'dashboard/account.html', context)
     
     return redirect('account')
+
+
+# ============================================================
+# Paramètres de l'église
+# ============================================================
+
+@login_required
+def church_settings_view(request):
+    """Vue pour gérer les paramètres de l'église"""
+    settings = ChurchSettings.get_settings()
+
+    if request.method == 'POST':
+        form = ChurchSettingsForm(request.POST, request.FILES, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Paramètres de l\'église mis à jour avec succès!')
+            return redirect('church-settings')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchSettingsForm(instance=settings)
+
+    context = {
+        'form': form,
+        'settings': settings,
+        'active_page': 'settings',
+        'activities_preview': ChurchActivity.objects.filter(is_active=True).order_by('order', 'title')[:6],
+    }
+    return render(request, 'dashboard/church_settings.html', context)
+
+
+@login_required
+def church_activities_view(request):
+    """Vue pour gérer les activités de l'église"""
+    activities = ChurchActivity.objects.all().order_by('order', 'title')
+    return render(request, 'dashboard/church_activities.html', {
+        'activities': activities,
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def activity_create_view(request):
+    """Vue pour créer une nouvelle activité"""
+    if request.method == 'POST':
+        form = ChurchActivityForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Activité créée avec succès!')
+            return redirect('church-activities')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchActivityForm()
+    
+    return render(request, 'dashboard/activity_form.html', {
+        'form': form,
+        'action': 'create',
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def activity_edit_view(request, pk):
+    """Vue pour modifier une activité"""
+    activity = get_object_or_404(ChurchActivity, pk=pk)
+    
+    if request.method == 'POST':
+        form = ChurchActivityForm(request.POST, instance=activity)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Activité mise à jour avec succès!')
+            return redirect('church-activities')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchActivityForm(instance=activity)
+    
+    return render(request, 'dashboard/activity_form.html', {
+        'form': form,
+        'activity': activity,
+        'action': 'edit',
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def activity_delete_view(request, pk):
+    """Vue pour supprimer une activité"""
+    activity = get_object_or_404(ChurchActivity, pk=pk)
+    
+    if request.method == 'POST':
+        activity.delete()
+        messages.success(request, 'Activité supprimée avec succès!')
+        return redirect('church-activities')
+    
+    return render(request, 'dashboard/activity_confirm_delete.html', {
+        'activity': activity,
+        'active_page': 'settings',
+    })
