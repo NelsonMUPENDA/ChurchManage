@@ -10,7 +10,7 @@ from .models import (
     FinancialCategory, FinancialTransaction,
     Announcement, AnnouncementDeck, AnnouncementDeckItem,
     Document, LogisticsItem, ChurchSettings,
-    EventAttendanceAggregate, ChurchActivity
+    EventAttendanceAggregate, ChurchActivity, ChurchService
 )
 from .widgets import ServiceTimesWidget
 
@@ -736,11 +736,12 @@ class ChurchSettingsForm(forms.ModelForm):
             'service_tuesday_title', 'service_tuesday_time', 'service_tuesday_desc',
             'service_thursday_title', 'service_thursday_time', 'service_thursday_desc',
             'service_saturday_title', 'service_saturday_time', 'service_saturday_desc',
-            'activities_section_title', 'activities_section_subtitle'
+            'activities_section_title', 'activities_section_subtitle',
+            'cta_title', 'cta_subtitle', 'cta_button_text'
         ]
         widgets = {
             'church_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'church_slogan': forms.TextInput(attrs={'class': 'form-control'}),
+            'church_slogan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'logo': forms.FileInput(attrs={'class': 'form-control'}),
             'favicon': forms.FileInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -773,6 +774,9 @@ class ChurchSettingsForm(forms.ModelForm):
             'service_saturday_desc': forms.TextInput(attrs={'class': 'form-control'}),
             'activities_section_title': forms.TextInput(attrs={'class': 'form-control'}),
             'activities_section_subtitle': forms.TextInput(attrs={'class': 'form-control'}),
+            'cta_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'cta_subtitle': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'cta_button_text': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 
@@ -789,6 +793,40 @@ class ChurchActivityForm(forms.ModelForm):
             'color': forms.Select(attrs={'class': 'form-select'}),
             'order': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class ChurchServiceForm(forms.ModelForm):
+    """Formulaire pour gérer les horaires des cultes"""
+    
+    class Meta:
+        model = ChurchService
+        fields = ['title', 'day', 'time', 'description', 'color', 'order', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Culte Dominical'}),
+            'day': forms.Select(attrs={'class': 'form-select'}),
+            'time': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 9h00 - 12h00'}),
+            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Célébration et prédication'}),
+            'color': forms.Select(attrs={'class': 'form-select'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class ChurchBiographyForm(forms.ModelForm):
+    """Formulaire pour gérer la biographie de l'église"""
+    
+    class Meta:
+        model = ChurchBiography
+        fields = ['title', 'subtitle', 'content', 'mission', 'vision', 'valeurs', 'image']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Titre de la page À propos'}),
+            'subtitle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sous-titre'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 8, 'placeholder': 'Contenu principal de la biographie'}),
+            'mission': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Notre mission'}),
+            'vision': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Notre vision'}),
+            'valeurs': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Nos valeurs'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
 

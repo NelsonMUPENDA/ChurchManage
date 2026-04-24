@@ -180,10 +180,15 @@ urlpatterns = [
 
     # Paramètres de l'église
     path('settings/', views.church_settings_view, name='church-settings'),
+    path('settings/biography/', views.church_biography_view, name='church-biography'),
     path('settings/activities/', views.church_activities_view, name='church-activities'),
     path('settings/activities/create/', views.activity_create_view, name='activity-create'),
     path('settings/activities/<int:pk>/edit/', views.activity_edit_view, name='activity-edit'),
     path('settings/activities/<int:pk>/delete/', views.activity_delete_view, name='activity-delete'),
+    path('settings/services/', views.church_services_view, name='church-services'),
+    path('settings/services/create/', views.service_create_view, name='service-create'),
+    path('settings/services/<int:pk>/edit/', views.service_edit_view, name='service-edit'),
+    path('settings/services/<int:pk>/delete/', views.service_delete_view, name='service-delete'),
 
     # AJAX Endpoints pour création dynamique
     path('ajax/family/create/', views.ajax_create_family, name='ajax-create-family'),

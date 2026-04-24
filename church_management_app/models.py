@@ -697,7 +697,12 @@ class ReportCertificate(models.Model):
 class ChurchBiography(models.Model):
     """Modèle pour gérer la biographie de l'église"""
     title = models.CharField(max_length=200, default="Biographie de l'église")
-    content = models.TextField(help_text="Contenu de la biographie de l'église")
+    subtitle = models.CharField(max_length=300, blank=True, null=True, help_text="Sous-titre de la page À propos")
+    content = models.TextField(help_text="Contenu de la biographie de l'église (supporte le HTML)")
+    mission = models.TextField(blank=True, null=True, help_text="Notre mission")
+    vision = models.TextField(blank=True, null=True, help_text="Notre vision")
+    valeurs = models.TextField(blank=True, null=True, help_text="Nos valeurs")
+    image = models.ImageField(upload_to='biography/', blank=True, null=True, help_text="Image principale de la page À propos")
     # Champs de contact
     address = models.TextField(blank=True, null=True, help_text="Adresse complète de l'église")
     phone = models.CharField(max_length=50, blank=True, null=True, help_text="Numéro de téléphone principal")
@@ -785,7 +790,7 @@ class ChurchSettings(models.Model):
     
     # Informations générales
     church_name = models.CharField(max_length=200, default="Consolation et Paix Divine", help_text="Nom de l'église")
-    church_slogan = models.CharField(max_length=300, blank=True, null=True, help_text="Slogan de l'église")
+    church_slogan = models.TextField(blank=True, null=True, help_text="Slogan de l'église (supporte le HTML)")
     logo = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Logo de l'application")
     favicon = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Favicon de l'application")
     
@@ -833,6 +838,11 @@ class ChurchSettings(models.Model):
     # Section Nos Activités
     activities_section_title = models.CharField(max_length=100, default="Nos Activités", help_text="Titre de la section activités")
     activities_section_subtitle = models.CharField(max_length=300, default="Découvrez ce que nous offrons à notre communauté", help_text="Sous-titre de la section activités")
+
+    # Section Rejoignez notre communauté (CTA)
+    cta_title = models.CharField(max_length=200, default="Rejoignez notre communauté", help_text="Titre de la section CTA")
+    cta_subtitle = models.TextField(blank=True, null=True, default="Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.", help_text="Sous-titre/description de la section CTA")
+    cta_button_text = models.CharField(max_length=50, default="Nous Contacter", help_text="Texte du bouton CTA")
 
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
@@ -911,3 +921,46 @@ class ChurchActivity(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ChurchService(models.Model):
+    """Horaires des cultes de l'église - Gestion dynamique"""
+
+    COLOR_CHOICES = [
+        ('primary', 'Bleu (Primary)'),
+        ('success', 'Vert (Success)'),
+        ('warning', 'Jaune (Warning)'),
+        ('danger', 'Rouge (Danger)'),
+        ('info', 'Cyan (Info)'),
+        ('dark', 'Noir (Dark)'),
+        ('secondary', 'Gris (Secondary)'),
+        ('light', 'Blanc (Light)'),
+    ]
+
+    DAY_CHOICES = [
+        ('Dimanche', 'Dimanche'),
+        ('Lundi', 'Lundi'),
+        ('Mardi', 'Mardi'),
+        ('Mercredi', 'Mercredi'),
+        ('Jeudi', 'Jeudi'),
+        ('Vendredi', 'Vendredi'),
+        ('Samedi', 'Samedi'),
+    ]
+
+    title = models.CharField(max_length=100, help_text="Titre du culte (ex: Culte Dominical)")
+    day = models.CharField(max_length=20, choices=DAY_CHOICES, default='Dimanche', help_text="Jour de la semaine")
+    time = models.CharField(max_length=50, help_text="Horaire (ex: 9h00 - 12h00)")
+    description = models.CharField(max_length=200, blank=True, null=True, help_text="Description courte (ex: Célébration et prédication)")
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='primary', help_text="Couleur de fond")
+    order = models.PositiveIntegerField(default=0, help_text="Ordre d'affichage")
+    is_active = models.BooleanField(default=True, help_text="Culte visible sur le site")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Horaire de culte"
+        verbose_name_plural = "Horaires des cultes"
+        ordering = ['order', 'day', 'time']
+
+    def __str__(self):
+        return f"{self.title} - {self.day} {self.time}"

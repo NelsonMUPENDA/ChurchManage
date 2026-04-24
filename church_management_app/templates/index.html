@@ -63,65 +63,117 @@
             <div class="row g-5">
                 <div class="col-lg-6">
                     <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 2rem;">Horaires des Cultes</h2>
+                    {% for service in church_services %}
+                    {% if service.is_active %}
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>{% if church_settings and church_settings.service_sunday_title %}{{ church_settings.service_sunday_title }}{% else %}Culte Dominical{% endif %}</h6>
-                            <small>{% if church_settings and church_settings.service_sunday_desc %}{{ church_settings.service_sunday_desc }}{% else %}Célébration et prédication{% endif %}</small>
+                            <h6>{{ service.title }}</h6>
+                            <small>{{ service.description|default:"" }}</small>
                         </div>
-                        <span class="cpd-service-badge primary">{% if church_settings and church_settings.service_sunday_time %}{{ church_settings.service_sunday_time }}{% else %}Dim 9h00 - 12h00{% endif %}</span>
+                        <span class="cpd-service-badge {{ service.color }}">{{ service.day }} {{ service.time }}</span>
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <div class="cpd-service-item">
+                        <div class="cpd-service-info">
+                            <h6>Culte Dominical</h6>
+                            <small>Célébration et prédication</small>
+                        </div>
+                        <span class="cpd-service-badge primary">Dim 9h00 - 12h00</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>{% if church_settings and church_settings.service_tuesday_title %}{{ church_settings.service_tuesday_title }}{% else %}Étude Biblique{% endif %}</h6>
-                            <small>{% if church_settings and church_settings.service_tuesday_desc %}{{ church_settings.service_tuesday_desc }}{% else %}Approfondissement de la Parole{% endif %}</small>
+                            <h6>Étude Biblique</h6>
+                            <small>Approfondissement de la Parole</small>
                         </div>
-                        <span class="cpd-service-badge success">{% if church_settings and church_settings.service_tuesday_time %}{{ church_settings.service_tuesday_time }}{% else %}Mar 17h00 - 19h00{% endif %}</span>
+                        <span class="cpd-service-badge success">Mar 17h00 - 19h00</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>{% if church_settings and church_settings.service_thursday_title %}{{ church_settings.service_thursday_title }}{% else %}Prière et Intercession{% endif %}</h6>
-                            <small>{% if church_settings and church_settings.service_thursday_desc %}{{ church_settings.service_thursday_desc }}{% else %}Moment de communion avec Dieu{% endif %}</small>
+                            <h6>Prière et Intercession</h6>
+                            <small>Moment de communion avec Dieu</small>
                         </div>
-                        <span class="cpd-service-badge warning">{% if church_settings and church_settings.service_thursday_time %}{{ church_settings.service_thursday_time }}{% else %}Jeu 17h00 - 19h00{% endif %}</span>
+                        <span class="cpd-service-badge warning">Jeu 17h00 - 19h00</span>
                     </div>
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
-                            <h6>{% if church_settings and church_settings.service_saturday_title %}{{ church_settings.service_saturday_title }}{% else %}Réunion Jeunes{% endif %}</h6>
-                            <small>{% if church_settings and church_settings.service_saturday_desc %}{{ church_settings.service_saturday_desc }}{% else %}Édification de la jeunesse{% endif %}</small>
+                            <h6>Réunion Jeunes</h6>
+                            <small>Édification de la jeunesse</small>
                         </div>
-                        <span class="cpd-service-badge info">{% if church_settings and church_settings.service_saturday_time %}{{ church_settings.service_saturday_time }}{% else %}Sam 14h00 - 16h00{% endif %}</span>
+                        <span class="cpd-service-badge info">Sam 14h00 - 16h00</span>
                     </div>
+                    {% endfor %}
                 </div>
                 <div class="col-lg-6">
-                    <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 2rem;">Prochains Événements</h2>
-                    <div id="upcomingEvents">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Chargement...</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-center mt-4">
-                        <a href="{% url 'public-events' %}" class="btn btn-outline-primary">
-                            Voir tous les événements <i class="bi bi-arrow-right ms-2"></i>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="cpd-section-title mb-0" style="text-align: left;">Prochains Événements</h2>
+                        <a href="{% url 'public-events' %}" class="btn btn-sm btn-outline-primary">
+                            Voir tout <i class="bi bi-arrow-right ms-1"></i>
                         </a>
+                    </div>
+                    <div id="upcomingEvents" class="d-flex flex-column gap-3">
+                        {% for event in upcoming_events|slice:":4" %}
+                        <div class="cpd-event-card">
+                            <div class="cpd-event-date-box">
+                                <span class="cpd-event-day">{{ event.date|date:"d" }}</span>
+                                <span class="cpd-event-month">{{ event.date|date:"M" }}</span>
+                            </div>
+                            <div class="cpd-event-details">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="cpd-event-title mb-0">{{ event.title }}</h6>
+                                    {% if forloop.first %}
+                                    <span class="badge bg-danger">Prochain</span>
+                                    {% endif %}
+                                </div>
+                                <div class="cpd-event-meta">
+                                    <span class="cpd-event-time">
+                                        <i class="bi bi-clock-fill"></i>{{ event.time|time:"H:i" }}
+                                    </span>
+                                    {% if event.location %}
+                                    <span class="cpd-event-location">
+                                        <i class="bi bi-geo-alt-fill"></i>{{ event.location }}
+                                    </span>
+                                    {% endif %}
+                                    {% if event.event_type %}
+                                    <span class="cpd-event-type badge bg-light text-dark">
+                                        {{ event.get_event_type_display }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if event.description %}
+                                <p class="cpd-event-desc">{{ event.description|truncatechars:80 }}</p>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'public-events' %}" class="cpd-event-link">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5 cpd-empty-state">
+                            <div class="cpd-empty-icon">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <h6 class="text-muted">Aucun événement à venir</h6>
+                            <p class="text-muted small mb-0">Revenez bientôt pour découvrir nos prochaines activités</p>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Call to Action -->
+    <!-- Call to Action - Section dynamique -->
     <section class="cpd-cta">
         <div class="container cpd-cta-content">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <h2 class="cpd-cta-title">Rejoignez notre communauté</h2>
-                    <p class="cpd-cta-text">Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.</p>
+                    <h2 class="cpd-cta-title">{% if church_settings and church_settings.cta_title %}{{ church_settings.cta_title }}{% else %}Rejoignez notre communauté{% endif %}</h2>
+                    <p class="cpd-cta-text">{% if church_settings and church_settings.cta_subtitle %}{{ church_settings.cta_subtitle }}{% else %}Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.{% endif %}</p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
                     <a href="{% url 'contact' %}" class="cpd-cta-btn">
-                        <i class="bi bi-envelope"></i>Nous Contacter
+                        <i class="bi bi-envelope"></i>{% if church_settings and church_settings.cta_button_text %}{{ church_settings.cta_button_text }}{% else %}Nous Contacter{% endif %}
                     </a>
                 </div>
             </div>

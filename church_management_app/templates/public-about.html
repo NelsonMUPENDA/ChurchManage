@@ -7,23 +7,29 @@
     <!-- Page Header -->
     <section class="cpd-page-header">
         <div class="container cpd-page-header-content">
-            <h1>À Propos de Nous</h1>
-            <p>Découvrez notre histoire, nos valeurs et notre mission</p>
+            <h1>{% if church_biography %}{{ church_biography.title }}{% else %}À Propos de Nous{% endif %}</h1>
+            <p>{% if church_biography and church_biography.subtitle %}{{ church_biography.subtitle }}{% else %}Découvrez notre histoire, nos valeurs et notre mission{% endif %}</p>
         </div>
     </section>
 
-    <!-- Content -->
+    <!-- Content - Notre Histoire -->
     <section class="cpd-section">
         <div class="container">
             <div class="row g-5 align-items-center">
                 <div class="col-lg-6">
                     <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 1.5rem;">Notre Histoire</h2>
+                    {% if church_biography and church_biography.content %}
+                    <div class="cpd-feature-text" style="font-size: 1.125rem; margin-bottom: 1.5rem;">
+                        {{ church_biography.content|safe }}
+                    </div>
+                    {% else %}
                     <p class="cpd-feature-text" style="font-size: 1.125rem; margin-bottom: 1.5rem;">
-                        {% if church_settings and church_settings.church_name %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %} est née d'une vision : créer une communauté chrétienne où chaque membre peut trouver soutien, croissance spirituelle et fraternité authentique.
+                        {% if church_settings and church_settings.church_name %}{{ church_settings.church_name }}{% else %}Notre église{% endif %} est née d'une vision : créer une communauté chrétienne où chaque membre peut trouver soutien, croissance spirituelle et fraternité authentique.
                     </p>
                     <p class="cpd-feature-text" style="margin-bottom: 1.5rem;">
                         Depuis nos débuts, nous avons grandi pour devenir une famille de croyants dédiée à l'édification spirituelle et à l'impact positif dans notre communauté de {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}.
                     </p>
+                    {% endif %}
                     <div class="cpd-stats-row">
                         <div class="cpd-stat-item">
                             <div class="cpd-stat-number">500+</div>
@@ -41,7 +47,11 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="cpd-about-image">
+                        {% if church_biography and church_biography.image %}
+                        <img src="{{ church_biography.image.url }}" alt="{{ church_biography.title }}" class="img-fluid rounded">
+                        {% else %}
                         <img src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=800" alt="Église">
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -85,7 +95,7 @@
         </div>
     </section>
 
-    <!-- Mission Section -->
+    <!-- Mission, Vision, Valeurs Section -->
     <section class="cpd-section">
         <div class="container">
             <div class="row g-5 align-items-center">
@@ -97,19 +107,36 @@
                                 <i class="bi bi-check-lg"></i>
                             </div>
                             <div class="cpd-mission-content">
-                                <h6>Édification Spirituelle</h6>
+                                <h6>{% if church_biography and church_biography.mission %}{{ church_biography.mission|truncatewords:10|safe }}{% else %}Édification Spirituelle{% endif %}</h6>
+                                {% if church_biography and church_biography.mission %}
+                                <p>{{ church_biography.mission|safe }}</p>
+                                {% else %}
                                 <p>Former des disciples du Christ matures et engagés dans leur foi.</p>
+                                {% endif %}
                             </div>
                         </li>
+                        {% if church_biography and church_biography.vision %}
                         <li class="cpd-mission-item">
                             <div class="cpd-mission-check success">
                                 <i class="bi bi-check-lg"></i>
                             </div>
                             <div class="cpd-mission-content">
-                                <h6>Communauté</h6>
-                                <p>Créer un environnement d'accueil, de soutien et de croissance ensemble.</p>
+                                <h6>Notre Vision</h6>
+                                <p>{{ church_biography.vision|safe }}</p>
                             </div>
                         </li>
+                        {% endif %}
+                        {% if church_biography and church_biography.valeurs %}
+                        <li class="cpd-mission-item">
+                            <div class="cpd-mission-check warning">
+                                <i class="bi bi-check-lg"></i>
+                            </div>
+                            <div class="cpd-mission-content">
+                                <h6>Nos Valeurs</h6>
+                                <p>{{ church_biography.valeurs|safe }}</p>
+                            </div>
+                        </li>
+                        {% else %}
                         <li class="cpd-mission-item">
                             <div class="cpd-mission-check warning">
                                 <i class="bi bi-check-lg"></i>
@@ -119,6 +146,7 @@
                                 <p>Servir notre communauté locale et internationale avec excellence.</p>
                             </div>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
                 <div class="col-lg-6 order-lg-1">

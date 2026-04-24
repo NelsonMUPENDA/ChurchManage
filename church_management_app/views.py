@@ -17,7 +17,7 @@ from .models import (
     LogisticsCategory, LogisticsCondition,
     ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate,
     BaptismEvent, BaptismCandidate, AuditLogEntry, ApprovalRequest, Notification,
-    ChurchActivity
+    ChurchActivity, ChurchService
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
@@ -25,7 +25,7 @@ from .forms import (
     FinancialCategoryForm, FinancialTransactionForm, AnnouncementForm, DocumentForm, DocumentEditForm, LogisticsItemForm,
     BaptismCandidateForm,
     LoginForm, UserCreateForm, UserUpdateForm, ProfileUpdateForm, PasswordChangeCustomForm,
-    EventAttendanceAggregateForm, ChurchSettingsForm, ChurchActivityForm
+    EventAttendanceAggregateForm, ChurchSettingsForm, ChurchActivityForm, ChurchBiographyForm, ChurchServiceForm
 )
 from .permissions import (
     role_required, admin_required, finance_required, pastor_required,
@@ -86,6 +86,7 @@ def index(request):
             is_published=True
         ).order_by('date', 'time')[:5],
         'activities': ChurchActivity.objects.filter(is_active=True).order_by('order', 'title'),
+        'church_services': ChurchService.objects.filter(is_active=True).order_by('order', 'day', 'time'),
     }
     return render(request, 'index.html', context)
 
@@ -94,7 +95,7 @@ def public_about(request):
     """Page À propos"""
     context = {
         'active_page': 'about',
-        'biography': ChurchBiography.objects.filter(is_active=True).first(),
+        'church_biography': ChurchBiography.objects.filter(is_active=True).first(),
     }
     return render(request, 'public-about.html', context)
 
@@ -3768,13 +3769,51 @@ def church_settings_view(request):
     else:
         form = ChurchSettingsForm(instance=settings)
 
+    # Récupérer ou créer la biographie
+    church_biography = ChurchBiography.objects.filter(is_active=True).first()
+
+    # Récupérer les cultes
+    church_services = ChurchService.objects.all().order_by('order', 'day', 'time')
+
     context = {
         'form': form,
         'settings': settings,
         'active_page': 'settings',
         'activities_preview': ChurchActivity.objects.filter(is_active=True).order_by('order', 'title')[:6],
+        'church_biography': church_biography,
+        'church_services': church_services,
     }
     return render(request, 'dashboard/church_settings.html', context)
+
+
+@login_required
+def church_biography_view(request):
+    """Vue pour gérer la biographie de l'église"""
+    biography = ChurchBiography.objects.filter(is_active=True).first()
+    
+    if not biography:
+        biography = ChurchBiography.objects.create(
+            title="Biographie de l'église",
+            content="Bienvenue sur la page de notre église.",
+            is_active=True
+        )
+    
+    if request.method == 'POST':
+        form = ChurchBiographyForm(request.POST, request.FILES, instance=biography)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Biographie mise à jour avec succès!')
+            return redirect('church-biography')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchBiographyForm(instance=biography)
+    
+    return render(request, 'dashboard/church_biography.html', {
+        'form': form,
+        'biography': biography,
+        'active_page': 'settings',
+    })
 
 
 @login_required
@@ -3844,5 +3883,76 @@ def activity_delete_view(request, pk):
     
     return render(request, 'dashboard/activity_confirm_delete.html', {
         'activity': activity,
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def church_services_view(request):
+    """Vue pour gérer les horaires des cultes"""
+    services = ChurchService.objects.all().order_by('order', 'day', 'time')
+    return render(request, 'dashboard/church_services.html', {
+        'services': services,
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def service_create_view(request):
+    """Vue pour créer un nouveau culte"""
+    if request.method == 'POST':
+        form = ChurchServiceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Horaire de culte créé avec succès!')
+            return redirect('church-services')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchServiceForm()
+    
+    return render(request, 'dashboard/service_form.html', {
+        'form': form,
+        'action': 'create',
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def service_edit_view(request, pk):
+    """Vue pour modifier un horaire de culte"""
+    service = get_object_or_404(ChurchService, pk=pk)
+    
+    if request.method == 'POST':
+        form = ChurchServiceForm(request.POST, instance=service)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Horaire de culte mis à jour avec succès!')
+            return redirect('church-services')
+        else:
+            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+    else:
+        form = ChurchServiceForm(instance=service)
+    
+    return render(request, 'dashboard/service_form.html', {
+        'form': form,
+        'service': service,
+        'action': 'edit',
+        'active_page': 'settings',
+    })
+
+
+@login_required
+def service_delete_view(request, pk):
+    """Vue pour supprimer un horaire de culte"""
+    service = get_object_or_404(ChurchService, pk=pk)
+    
+    if request.method == 'POST':
+        service.delete()
+        messages.success(request, 'Horaire de culte supprimé avec succès!')
+        return redirect('church-services')
+    
+    return render(request, 'dashboard/service_confirm_delete.html', {
+        'service': service,
         'active_page': 'settings',
     })
