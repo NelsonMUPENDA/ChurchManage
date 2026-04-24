@@ -3185,8 +3185,8 @@ def document_create(request):
             return redirect('document-list')
     else:
         form = DocumentForm()
-    
-    return render(request, 'dashboard/documents.html', {'form': form, 'action': 'Uploader', 'view': 'form'})
+
+    return render(request, 'dashboard/documents.html', {'form': form, 'action': 'Créer', 'view': 'form'})
 
 
 @login_required

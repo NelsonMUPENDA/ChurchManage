@@ -8,16 +8,92 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
+        /* Styles d'impression optimisés */
         @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+            
             .no-print {
                 display: none !important;
             }
+            
             .print-container {
-                margin: 0;
-                padding: 15mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                max-width: 100% !important;
+                min-height: auto !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
+            
             body {
-                background: white;
+                background: white !important;
+                font-size: 11pt;
+            }
+            
+            /* Conserver les couleurs à l'impression */
+            .section-header {
+                background: #1a365d !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .member-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .member-photo-placeholder {
+                background: #1a365d !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .status-active {
+                background: #d1fae5 !important;
+                color: #065f46 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .status-inactive {
+                background: #fee2e2 !important;
+                color: #991b1b !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            /* Gestion des sauts de page */
+            .section-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            .member-header {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            .signature-section {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-top: 2rem;
+            }
+            
+            .qr-code-container {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            /* Supprimer les éléments non nécessaires à l'impression */
+            .watermark {
+                display: none !important;
             }
         }
 
@@ -295,11 +371,14 @@
                 </div>
                 <div class="col-md-6 text-md-end">
                     <div class="btn-group">
+                        <button onclick="printToPDF()" class="btn btn-danger">
+                            <i class="bi bi-file-pdf me-2"></i>Télécharger PDF
+                        </button>
                         <button onclick="window.print()" class="btn btn-primary">
                             <i class="bi bi-printer me-2"></i>Imprimer
                         </button>
                         <a href="{% url 'member-print-card' member.pk %}" class="btn btn-outline-primary" target="_blank">
-                            <i class="bi bi-file-pdf me-2"></i>Carte PDF
+                            <i class="bi bi-person-badge me-2"></i>Carte seule
                         </a>
                     </div>
                     <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
@@ -598,5 +677,33 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Fonction pour imprimer en PDF
+        function printToPDF() {
+            // Sauvegarder le titre actuel
+            const originalTitle = document.title;
+            
+            // Changer le titre pour le nom du fichier PDF
+            const memberName = "{{ member.user.last_name }} {{ member.user.first_name }}".trim();
+            const fileName = `Fiche_Membre_${memberName.replace(/\s+/g, '_')}.pdf`;
+            document.title = fileName;
+            
+            // Déclencher l'impression
+            window.print();
+            
+            // Restaurer le titre après un court délai
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 1000);
+        }
+
+        // Gestion du raccourci clavier Ctrl+P
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
 </body>
 </html>
