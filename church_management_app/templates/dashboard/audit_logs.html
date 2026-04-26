@@ -121,6 +121,7 @@
                             <th class="fw-semibold">Modèle</th>
                             <th class="fw-semibold">Objet</th>
                             <th class="fw-semibold">IP</th>
+                            <th class="fw-semibold">Détails</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -148,6 +149,14 @@
                                     <span class="badge bg-warning text-dark"><i class="bi bi-pencil me-1"></i>Modification</span>
                                 {% elif log.action == 'delete' %}
                                     <span class="badge bg-danger"><i class="bi bi-trash me-1"></i>Suppression</span>
+                                {% elif log.action == 'login' %}
+                                    <span class="badge bg-info"><i class="bi bi-box-arrow-in-right me-1"></i>Connexion</span>
+                                {% elif log.action == 'logout' %}
+                                    <span class="badge bg-secondary"><i class="bi bi-box-arrow-right me-1"></i>Déconnexion</span>
+                                {% elif log.action == 'view' %}
+                                    <span class="badge bg-light text-dark"><i class="bi bi-eye me-1"></i>Consultation</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark"><i class="bi bi-activity me-1"></i>{{ log.action }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -160,6 +169,15 @@
                             </td>
                             <td>
                                 <small class="text-muted font-monospace">{{ log.ip_address|default:"-" }}</small>
+                            </td>
+                            <td>
+                                {% if log.payload %}
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#logModal{{ log.id }}">
+                                    <i class="bi bi-eye"></i> Détails
+                                </button>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -175,4 +193,59 @@
         </div>
     </div>
 </div>
+
+<!-- Modals pour les détails des logs -->
+{% for log in logs %}
+{% if log.payload %}
+<div class="modal fade" id="logModal{{ log.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Détails de l'action - {{ log.model }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Action:</strong>
+                    {% if log.action == 'create' %}
+                        <span class="badge bg-success">Création</span>
+                    {% elif log.action == 'update' %}
+                        <span class="badge bg-warning text-dark">Modification</span>
+                    {% elif log.action == 'delete' %}
+                        <span class="badge bg-danger">Suppression</span>
+                    {% elif log.action == 'login' %}
+                        <span class="badge bg-info">Connexion</span>
+                    {% elif log.action == 'logout' %}
+                        <span class="badge bg-secondary">Déconnexion</span>
+                    {% elif log.action == 'view' %}
+                        <span class="badge bg-light text-dark">Consultation</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">{{ log.action }}</span>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <strong>Objet:</strong> {{ log.object_repr|default:log.object_id }}
+                </div>
+                <div class="mb-3">
+                    <strong>Date:</strong> {{ log.created_at|date:"d/m/Y H:i:s" }}
+                </div>
+                <div class="mb-3">
+                    <strong>Utilisateur:</strong> {{ log.actor.get_full_name|default:log.actor.username }}
+                </div>
+                <hr>
+                <h6>Données:</h6>
+                <pre class="bg-light p-3 rounded"><code>{{ log.payload|pprint }}</code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
 {% endblock %}

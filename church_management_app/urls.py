@@ -171,6 +171,7 @@ urlpatterns = [
     path('reports/attendance/', views.report_attendance_detail, name='report-attendance-detail'),
     path('reports/sacraments/', views.report_sacraments_detail, name='report-sacraments-detail'),
     path('reports/export-excel/', views.export_reports_excel, name='reports-export-excel'),
+    path('reports/export-pdf/<str:report_type>/', views.export_report_pdf, name='reports-export-pdf'),
 
     # Notifications
     path('notifications/', views.notification_list, name='notification-list'),

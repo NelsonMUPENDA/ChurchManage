@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.urls import reverse
 from datetime import timedelta
 
 from .models import (
@@ -2030,6 +2031,9 @@ def report_members_detail(request):
     if date_from and date_to:
         members = members.filter(created_at__date__range=[date_from, date_to])
 
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
     context = {
         'members': members,
         'date_from': date_from,
@@ -2042,7 +2046,8 @@ def report_members_detail(request):
         'by_status': {
             'active': members.filter(is_active=True, inactive_reason__isnull=True).count(),
             'inactive': members.filter(is_active=False).count(),
-        }
+        },
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/report_members_detail.html', context)
 
@@ -2058,12 +2063,16 @@ def report_finances_detail(request):
     if date_from and date_to:
         transactions = transactions.filter(date__range=[date_from, date_to])
 
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
     context = {
         'transactions': transactions,
         'date_from': date_from,
         'date_to': date_to,
         'total_in': transactions.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
         'total_out': transactions.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/report_finances_detail.html', context)
 
@@ -2079,11 +2088,15 @@ def report_activities_detail(request):
     if date_from and date_to:
         events = events.filter(date__range=[date_from, date_to])
 
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
     context = {
         'events': events,
         'date_from': date_from,
         'date_to': date_to,
         'total_events': events.count(),
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/report_activities_detail.html', context)
 
@@ -2103,6 +2116,9 @@ def report_attendance_detail(request):
     present = attendances.filter(attended=True).count()
     rate = round((present / total * 100), 1) if total > 0 else 0
 
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
     context = {
         'attendances': attendances,
         'date_from': date_from,
@@ -2110,6 +2126,7 @@ def report_attendance_detail(request):
         'total': total,
         'present': present,
         'rate': rate,
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/report_attendance_detail.html', context)
 
@@ -2120,13 +2137,138 @@ def report_sacraments_detail(request):
     marriages = MarriageRecord.objects.all().select_related('groom', 'bride')
     baptisms = BaptismEvent.objects.all().prefetch_related('candidates')
 
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
     context = {
         'marriages': marriages,
         'baptisms': baptisms,
         'marriages_count': marriages.count(),
         'baptisms_count': baptisms.count(),
+        'church_settings': church_settings,
     }
     return render(request, 'dashboard/report_sacraments_detail.html', context)
+
+
+# ============================================================
+# Export PDF des Rapports
+# ============================================================
+
+@login_required
+@admin_required
+def export_report_pdf(request, report_type):
+    """Export d'un rapport spécifique en PDF avec xhtml2pdf (compatible Windows)"""
+    from xhtml2pdf import pisa
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+    from io import BytesIO
+    import os
+
+    # Récupérer les paramètres
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    # Récupérer les paramètres de l'église
+    church_settings = ChurchSettings.objects.first()
+
+    # Préparer le contexte selon le type de rapport
+    context = {
+        'church_settings': church_settings,
+        'date_from': date_from,
+        'date_to': date_to,
+        'now': timezone.now(),
+        'user': request.user,
+    }
+
+    if report_type == 'members':
+        members = Member.objects.all().select_related('family', 'department', 'home_group')
+        if date_from and date_to:
+            members = members.filter(created_at__date__range=[date_from, date_to])
+        context.update({
+            'members': members,
+            'total': members.count(),
+            'by_gender': {
+                'male': members.filter(gender='male').count(),
+                'female': members.filter(gender='female').count(),
+            },
+            'by_status': {
+                'active': members.filter(is_active=True, inactive_reason__isnull=True).count(),
+                'inactive': members.filter(is_active=False).count(),
+            },
+        })
+        template_name = 'dashboard/report_members_pdf.html'
+        filename = f"Rapport_Membres_{timezone.now().strftime('%Y%m%d')}.pdf"
+
+    elif report_type == 'finances':
+        transactions = FinancialTransaction.objects.all().select_related('category', 'member')
+        if date_from and date_to:
+            transactions = transactions.filter(date__range=[date_from, date_to])
+        context.update({
+            'transactions': transactions,
+            'total_in': transactions.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
+            'total_out': transactions.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
+        })
+        template_name = 'dashboard/report_finances_pdf.html'
+        filename = f"Rapport_Finances_{timezone.now().strftime('%Y%m%d')}.pdf"
+
+    elif report_type == 'activities':
+        events = Event.objects.all().prefetch_related('attendances')
+        if date_from and date_to:
+            events = events.filter(date__range=[date_from, date_to])
+        context.update({
+            'events': events,
+            'total_events': events.count(),
+        })
+        template_name = 'dashboard/report_activities_pdf.html'
+        filename = f"Rapport_Activites_{timezone.now().strftime('%Y%m%d')}.pdf"
+
+    elif report_type == 'attendance':
+        attendances = Attendance.objects.all().select_related('event', 'member')
+        if date_from and date_to:
+            attendances = attendances.filter(event__date__range=[date_from, date_to])
+        total = attendances.count()
+        present = attendances.filter(attended=True).count()
+        rate = round((present / total * 100), 1) if total > 0 else 0
+        context.update({
+            'attendances': attendances,
+            'total': total,
+            'present': present,
+            'rate': rate,
+        })
+        template_name = 'dashboard/report_attendance_pdf.html'
+        filename = f"Rapport_Presences_{timezone.now().strftime('%Y%m%d')}.pdf"
+
+    elif report_type == 'sacraments':
+        marriages = MarriageRecord.objects.all().select_related('groom', 'bride')
+        baptisms = BaptismEvent.objects.all().prefetch_related('candidates')
+        context.update({
+            'marriages': marriages,
+            'baptisms': baptisms,
+            'marriages_count': marriages.count(),
+            'baptisms_count': baptisms.count(),
+        })
+        template_name = 'dashboard/report_sacraments_pdf.html'
+        filename = f"Rapport_Sacrements_{timezone.now().strftime('%Y%m%d')}.pdf"
+
+    else:
+        messages.error(request, 'Type de rapport invalide')
+        return redirect('reports')
+
+    # Rendre le template HTML
+    html_string = render_to_string(template_name, context)
+
+    # Créer le PDF avec xhtml2pdf
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html_string.encode('UTF-8')), result)
+
+    if not pdf.err:
+        # Créer la réponse HTTP
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        messages.error(request, f'Erreur lors de la génération du PDF')
+        return redirect('reports')
 
 
 @login_required
@@ -3393,6 +3535,24 @@ def contact_archive(request, pk):
 # Audit Logs (Logs système)
 # ============================================================
 
+def create_audit_log(actor, action, model, object_id, object_repr='', ip_address=None, payload=None):
+    """Créer une entrée de log système"""
+    from datetime import datetime
+    if ip_address is None and actor:
+        # Récupérer l'IP depuis la requête si disponible
+        pass
+
+    return AuditLogEntry.objects.create(
+        actor=actor,
+        action=action,
+        model=model,
+        object_id=str(object_id),
+        object_repr=object_repr[:200] if object_repr else '',
+        ip_address=ip_address,
+        payload=payload
+    )
+
+
 @login_required
 @admin_required
 def audit_log_list(request):
@@ -3419,9 +3579,19 @@ def audit_log_list(request):
             actor__last_name__icontains=user_filter
         )
     if date_from:
-        logs = logs.filter(created_at__gte=date_from)
+        try:
+            from datetime import datetime, time
+            date_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            logs = logs.filter(created_at__date__gte=date_obj.date())
+        except ValueError:
+            pass
     if date_to:
-        logs = logs.filter(created_at__lte=date_to + ' 23:59:59')
+        try:
+            from datetime import datetime, time
+            date_obj = datetime.strptime(date_to, '%Y-%m-%d')
+            logs = logs.filter(created_at__date__lte=date_obj.date())
+        except ValueError:
+            pass
 
     # Pagination manuelle - limiter à 500
     logs = logs[:500]
@@ -3755,17 +3925,69 @@ def account_edit(request):
 
 @login_required
 def church_settings_view(request):
-    """Vue pour gérer les paramètres de l'église"""
-    settings = ChurchSettings.get_settings()
+    """Vue pour gérer les paramètres de l'église - Sauvegarde par onglet"""
+    # Récupérer ou créer les paramètres
+    settings, created = ChurchSettings.objects.get_or_create(pk=1)
+
+    # Définir les champs par onglet
+    TAB_FIELDS = {
+        'general': ['church_name', 'church_slogan', 'logo', 'favicon'],
+        'address': ['address', 'city', 'country'],
+        'contacts': ['phone_primary', 'phone_secondary', 'email_primary', 'email_secondary',
+                     'office_hours_weekdays', 'office_hours_saturday', 'office_hours_sunday'],
+        'social': ['facebook_url', 'youtube_url', 'instagram_url', 'twitter_url', 'whatsapp_number', 'telegram_url'],
+        'services': [],  # Services gérés via une autre vue
+        'activities': ['activities_section_title', 'activities_section_subtitle'],
+        'cta': ['cta_title', 'cta_subtitle', 'cta_button_text'],
+    }
+
+    active_tab = request.GET.get('tab', 'general')
 
     if request.method == 'POST':
-        form = ChurchSettingsForm(request.POST, request.FILES, instance=settings)
+        active_tab = request.POST.get('tab', 'general')
+
+        # Valider uniquement les champs de l'onglet actif
+        # Créer un formulaire partiel avec seulement les champs de l'onglet
+        fields_to_save = TAB_FIELDS.get(active_tab, [])
+
+        # Créer un dictionnaire de données pour le formulaire partiel
+        post_data = request.POST.copy()
+        files_data = request.FILES.copy()
+
+        # Pour les champs vides dans ce formulaire, garder les valeurs existantes
+        for field in ChurchSettingsForm.Meta.fields:
+            if field not in fields_to_save and field not in post_data and field not in files_data:
+                # Ajouter la valeur existante pour éviter qu'elle soit écrasée
+                existing_value = getattr(settings, field)
+                if existing_value:
+                    post_data[field] = existing_value
+
+        form = ChurchSettingsForm(post_data, files_data, instance=settings)
+
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Paramètres de l\'église mis à jour avec succès!')
-            return redirect('church-settings')
+            # Sauvegarder avec update_fields pour ne modifier que les champs de l'onglet
+            instance = form.save(commit=False)
+            instance.pk = 1  # Forcer le singleton
+
+            # Gérer les fichiers (logo/favicon) si présents
+            if 'logo' in request.FILES and active_tab == 'general':
+                instance.logo = request.FILES['logo']
+            if 'favicon' in request.FILES and active_tab == 'general':
+                instance.favicon = request.FILES['favicon']
+
+            instance.save()
+
+            messages.success(request, f'Paramètres de l\'onglet "{active_tab}" enregistrés avec succès!')
+            return redirect(f'{reverse("church-settings")}?tab={active_tab}')
         else:
-            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
+            # Afficher les erreurs spécifiques du formulaire
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"{error}")
+                    else:
+                        field_label = form.fields[field].label or field
+                        messages.error(request, f"{field_label}: {error}")
     else:
         form = ChurchSettingsForm(instance=settings)
 
@@ -3779,6 +4001,7 @@ def church_settings_view(request):
         'form': form,
         'settings': settings,
         'active_page': 'settings',
+        'active_tab': active_tab,
         'activities_preview': ChurchActivity.objects.filter(is_active=True).order_by('order', 'title')[:6],
         'church_biography': church_biography,
         'church_services': church_services,

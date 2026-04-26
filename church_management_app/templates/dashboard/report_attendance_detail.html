@@ -4,14 +4,52 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1">Rapport de Présence</h2>
-            <p class="text-muted mb-0">Période: {{ date_from }} au {{ date_to }}</p>
+    <!-- En-tête administratif avec infos de l'église -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    {% if church_settings and church_settings.logo %}
+                    <img src="{{ church_settings.logo.url }}" alt="Logo" class="img-fluid" style="max-height: 80px;">
+                    {% else %}
+                    <i class="bi bi-building fs-1 text-primary"></i>
+                    {% endif %}
+                </div>
+                <div class="col-md-8 text-center">
+                    <h3 class="fw-bold mb-1">{{ church_settings.church_name|default:"Église" }}</h3>
+                    {% if church_settings.church_slogan %}
+                    <p class="text-muted mb-1">{{ church_settings.church_slogan }}</p>
+                    {% endif %}
+                    <p class="small text-muted mb-0">
+                        {% if church_settings.address %}{{ church_settings.address }}, {% endif %}
+                        {% if church_settings.city %}{{ church_settings.city }}{% endif %}
+                        {% if church_settings.phone_primary %} | Tél: {{ church_settings.phone_primary }}{% endif %}
+                        {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+                    </p>
+                </div>
+                <div class="col-md-2 text-end">
+                    <div class="btn-group-vertical">
+                        <a href="{% url 'reports-export-pdf' 'attendance' %}{% if date_from and date_to %}?date_from={{ date_from }}&date_to={{ date_to }}{% endif %}" class="btn btn-danger btn-sm mb-1">
+                            <i class="bi bi-file-pdf me-1"></i>PDF
+                        </a>
+                        <a href="{% url 'reports' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <h4 class="fw-bold text-primary">RAPPORT DE PRÉSENCE</h4>
+                <p class="text-muted mb-0">
+                    {% if date_from and date_to %}
+                    Période: {{ date_from }} au {{ date_to }}
+                    {% else %}
+                    Rapport complet au {{ now|date:"d/m/Y" }}
+                    {% endif %}
+                </p>
+            </div>
         </div>
-        <a href="{% url 'reports' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Retour
-        </a>
     </div>
 
     <!-- Stats -->

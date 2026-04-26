@@ -789,15 +789,15 @@ class ChurchSettings(models.Model):
     """Modèle pour stocker les paramètres globaux de l'application"""
     
     # Informations générales
-    church_name = models.CharField(max_length=200, default="Consolation et Paix Divine", help_text="Nom de l'église")
+    church_name = models.CharField(max_length=200, blank=True, default="Consolation et Paix Divine", help_text="Nom de l'église")
     church_slogan = models.TextField(blank=True, null=True, help_text="Slogan de l'église (supporte le HTML)")
     logo = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Logo de l'application")
     favicon = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Favicon de l'application")
     
     # Adresse
     address = models.TextField(blank=True, null=True, help_text="Adresse complète")
-    city = models.CharField(max_length=100, default="Kinshasa", help_text="Ville")
-    country = models.CharField(max_length=100, default="République Démocratique du Congo", help_text="Pays")
+    city = models.CharField(max_length=100, blank=True, default="Kinshasa", help_text="Ville")
+    country = models.CharField(max_length=100, blank=True, default="République Démocratique du Congo", help_text="Pays")
     
     # Contacts
     phone_primary = models.CharField(max_length=30, blank=True, null=True, help_text="Téléphone principal")
@@ -819,30 +819,30 @@ class ChurchSettings(models.Model):
     telegram_url = models.URLField(blank=True, null=True, help_text="URL Telegram")
 
     # Horaires des cultes
-    service_sunday_title = models.CharField(max_length=100, default="Culte Dominical", help_text="Titre du culte du dimanche")
-    service_sunday_time = models.CharField(max_length=50, default="Dim 9h00 - 12h00", help_text="Horaire du culte du dimanche")
-    service_sunday_desc = models.CharField(max_length=200, default="Célébration et prédication", help_text="Description du culte du dimanche")
+    service_sunday_title = models.CharField(max_length=100, blank=True, default="Culte Dominical", help_text="Titre du culte du dimanche")
+    service_sunday_time = models.CharField(max_length=50, blank=True, default="Dim 9h00 - 12h00", help_text="Horaire du culte du dimanche")
+    service_sunday_desc = models.CharField(max_length=200, blank=True, default="Célébration et prédication", help_text="Description du culte du dimanche")
 
-    service_tuesday_title = models.CharField(max_length=100, default="Étude Biblique", help_text="Titre du culte du mardi")
-    service_tuesday_time = models.CharField(max_length=50, default="Mar 17h00 - 19h00", help_text="Horaire du culte du mardi")
-    service_tuesday_desc = models.CharField(max_length=200, default="Approfondissement de la Parole", help_text="Description du culte du mardi")
+    service_tuesday_title = models.CharField(max_length=100, blank=True, default="Étude Biblique", help_text="Titre du culte du mardi")
+    service_tuesday_time = models.CharField(max_length=50, blank=True, default="Mar 17h00 - 19h00", help_text="Horaire du culte du mardi")
+    service_tuesday_desc = models.CharField(max_length=200, blank=True, default="Approfondissement de la Parole", help_text="Description du culte du mardi")
 
-    service_thursday_title = models.CharField(max_length=100, default="Prière et Intercession", help_text="Titre du culte du jeudi")
-    service_thursday_time = models.CharField(max_length=50, default="Jeu 17h00 - 19h00", help_text="Horaire du culte du jeudi")
-    service_thursday_desc = models.CharField(max_length=200, default="Moment de communion avec Dieu", help_text="Description du culte du jeudi")
+    service_thursday_title = models.CharField(max_length=100, blank=True, default="Prière et Intercession", help_text="Titre du culte du jeudi")
+    service_thursday_time = models.CharField(max_length=50, blank=True, default="Jeu 17h00 - 19h00", help_text="Horaire du culte du jeudi")
+    service_thursday_desc = models.CharField(max_length=200, blank=True, default="Moment de communion avec Dieu", help_text="Description du culte du jeudi")
 
-    service_saturday_title = models.CharField(max_length=100, default="Réunion Jeunes", help_text="Titre du culte du samedi")
-    service_saturday_time = models.CharField(max_length=50, default="Sam 14h00 - 16h00", help_text="Horaire du culte du samedi")
-    service_saturday_desc = models.CharField(max_length=200, default="Édification de la jeunesse", help_text="Description du culte du samedi")
+    service_saturday_title = models.CharField(max_length=100, blank=True, default="Réunion Jeunes", help_text="Titre du culte du samedi")
+    service_saturday_time = models.CharField(max_length=50, blank=True, default="Sam 14h00 - 16h00", help_text="Horaire du culte du samedi")
+    service_saturday_desc = models.CharField(max_length=200, blank=True, default="Édification de la jeunesse", help_text="Description du culte du samedi")
 
     # Section Nos Activités
-    activities_section_title = models.CharField(max_length=100, default="Nos Activités", help_text="Titre de la section activités")
-    activities_section_subtitle = models.CharField(max_length=300, default="Découvrez ce que nous offrons à notre communauté", help_text="Sous-titre de la section activités")
+    activities_section_title = models.CharField(max_length=100, blank=True, default="Nos Activités", help_text="Titre de la section activités")
+    activities_section_subtitle = models.CharField(max_length=300, blank=True, default="Découvrez ce que nous offrons à notre communauté", help_text="Sous-titre de la section activités")
 
     # Section Rejoignez notre communauté (CTA)
-    cta_title = models.CharField(max_length=200, default="Rejoignez notre communauté", help_text="Titre de la section CTA")
+    cta_title = models.CharField(max_length=200, blank=True, default="Rejoignez notre communauté", help_text="Titre de la section CTA")
     cta_subtitle = models.TextField(blank=True, null=True, default="Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.", help_text="Sous-titre/description de la section CTA")
-    cta_button_text = models.CharField(max_length=50, default="Nous Contacter", help_text="Texte du bouton CTA")
+    cta_button_text = models.CharField(max_length=50, blank=True, default="Nous Contacter", help_text="Texte du bouton CTA")
 
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
@@ -856,11 +856,8 @@ class ChurchSettings(models.Model):
         return self.church_name
     
     def save(self, *args, **kwargs):
-        # Empêcher la création de plusieurs instances - Pattern Singleton
-        if not self.pk and ChurchSettings.objects.exists():
-            # Mettre à jour l'instance existante au lieu d'en créer une nouvelle
-            existing = ChurchSettings.objects.first()
-            self.pk = existing.pk
+        # Pattern Singleton - forcer l'ID à 1 pour garantir une seule instance
+        self.pk = 1
         super().save(*args, **kwargs)
     
     @classmethod

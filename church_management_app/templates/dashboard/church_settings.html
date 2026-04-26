@@ -25,60 +25,60 @@
     </div>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-        {% csrf_token %}
+    <!-- Onglets -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white p-0">
+            <ul class="nav nav-tabs nav-fill" id="settingsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'general' or not active_tab %}active{% endif %}" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                        <i class="bi bi-info-circle me-2"></i>Général
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'address' %}active{% endif %}" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">
+                        <i class="bi bi-geo-alt me-2"></i>Adresse
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'contacts' %}active{% endif %}" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button" role="tab">
+                        <i class="bi bi-telephone me-2"></i>Contacts
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'social' %}active{% endif %}" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">
+                        <i class="bi bi-share me-2"></i>Réseaux
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'services' %}active{% endif %}" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
+                        <i class="bi bi-calendar-event me-2"></i>Cultes
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'activities' %}active{% endif %}" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab">
+                        <i class="bi bi-stars me-2"></i>Activités
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'about' %}active{% endif %}" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab">
+                        <i class="bi bi-file-text me-2"></i>À propos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'cta' %}active{% endif %}" id="cta-tab" data-bs-toggle="tab" data-bs-target="#cta" type="button" role="tab">
+                        <i class="bi bi-megaphone me-2"></i>CTA
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="settingsTabContent">
 
-        <!-- Onglets -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white p-0">
-                <ul class="nav nav-tabs nav-fill" id="settingsTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
-                            <i class="bi bi-info-circle me-2"></i>Général
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="address-tab" data-bs-toggle="tab" data-bs-target="#address" type="button" role="tab">
-                            <i class="bi bi-geo-alt me-2"></i>Adresse
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button" role="tab">
-                            <i class="bi bi-telephone me-2"></i>Contacts
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">
-                            <i class="bi bi-share me-2"></i>Réseaux
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services" type="button" role="tab">
-                            <i class="bi bi-calendar-event me-2"></i>Cultes
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="activities-tab" data-bs-toggle="tab" data-bs-target="#activities" type="button" role="tab">
-                            <i class="bi bi-stars me-2"></i>Activités
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab">
-                            <i class="bi bi-file-text me-2"></i>À propos
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="cta-tab" data-bs-toggle="tab" data-bs-target="#cta" type="button" role="tab">
-                            <i class="bi bi-megaphone me-2"></i>CTA
-                        </button>
-                    </li>
-                </ul>
-            </div>
-            <div class="card-body">
-                <div class="tab-content" id="settingsTabContent">
-
-                    <!-- Onglet Général -->
-                    <div class="tab-pane fade show active" id="general" role="tabpanel">
+                <!-- Onglet Général -->
+                <div class="tab-pane fade {% if active_tab == 'general' or not active_tab %}show active{% endif %}" id="general" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="general">
                         <h5 class="text-primary mb-4"><i class="bi bi-info-circle me-2"></i>Informations générales</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -121,10 +121,20 @@
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet CTA (Rejoignez notre communauté) -->
-                    <div class="tab-pane fade" id="cta" role="tabpanel">
+                <!-- Onglet CTA (Rejoignez notre communauté) -->
+                <div class="tab-pane fade {% if active_tab == 'cta' %}show active{% endif %}" id="cta" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="cta">
                         <h5 class="text-warning mb-4"><i class="bi bi-megaphone me-2"></i>Section "Rejoignez notre communauté"</h5>
                         <div class="row g-3">
                             <div class="col-md-12">
@@ -153,10 +163,20 @@
                             <i class="bi bi-info-circle me-2"></i>
                             Cette section apparaît en bas de la page d'accueil pour inviter les visiteurs à rejoindre la communauté.
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet Adresse -->
-                    <div class="tab-pane fade" id="address" role="tabpanel">
+                <!-- Onglet Adresse -->
+                <div class="tab-pane fade {% if active_tab == 'address' %}show active{% endif %}" id="address" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="address">
                         <h5 class="text-success mb-4"><i class="bi bi-geo-alt me-2"></i>Adresse</h5>
                         <div class="row g-3">
                             <div class="col-md-12">
@@ -181,10 +201,20 @@
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet Contacts -->
-                    <div class="tab-pane fade" id="contacts" role="tabpanel">
+                <!-- Onglet Contacts -->
+                <div class="tab-pane fade {% if active_tab == 'contacts' %}show active{% endif %}" id="contacts" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="contacts">
                         <h5 class="text-info mb-4"><i class="bi bi-telephone me-2"></i>Contacts</h5>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
@@ -244,10 +274,20 @@
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet Réseaux sociaux -->
-                    <div class="tab-pane fade" id="social" role="tabpanel">
+                <!-- Onglet Réseaux sociaux -->
+                <div class="tab-pane fade {% if active_tab == 'social' %}show active{% endif %}" id="social" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="social">
                         <h5 class="text-dark mb-4"><i class="bi bi-share me-2"></i>Réseaux sociaux</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -305,10 +345,20 @@
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet Cultes -->
-                    <div class="tab-pane fade" id="services" role="tabpanel">
+                <!-- Onglet Cultes -->
+                <div class="tab-pane fade {% if active_tab == 'services' %}show active{% endif %}" id="services" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="services">
                         <h5 class="text-danger mb-4"><i class="bi bi-calendar-event me-2"></i>Horaires des cultes</h5>
                         
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -349,10 +399,17 @@
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                        </div>
+                    </form>
+                </div>
 
-                    <!-- Onglet Activités -->
-                    <div class="tab-pane fade" id="activities" role="tabpanel">
+                <!-- Onglet Activités -->
+                <div class="tab-pane fade {% if active_tab == 'activities' %}show active{% endif %}" id="activities" role="tabpanel">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="tab" value="activities">
                         <h5 class="text-secondary mb-4"><i class="bi bi-stars me-2"></i>Section Nos Activités</h5>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
@@ -399,93 +456,94 @@
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
-
-                    <!-- Onglet À propos -->
-                    <div class="tab-pane fade" id="about" role="tabpanel">
-                        <h5 class="text-dark mb-4"><i class="bi bi-file-text me-2"></i>Page À propos</h5>
-                        
-                        <div class="alert alert-info mb-4">
-                            <i class="bi bi-info-circle me-2"></i>
-                            La page "À propos" présente l'histoire, la mission, la vision et les valeurs de votre église. 
-                            Cette page est accessible publiquement sur le site.
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>Enregistrer
+                            </button>
                         </div>
-
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-body">
-                                        <h6 class="card-title"><i class="bi bi-building me-2 text-primary"></i>Biographie de l'église</h6>
-                                        <p class="card-text text-muted small">Gérez le contenu principal de la page À propos : titre, sous-titre, contenu, image, mission, vision et valeurs.</p>
-                                        <a href="{% url 'church-biography' %}" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-pencil me-1"></i>Modifier la biographie
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card h-100 border-0 shadow-sm">
-                                    <div class="card-body">
-                                        <h6 class="card-title"><i class="bi bi-eye me-2 text-success"></i>Aperçu</h6>
-                                        {% if church_biography %}
-                                        <p class="mb-1"><strong>{{ church_biography.title }}</strong></p>
-                                        <p class="text-muted small mb-0">{{ church_biography.content|truncatewords:20 }}</p>
-                                        {% else %}
-                                        <p class="text-muted small">Aucune biographie configurée.</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h6 class="mb-3">Informations affichées sur la page À propos</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-borderless">
-                                <tbody>
-                                    <tr>
-                                        <td width="30%"><strong>Titre :</strong></td>
-                                        <td>{% if church_biography %}{{ church_biography.title }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Sous-titre :</strong></td>
-                                        <td>{% if church_biography %}{{ church_biography.subtitle|default:"<span class='text-muted'>-</span>" }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Mission :</strong></td>
-                                        <td>{% if church_biography %}{{ church_biography.mission|default:"<span class='text-muted'>-</span>"|truncatewords:15 }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Vision :</strong></td>
-                                        <td>{% if church_biography %}{{ church_biography.vision|default:"<span class='text-muted'>-</span>"|truncatewords:15 }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Image :</strong></td>
-                                        <td>
-                                            {% if church_biography and church_biography.image %}
-                                            <span class="badge bg-success">Oui</span>
-                                            {% else %}
-                                            <span class="badge bg-secondary">Non</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
+                    </form>
                 </div>
+
+                <!-- Onglet À propos -->
+                <div class="tab-pane fade {% if active_tab == 'about' %}show active{% endif %}" id="about" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="text-dark mb-0"><i class="bi bi-file-text me-2"></i>Page À propos</h5>
+                        <a href="{% url 'church-biography' %}" class="btn btn-primary">
+                            <i class="bi bi-pencil me-2"></i>Modifier la biographie
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        La page "À propos" présente l'histoire, la mission, la vision et les valeurs de votre église. 
+                        Cette page est accessible publiquement sur le site.
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-building me-2 text-primary"></i>Biographie de l'église</h6>
+                                    <p class="card-text text-muted small">Gérez le contenu principal de la page À propos : titre, sous-titre, contenu, image, mission, vision et valeurs.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="bi bi-eye me-2 text-success"></i>Aperçu</h6>
+                                    {% if church_biography %}
+                                    <p class="mb-1"><strong>{{ church_biography.title }}</strong></p>
+                                    <p class="text-muted small mb-0">{{ church_biography.content|truncatewords:20 }}</p>
+                                    {% else %}
+                                    <p class="text-muted small">Aucune biographie configurée.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Informations affichées sur la page À propos</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td width="30%"><strong>Titre :</strong></td>
+                                    <td>{% if church_biography %}{{ church_biography.title }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sous-titre :</strong></td>
+                                    <td>{% if church_biography %}{{ church_biography.subtitle|default:"<span class='text-muted'>-</span>" }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mission :</strong></td>
+                                    <td>{% if church_biography %}{{ church_biography.mission|default:"<span class='text-muted'>-</span>"|truncatewords:15 }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Vision :</strong></td>
+                                    <td>{% if church_biography %}{{ church_biography.vision|default:"<span class='text-muted'>-</span>"|truncatewords:15 }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Image :</strong></td>
+                                    <td>
+                                        {% if church_biography and church_biography.image %}
+                                        <span class="badge bg-success">Oui</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Non</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end mt-4">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Retour au tableau de bord</a>
+                    </div>
+                </div>
+
             </div>
         </div>
-
-        <!-- Actions -->
-        <div class="d-flex gap-2 justify-content-end">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">
-                <i class="bi bi-x-lg me-2"></i>Annuler
-            </a>
-            <button type="submit" class="btn btn-primary px-4">
-                <i class="bi bi-check-lg me-2"></i>Enregistrer les modifications
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}

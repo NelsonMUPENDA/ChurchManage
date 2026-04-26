@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Présence</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm 1cm;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+            color: #333;
+        }
+        /* Header professionnel */
+        .document-header {
+            border: 2px solid #1a5276;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo-section {
+            width: 80px;
+            text-align: center;
+        }
+        .logo {
+            max-height: 70px;
+            max-width: 70px;
+        }
+        .church-section {
+            flex: 1;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .church-name {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #1a5276;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .church-slogan {
+            font-size: 9pt;
+            color: #5d6d7e;
+            font-style: italic;
+            margin-top: 3px;
+        }
+        .contact-info {
+            font-size: 8pt;
+            color: #666;
+            margin-top: 8px;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+        }
+        .report-meta {
+            text-align: right;
+            font-size: 8pt;
+            color: #666;
+        }
+        /* Titre du rapport */
+        .report-title-box {
+            background-color: #1a5276;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .report-title {
+            font-size: 14pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .report-subtitle {
+            font-size: 9pt;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        /* Statistiques modernes */
+        .stats-container {
+            margin: 20px 0;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .stat-card {
+            width: 32%;
+            text-align: center;
+            border-radius: 6px;
+            padding: 15px 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card.total-card {
+            background-color: #ebf5fb;
+            border-left: 4px solid #1a5276;
+        }
+        .stat-card.present-card {
+            background-color: #d5f5e3;
+            border-left: 4px solid #28a745;
+        }
+        .stat-card.rate-card {
+            background-color: #fef9e7;
+            border-left: 4px solid #f39c12;
+        }
+        .stat-value {
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .stat-value.total { color: #1a5276; }
+        .stat-value.present { color: #28a745; }
+        .stat-value.rate { color: #f39c12; }
+        .stat-label {
+            font-size: 8pt;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+        /* Tableau amélioré */
+        .table-container {
+            margin-top: 20px;
+        }
+        .table-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #1a5276;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+        th {
+            background-color: #1a5276;
+            color: white;
+            padding: 10px 6px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        /* Badges */
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 7pt;
+            font-weight: bold;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        /* Footer */
+        .footer-note {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 7pt;
+            color: #999;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-header">
+        <div class="header-top">
+            <div class="logo-section">
+                {% if church_settings and church_settings.logo %}
+                <img src="{{ church_settings.logo.url }}" alt="Logo" class="logo">
+                {% endif %}
+            </div>
+            <div class="church-section">
+                <div class="church-name">{{ church_settings.church_name|default:"Église" }}</div>
+                {% if church_settings.church_slogan %}
+                <div class="church-slogan">{{ church_settings.church_slogan }}</div>
+                {% endif %}
+                <div class="contact-info">
+                    {% if church_settings.address %}{{ church_settings.address }}{% endif %}
+                    {% if church_settings.city %}, {{ church_settings.city }}{% endif %}
+                    {% if church_settings.phone_primary %} | Tél: {{ church_settings.phone_primary }}{% endif %}
+                    {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+                </div>
+            </div>
+            <div class="report-meta">
+                <strong>Document de Présence</strong><br>
+                Réf: PRES-{{ now|date:"Ymd" }}<br>
+                {{ now|date:"d/m/Y H:i" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="report-title-box">
+        <div class="report-title">Rapport de Présence</div>
+        <div class="report-subtitle">
+            {% if date_from and date_to %}
+            Période du {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}
+            {% else %}
+            Rapport complet à date du {{ now|date:"d/m/Y" }}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="stats-row">
+            <div class="stat-card total-card">
+                <div class="stat-value total">{{ total }}</div>
+                <div class="stat-label">Total Enregistrements</div>
+            </div>
+            <div class="stat-card present-card">
+                <div class="stat-value present">{{ present }}</div>
+                <div class="stat-label">Présences</div>
+            </div>
+            <div class="stat-card rate-card">
+                <div class="stat-value rate">{{ rate }}%</div>
+                <div class="stat-label">Taux de Présence</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-title">Registre des Présences</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Événement</th>
+                    <th style="width: 12%;">Date</th>
+                    <th style="width: 30%;">Membre</th>
+                    <th style="width: 15%;">Contact</th>
+                    <th style="width: 18%;">Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attendance in attendances %}
+                <tr>
+                    <td><strong>{{ attendance.event.title }}</strong></td>
+                    <td>{{ attendance.event.date|date:"d/m/Y" }}</td>
+                    <td>{{ attendance.member.get_full_name }}</td>
+                    <td>{{ attendance.member.phone|default:"-" }}</td>
+                    <td>
+                        {% if attendance.attended %}
+                            <span class="badge badge-success">PRÉSENT</span>
+                        {% else %}
+                            <span class="badge badge-danger">ABSENT</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-note">
+        Ce document est généré automatiquement par le système de gestion de l'église. | {{ church_settings.church_name|default:"Église" }}
+    </div>
+</body>
+</html>
