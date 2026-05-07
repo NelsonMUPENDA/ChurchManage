@@ -7,6 +7,9 @@ ENV/
 # Fichiers de cache
 .cache/
 *.cache
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Fichiers temporaires
 tmp/
