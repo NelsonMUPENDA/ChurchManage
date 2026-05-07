@@ -1,59 +1,9 @@
+{% extends 'base_public.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %} - Église Évangélique</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/public.css' %}">
-<body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg fixed-top cpd-navbar">
-        <div class="container">
-            <a class="cpd-navbar-brand" href="{% url 'home' %}">
-                <div class="logo-icon">
-                    {% if church_settings and church_settings.logo %}
-                    <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                    {% else %}
-                    <i class="bi bi-layers"></i>
-                    {% endif %}
-                </div>
-                <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="publicNav">
-                <ul class="navbar-nav ms-auto align-items-center cpd-nav-container" id="navContainer">
-                    <!-- Nav items injected by JS -->
-                </ul>
-                <div class="ms-lg-3 mt-2 mt-lg-0 d-flex align-items-center gap-2">
-                    <!-- Theme Toggle -->
-                    <button class="cpd-theme-toggle" id="themeToggle" type="button" aria-label="Changer le thème">
-                        <i class="bi bi-sun" id="themeIconLight"></i>
-                        <i class="bi bi-moon" id="themeIconDark" style="display: none;"></i>
-                    </button>
-                    <div id="authButton">
-                        {% if user.is_authenticated %}
-                        <a href="{% url 'dashboard' %}" class="btn btn-primary">
-                            <i class="bi bi-grid me-1"></i>
-                            Mon Espace
-                        </a>
-                        {% else %}
-                        <a href="{% url 'login' %}" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>
-                            Se Connecter
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
 
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
     <!-- Hero Section -->
     <section class="cpd-hero">
         <div class="container cpd-hero-content">
@@ -64,14 +14,14 @@
                         {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}, RDC
                     </span>
                     <h1 class="cpd-hero-title cpd-animate-delay-1">
-                        Bienvenue à<br>{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}
+                        Bienvenue à<br> L' {% if church_settings %}{{ church_settings.church_name }}{% else %}Eglise Consolation et Paix Divine{% endif %}
                     </h1>
                     <p class="cpd-hero-description cpd-animate-delay-2">
                         {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service. Rejoignez-nous pour vivre une expérience de foi authentique.{% endif %}
                     </p>
                     <div class="d-flex flex-wrap gap-3 cpd-animate-delay-3">
-                        <a href="{% url 'event-list' %}" class="cpd-btn-hero cpd-btn-hero-light">
-                            <i class="bi bi-calendar-event"></i>Nos Programmes
+                        <a href="{% url 'public-events' %}" class="cpd-btn-hero cpd-btn-hero-light">
+                            <i class="bi bi-calendar-event"></i>Nos Evenements
                         </a>
                         <a href="{% url 'contact' %}" class="cpd-btn-hero cpd-btn-hero-outline">
                             <i class="bi bi-envelope"></i>Nous Contacter
@@ -82,49 +32,48 @@
         </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Features Section - Activités dynamiques -->
     <section class="cpd-section cpd-section-alt">
         <div class="container">
-            <h2 class="cpd-section-title">Nos Activités</h2>
-            <p class="cpd-section-subtitle">Découvrez ce que nous offrons à notre communauté</p>
+            <h2 class="cpd-section-title">{% if church_settings and church_settings.activities_section_title %}{{ church_settings.activities_section_title }}{% else %}Nos Activités{% endif %}</h2>
+            <p class="cpd-section-subtitle">{% if church_settings and church_settings.activities_section_subtitle %}{{ church_settings.activities_section_subtitle }}{% else %}Découvrez ce que nous offrons à notre communauté{% endif %}</p>
             <div class="row g-4">
+                {% for activity in activities %}
                 <div class="col-md-4">
                     <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon primary">
-                            <i class="bi bi-book"></i>
+                        <div class="cpd-feature-icon {{ activity.color }}">
+                            <i class="bi {{ activity.icon }}"></i>
                         </div>
-                        <h5 class="cpd-feature-title">Étude Biblique</h5>
-                        <p class="cpd-feature-text">Approfondissez votre compréhension des Écritures avec nos études interactives et enrichissantes.</p>
+                        <h5 class="cpd-feature-title">{{ activity.title }}</h5>
+                        <p class="cpd-feature-text">{{ activity.description }}</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon success">
-                            <i class="bi bi-heart"></i>
-                        </div>
-                        <h5 class="cpd-feature-title">Actions Sociales</h5>
-                        <p class="cpd-feature-text">Participez à nos initiatives de solidarité et de soutien aux plus démunis de notre communauté.</p>
-                    </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <p class="text-muted">Aucune activité configurée pour le moment.</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="cpd-feature-card">
-                        <div class="cpd-feature-icon warning">
-                            <i class="bi bi-people"></i>
-                        </div>
-                        <h5 class="cpd-feature-title">Communauté</h5>
-                        <p class="cpd-feature-text">Rejoignez une famille de croyants unis par la foi et l'amour du Christ.</p>
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </section>
 
-    <!-- Service Times Section -->
+    <!-- Service Times Section - Horaires dynamiques -->
     <section class="cpd-section">
         <div class="container">
             <div class="row g-5">
                 <div class="col-lg-6">
                     <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 2rem;">Horaires des Cultes</h2>
+                    {% for service in church_services %}
+                    {% if service.is_active %}
+                    <div class="cpd-service-item">
+                        <div class="cpd-service-info">
+                            <h6>{{ service.title }}</h6>
+                            <small>{{ service.description|default:"" }}</small>
+                        </div>
+                        <span class="cpd-service-badge {{ service.color }}">{{ service.day }} {{ service.time }}</span>
+                    </div>
+                    {% endif %}
+                    {% empty %}
                     <div class="cpd-service-item">
                         <div class="cpd-service-info">
                             <h6>Culte Dominical</h6>
@@ -153,232 +102,81 @@
                         </div>
                         <span class="cpd-service-badge info">Sam 14h00 - 16h00</span>
                     </div>
+                    {% endfor %}
                 </div>
                 <div class="col-lg-6">
-                    <h2 class="cpd-section-title" style="text-align: left; margin-bottom: 2rem;">Prochains Événements</h2>
-                    <div id="upcomingEvents">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Chargement...</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-center mt-4">
-                        <a href="{% url 'event-list' %}" class="btn btn-outline-primary">
-                            Voir tous les événements <i class="bi bi-arrow-right ms-2"></i>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="cpd-section-title mb-0" style="text-align: left;">Prochains Événements</h2>
+                        <a href="{% url 'public-events' %}" class="btn btn-sm btn-outline-primary">
+                            Voir tout <i class="bi bi-arrow-right ms-1"></i>
                         </a>
+                    </div>
+                    <div id="upcomingEvents" class="d-flex flex-column gap-3">
+                        {% for event in upcoming_events|slice:":4" %}
+                        <div class="cpd-event-card">
+                            <div class="cpd-event-date-box">
+                                <span class="cpd-event-day">{{ event.date|date:"d" }}</span>
+                                <span class="cpd-event-month">{{ event.date|date:"M" }}</span>
+                            </div>
+                            <div class="cpd-event-details">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <h6 class="cpd-event-title mb-0">{{ event.title }}</h6>
+                                    {% if forloop.first %}
+                                    <span class="badge bg-danger">Prochain</span>
+                                    {% endif %}
+                                </div>
+                                <div class="cpd-event-meta">
+                                    <span class="cpd-event-time">
+                                        <i class="bi bi-clock-fill"></i>{{ event.time|time:"H:i" }}
+                                    </span>
+                                    {% if event.location %}
+                                    <span class="cpd-event-location">
+                                        <i class="bi bi-geo-alt-fill"></i>{{ event.location }}
+                                    </span>
+                                    {% endif %}
+                                    {% if event.event_type %}
+                                    <span class="cpd-event-type badge bg-light text-dark">
+                                        {{ event.get_event_type_display }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if event.description %}
+                                <p class="cpd-event-desc">{{ event.description|truncatechars:80 }}</p>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'public-events' %}" class="cpd-event-link">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5 cpd-empty-state">
+                            <div class="cpd-empty-icon">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <h6 class="text-muted">Aucun événement à venir</h6>
+                            <p class="text-muted small mb-0">Revenez bientôt pour découvrir nos prochaines activités</p>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Call to Action -->
+    <!-- Call to Action - Section dynamique -->
     <section class="cpd-cta">
         <div class="container cpd-cta-content">
             <div class="row align-items-center">
                 <div class="col-lg-8">
-                    <h2 class="cpd-cta-title">Rejoignez notre communauté</h2>
-                    <p class="cpd-cta-text">Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.</p>
+                    <h2 class="cpd-cta-title">{% if church_settings and church_settings.cta_title %}{{ church_settings.cta_title }}{% else %}Rejoignez notre communauté{% endif %}</h2>
+                    <p class="cpd-cta-text">{% if church_settings and church_settings.cta_subtitle %}{{ church_settings.cta_subtitle }}{% else %}Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.{% endif %}</p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
                     <a href="{% url 'contact' %}" class="cpd-cta-btn">
-                        <i class="bi bi-envelope"></i>Nous Contacter
+                        <i class="bi bi-envelope"></i>{% if church_settings and church_settings.cta_button_text %}{{ church_settings.cta_button_text }}{% else %}Nous Contacter{% endif %}
                     </a>
                 </div>
             </div>
         </div>
     </section>
-
-    <!-- Footer -->
-    <footer class="cpd-footer">
-        <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="cpd-footer-brand">
-                        <div class="logo-icon">
-                            {% if church_settings and church_settings.logo %}
-                            <img src="{{ church_settings.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                            {% else %}
-                            <i class="bi bi-layers"></i>
-                            {% endif %}
-                        </div>
-                        <span class="logo-text">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</span>
-                    </div>
-                    <p class="cpd-footer-text">
-                        {% if church_settings and church_settings.church_slogan %}{{ church_settings.church_slogan }}{% else %}Une communauté chrétienne dédiée à l'édification spirituelle, à l'amour fraternel et au service.{% endif %}
-                    </p>
-                </div>
-                <div class="col-lg-2 col-md-4">
-                    <h6 class="cpd-footer-title">Liens Rapides</h6>
-                    <ul class="cpd-footer-links">
-                        <li><a href="{% url 'home' %}">Accueil</a></li>
-                        <li><a href="{% url 'about' %}">À Propos</a></li>
-                        <li><a href="{% url 'event-list' %}">Événements</a></li>
-                        <li><a href="{% url 'contact' %}">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-4">
-                    <h6 class="cpd-footer-title">Contact</h6>
-                    <ul class="cpd-footer-contact">
-                        <li>
-                            <i class="bi bi-geo-alt"></i>
-                            <span>{% if church_settings and church_settings.address %}{{ church_settings.address }}{% else %}123 Avenue de la Foi{% endif %}, {% if church_settings %}{{ church_settings.city }}{% else %}Kinshasa{% endif %}</span>
-                        </li>
-                        <li>
-                            <i class="bi bi-telephone"></i>
-                            <span>{% if church_settings and church_settings.phone_primary %}{{ church_settings.phone_primary }}{% else %}+243 99 999 9999{% endif %}</span>
-                        </li>
-                        <li>
-                            <i class="bi bi-envelope"></i>
-                            <span>{% if church_settings and church_settings.email_primary %}{{ church_settings.email_primary }}{% else %}contact@consolationetpaix.org{% endif %}</span>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-4">
-                    <h6 class="cpd-footer-title">Réseaux Sociaux</h6>
-                    <div class="cpd-social-links">
-                        {% if church_settings and church_settings.facebook_url %}
-                        <a href="{{ church_settings.facebook_url }}" target="_blank" class="cpd-social-btn" aria-label="Facebook">
-                            <i class="bi bi-facebook"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.youtube_url %}
-                        <a href="{{ church_settings.youtube_url }}" target="_blank" class="cpd-social-btn" aria-label="YouTube">
-                            <i class="bi bi-youtube"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.instagram_url %}
-                        <a href="{{ church_settings.instagram_url }}" target="_blank" class="cpd-social-btn" aria-label="Instagram">
-                            <i class="bi bi-instagram"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.twitter_url %}
-                        <a href="{{ church_settings.twitter_url }}" target="_blank" class="cpd-social-btn" aria-label="Twitter">
-                            <i class="bi bi-twitter"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.whatsapp_number %}
-                        <a href="https://wa.me/{{ church_settings.whatsapp_number }}" target="_blank" class="cpd-social-btn" aria-label="WhatsApp">
-                            <i class="bi bi-whatsapp"></i>
-                        </a>
-                        {% endif %}
-                        {% if church_settings and church_settings.telegram_url %}
-                        <a href="{{ church_settings.telegram_url }}" target="_blank" class="cpd-social-btn" aria-label="Telegram">
-                            <i class="bi bi-telegram"></i>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            <div class="cpd-footer-bottom">
-                <p class="cpd-footer-copyright">
-                    © {% now "Y" %} {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}. Tous droits réservés.
-                </p>
-                <p class="cpd-footer-copyright">
-                    Propulsé par <a href="https://www.mupenda.cd" style="color: var(--cpd-primary);">Mupenda Company</a>
-                </p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/api.js' %}"></script>
-    <script src="{% static 'js/utils.js' %}"></script>
-    <script src="{% static 'js/toast.js' %}"></script>
-    <script src="{% static 'js/auth.js' %}"></script>
-    <script src="{% static 'js/navigation.js' %}"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize navigation
-            if (window.Navigation) {
-                Navigation.renderPublic('navContainer', 'index.html');
-            }
-
-            // Load upcoming events
-            loadUpcomingEvents();
-
-            // Initialize theme
-            initTheme();
-        });
-
-        // Theme toggle functionality
-        function initTheme() {
-            const themeToggle = document.getElementById('themeToggle');
-            const themeIconLight = document.getElementById('themeIconLight');
-            const themeIconDark = document.getElementById('themeIconDark');
-            const html = document.documentElement;
-            
-            // ALWAYS start with dark mode on page load
-            // localStorage is only used to remember choice after user clicks
-            let savedTheme = 'dark';
-            setTheme(savedTheme);
-            
-            themeToggle.addEventListener('click', function() {
-                const currentTheme = html.getAttribute('data-bs-theme');
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                setTheme(newTheme);
-                // Only save to localStorage after user interaction
-                localStorage.setItem('cpd_theme', newTheme);
-            });
-            
-            function setTheme(theme) {
-                html.setAttribute('data-bs-theme', theme);
-                
-                if (theme === 'dark') {
-                    themeIconLight.style.display = 'none';
-                    themeIconDark.style.display = 'inline';
-                } else {
-                    themeIconLight.style.display = 'inline';
-                    themeIconDark.style.display = 'none';
-                }
-            }
-        }
-
-        async function loadUpcomingEvents() {
-            try {
-                const response = await API.api.get('/api/events/', { upcoming: 'true', limit: 3 });
-                const events = Array.isArray(response) ? response : response.results || [];
-                
-                const container = document.getElementById('upcomingEvents');
-                
-                if (events.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="bi bi-calendar-x fs-1 text-muted mb-2 d-block"></i>
-                            <p class="text-muted mb-0">Aucun événement à venir</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = events.slice(0, 3).map(event => `
-                    <div class="cpd-event-item">
-                        <div class="cpd-event-date">
-                            <div class="day">${new Date(event.date).getDate()}</div>
-                            <div class="month">${new Date(event.date).toLocaleDateString('fr-FR', { month: 'short' })}</div>
-                        </div>
-                        <div class="cpd-event-content">
-                            <h6>${event.title}</h6>
-                            <p>${event.description ? event.description.substring(0, 60) + '...' : ''}</p>
-                            <small>
-                                <i class="bi bi-clock me-1"></i>${event.time || 'Heure non définie'}
-                            </small>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Failed to load events:', error);
-                document.getElementById('upcomingEvents').innerHTML = `
-                    <div class="text-center py-4 text-muted">
-                        <i class="bi bi-exclamation-circle fs-1 mb-2 d-block"></i>
-                        <p class="mb-0">Impossible de charger les événements</p>
-                    </div>
-                `;
-            }
-        }
-    </script>
-</body>
-</html>
+{% endblock content %}

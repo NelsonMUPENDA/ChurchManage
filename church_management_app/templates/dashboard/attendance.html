@@ -1,0 +1,899 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permissions_tags %}
+
+{% block title %}Pointage - {{ event.title }}{% endblock %}
+{% block page_title %}Pointage des Présences{% endblock %}
+{% block page_subtitle %}{{ event.title }} - {{ event.date|date:"d/m/Y" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-card {
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: all 0.3s ease;
+    }
+    .attendance-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    .member-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .member-item:hover {
+        background: #f8fafc;
+    }
+    .member-item.present {
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .member-item.absent {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .check-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border: 2px solid #e2e8f0;
+        background: white;
+    }
+    .check-btn.present {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    .check-btn.absent {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .search-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .progress-ring {
+        width: 120px;
+        height: 120px;
+        position: relative;
+    }
+    .progress-ring svg {
+        transform: rotate(-90deg);
+    }
+    .progress-ring-bg {
+        fill: none;
+        stroke: #e2e8f0;
+        stroke-width: 8;
+    }
+    .progress-ring-fill {
+        fill: none;
+        stroke: #10b981;
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Messages -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+        <i class="bi bi-info-circle me-2"></i>{{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <!-- Left Column - Stats & Info -->
+    <div class="col-lg-4">
+        <!-- Event Info -->
+        <div class="card attendance-card mb-4">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3">{{ event.title }}</h6>
+                <p class="text-muted small mb-3">{{ event.description|truncatewords:30|default:"Aucune description" }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-calendar me-1"></i>{{ event.date|date:"d/m/Y" }}
+                    </span>
+                    <span class="badge bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-clock me-1"></i>{{ event.time|time:"H:i" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Ring -->
+        <div class="card attendance-card mb-4">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-pie-chart me-2"></i>Taux de présence global</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="progress-ring mx-auto mb-3">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                        <circle class="progress-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="progress-ring-fill" cx="60" cy="60" r="52"
+                                stroke-dasharray="326.73"
+                                stroke-dashoffset="{{ attendance_offset|default:326.73 }}"/>
+                    </svg>
+                    <div class="progress-text">
+                        <span class="h3 fw-bold text-success" id="global-rate">{{ attendance_rate|default:"0" }}%</span>
+                        <small class="text-muted d-block">présents</small>
+                    </div>
+                </div>
+
+                <!-- Combined Stats -->
+                <div class="alert alert-light border mb-3">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-primary fw-bold fs-5" id="member-presence-count">{{ present_count|default:0 }}</div>
+                            <small class="text-muted">Membres</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-info fw-bold fs-5" id="demo-presence-count">{{ demographic_total|default:0 }}</div>
+                            <small class="text-muted">Compteurs</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-success fw-bold fs-5" id="total-presence-count">{{ total_presence|default:0 }}</div>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <div class="text-center">
+                        <span class="badge bg-success">{{ present_count|default:"0" }}</span>
+                        <small class="text-muted d-block">Présents</small>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge bg-danger">{{ absent_count|default:"0" }}</span>
+                        <small class="text-muted d-block">Absents</small>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge bg-secondary">{{ not_marked_count|default:total_members }}</span>
+                        <small class="text-muted d-block">Non pointés</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demographic Counters Form -->
+        <div class="card attendance-card mb-4">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-bar-chart-line me-2"></i>Compteurs démographiques
+                </h6>
+            </div>
+            <div class="card-body pt-0">
+                <form method="post" action="{% url 'attendance-event' event.pk %}">
+                    {% csrf_token %}
+                    <div class="row g-2">
+                        <!-- Hommes -->
+                        <div class="col-6">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-person-standing fs-5 text-primary me-2"></i>
+                                    <span class="fw-semibold small">Hommes</span>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Adultes</label>
+                                    {{ aggregate_form.male_adults }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Jeunes</label>
+                                    {{ aggregate_form.young_men }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Enfants</label>
+                                    {{ aggregate_form.male_children }}
+                                </div>
+                                <div>
+                                    <label class="form-label small text-muted mb-1">Âgés (Papas)</label>
+                                    {{ aggregate_form.elderly_men }}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Femmes -->
+                        <div class="col-6">
+                            <div class="p-2 bg-danger bg-opacity-10 rounded-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-person-standing-dress fs-5 text-danger me-2"></i>
+                                    <span class="fw-semibold small">Femmes</span>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Adultes</label>
+                                    {{ aggregate_form.female_adults }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Jeunes filles</label>
+                                    {{ aggregate_form.young_women }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted mb-1">Enfants</label>
+                                    {{ aggregate_form.female_children }}
+                                </div>
+                                <div>
+                                    <label class="form-label small text-muted mb-1">Âgées (Mamas)</label>
+                                    {{ aggregate_form.elderly_women }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Totaux -->
+                    {% if aggregate %}
+                    <div class="mt-3 p-2 bg-light rounded-3">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="text-primary fw-bold">{{ aggregate.total_men|default:0 }}</div>
+                                <small class="text-muted">Total Hommes</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-danger fw-bold">{{ aggregate.total_women|default:0 }}</div>
+                                <small class="text-muted">Total Femmes</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-success fw-bold fs-5">{{ aggregate.grand_total|default:0 }}</div>
+                                <small class="text-muted">Total Général</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                        <i class="bi bi-save me-2"></i>Enregistrer les compteurs
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="d-grid gap-2 mb-3">
+            <form method="post" action="{% url 'attendance-event' event.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_all_present">
+                <button type="submit" class="btn btn-success w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                    <i class="bi bi-check-all me-2"></i>Tous présents
+                </button>
+            </form>
+            <form method="post" action="{% url 'attendance-event' event.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="mark_all_absent">
+                <button type="submit" class="btn btn-danger w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                    <i class="bi bi-x-square me-2"></i>Tous absents
+                </button>
+            </form>
+            <form method="post" action="{% url 'attendance-event' event.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reset">
+                <button type="submit" class="btn btn-outline-secondary w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                </button>
+            </form>
+        </div>
+
+        <!-- Export & Tools -->
+        <div class="card attendance-card mb-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-tools me-2"></i>Outils</h6>
+            </div>
+            <div class="card-body pt-0">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="openScanModal()" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                        <i class="bi bi-qr-code-scan me-2"></i>Scan QR Code
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="exportToCSV()" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                        <i class="bi bi-filetype-csv me-2"></i>Export CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="window.print()">
+                        <i class="bi bi-printer me-2"></i>Imprimer
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="toggleCompactMode()">
+                        <i class="bi bi-phone me-2"></i>Mode Compact
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="card attendance-card mb-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-graph-up me-2"></i>Stats Temps Réel</h6>
+            </div>
+            <div class="card-body pt-0">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Taux de réponse</span>
+                        <span id="response-rate">0%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" id="response-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Présents vs Absents</span>
+                        <span id="present-ratio">0:0</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" id="present-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="alert alert-light border mb-0">
+                    <small class="text-muted d-block mb-1">Dernière activité:</small>
+                    <span id="last-activity" class="small fw-medium">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Log -->
+        <div class="card attendance-card">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Activité Récente</h6>
+            </div>
+            <div class="card-body pt-0" style="max-height: 200px; overflow-y: auto;">
+                <div id="activity-log" class="vstack gap-2 small">
+                    <div class="text-muted text-center py-3">Aucune activité récente</div>
+                </div>
+            </div>
+        </div>
+
+        <a href="{% url 'event-detail' event.pk %}" class="btn btn-outline-primary w-100 mt-3">
+            <i class="bi bi-arrow-left me-2"></i>Retour à l'événement
+        </a>
+    </div>
+
+    <!-- Right Column - Attendance List -->
+    <div class="col-lg-8">
+        <div class="card attendance-card">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2"></i>Liste des membres</h6>
+                <div class="d-flex gap-2">
+                    <span class="stat-pill bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check-circle"></i>{{ present_count|default:"0" }} Présents
+                    </span>
+                    <span class="stat-pill bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-x-circle"></i>{{ absent_count|default:"0" }} Absents
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Search -->
+            <div class="card-body pt-0 pb-3">
+                <div class="search-box mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-transparent border-0" id="memberSearch" 
+                               placeholder="Rechercher un membre..." onkeyup="filterMembers()">
+                    </div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="d-flex gap-2 mb-3">
+                    <button class="btn btn-sm btn-outline-primary active" onclick="filterByStatus('all')" id="filter-all">Tous</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="filterByStatus('present')" id="filter-present">Présents</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="filterByStatus('absent')" id="filter-absent">Absents</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="filterByStatus('pending')" id="filter-pending">Non pointés</button>
+                </div>
+
+                <!-- Total Summary - Combined -->
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong><i class="bi bi-calculator me-2"></i>Présences totales:</strong>
+                        <span class="fs-5 fw-bold text-success">{{ total_presence|default:0 }}</span>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <small class="text-muted">Membres pointés:</small>
+                            <div class="fw-bold text-primary" id="summary-member-count">{{ present_count|default:0 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Compteurs démo:</small>
+                            <div class="fw-bold text-info" id="summary-demo-count">{{ demographic_total|default:0 }}</div>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <div class="text-center">
+                        <small class="text-muted">Taux global de présence:</small>
+                        <div class="fs-4 fw-bold text-success">{{ attendance_rate|default:0 }}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members List -->
+            <div class="card-body pt-0" style="max-height: 600px; overflow-y: auto;">
+                <form method="post" action="{% url 'attendance-event' event.pk %}">
+                    {% csrf_token %}
+                    <div class="vstack gap-2" id="membersList">
+                        {% for member in members %}
+                        {% with attendance=member_attendance|get_item:member.pk %}
+                        <div class="member-item {% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% endif %}" 
+                             data-member-id="{{ member.pk }}"
+                             data-status="{% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% else %}pending{% endif %}">
+                            <div class="d-flex align-items-center flex-grow-1">
+                                {% if member.photo %}
+                                <img src="{{ member.photo.url }}" class="rounded-circle me-3" width="48" height="48" alt="">
+                                {% else %}
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                                    <i class="bi bi-person text-primary fs-5"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">{{ member.get_full_name }}</h6>
+                                    <small class="text-muted">{{ member.member_number }}</small>
+                                    {% if attendance and attendance.checked_in_at %}
+                                    <small class="text-success d-block"><i class="bi bi-clock me-1"></i>{{ attendance.checked_in_at|time:"H:i" }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button"
+                                        onclick="markAttendance('{{ member.pk }}', 'present', this)"
+                                        data-member-id="{{ member.pk }}"
+                                        data-action="present"
+                                        class="check-btn present-btn {% if attendance and attendance.attended %}present{% endif %}" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="button"
+                                        onclick="markAttendance('{{ member.pk }}', 'absent', this)"
+                                        data-member-id="{{ member.pk }}"
+                                        data-action="absent"
+                                        class="check-btn absent-btn {% if attendance and not attendance.attended %}absent{% endif %}" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% empty %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+                            <p class="text-muted">Aucun membre actif</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canEditDiaconat = {{ user|can:'diaconat.edit'|yesno:"true,false" }};
+// Global counters from Django template
+var presentCount = parseInt('{{ present_count|default:0 }}') || 0;
+var absentCount = parseInt('{{ absent_count|default:0 }}') || 0;
+var totalMembers = parseInt('{{ total_members|default:0 }}') || 0;
+var demographicTotal = parseInt('{{ demographic_total|default:0 }}') || 0;
+var totalPresence = parseInt('{{ total_presence|default:0 }}') || 0;
+var globalRate = parseInt('{{ attendance_rate|default:0 }}') || 0;
+
+function filterMembers() {
+    const searchTerm = document.getElementById('memberSearch').value.toLowerCase();
+    const items = document.querySelectorAll('.member-item');
+
+    items.forEach(item => {
+        const name = item.querySelector('h6').textContent.toLowerCase();
+        const number = item.querySelector('small').textContent.toLowerCase();
+        if (name.includes(searchTerm) || number.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function filterByStatus(status) {
+    // Update active button
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('filter-' + status).classList.add('active');
+
+    // Filter items
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        const itemStatus = item.getAttribute('data-status');
+        if (status === 'all' || itemStatus === status) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function markAttendance(memberId, action, button) {
+    if (!canEditDiaconat) {
+        alert('Permission refusée.');
+        return;
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('member_id', memberId);
+    formData.append('action', action);
+
+    // Send AJAX request
+    fetch('{% url "attendance-event" event.pk %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateUI(memberId, action, data);
+        } else {
+            alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fallback: reload page if AJAX fails
+        window.location.reload();
+    });
+}
+
+function updateUI(memberId, action, data) {
+    const memberItem = document.querySelector(`[data-member-id="${memberId}"]`);
+    if (!memberItem) return;
+
+    const presentBtn = memberItem.querySelector('.present-btn');
+    const absentBtn = memberItem.querySelector('.absent-btn');
+
+    // Update button styles
+    if (action === 'present') {
+        presentBtn.classList.add('present');
+        absentBtn.classList.remove('absent');
+        memberItem.classList.remove('absent');
+        memberItem.classList.add('present');
+        memberItem.setAttribute('data-status', 'present');
+    } else {
+        absentBtn.classList.add('absent');
+        presentBtn.classList.remove('present');
+        memberItem.classList.remove('present');
+        memberItem.classList.add('absent');
+        memberItem.setAttribute('data-status', 'absent');
+    }
+
+    // Update counters from server response
+    if (data.present_count !== undefined) {
+        presentCount = data.present_count;
+        absentCount = data.absent_count;
+        demographicTotal = data.demographic_total || demographicTotal;
+        totalPresence = data.total_presence || totalPresence;
+        globalRate = data.global_rate || globalRate;
+        updateCounters();
+    }
+}
+
+function updateCounters() {
+    // Update badge counts in header
+    const presentBadge = document.querySelector('.stat-pill.bg-success');
+    const absentBadge = document.querySelector('.stat-pill.bg-danger');
+
+    if (presentBadge) {
+        presentBadge.innerHTML = `<i class="bi bi-check-circle"></i>${presentCount} Présents`;
+    }
+    if (absentBadge) {
+        absentBadge.innerHTML = `<i class="bi bi-x-circle"></i>${absentCount} Absents`;
+    }
+
+    // Update combined stats in progress ring section
+    const memberPresenceCount = document.getElementById('member-presence-count');
+    const demoPresenceCount = document.getElementById('demo-presence-count');
+    const totalPresenceCount = document.getElementById('total-presence-count');
+    const globalRateElement = document.getElementById('global-rate');
+
+    if (memberPresenceCount) memberPresenceCount.textContent = presentCount;
+    if (demoPresenceCount) demoPresenceCount.textContent = demographicTotal;
+    if (totalPresenceCount) totalPresenceCount.textContent = totalPresence;
+
+    // Update summary section
+    const summaryMemberCount = document.getElementById('summary-member-count');
+    const summaryDemoCount = document.getElementById('summary-demo-count');
+    if (summaryMemberCount) summaryMemberCount.textContent = presentCount;
+    if (summaryDemoCount) summaryDemoCount.textContent = demographicTotal;
+
+    // Update progress ring with global rate
+    const progressRing = document.querySelector('.progress-ring-fill');
+
+    if (globalRateElement) {
+        globalRateElement.textContent = globalRate + '%';
+    }
+
+    if (progressRing) {
+        const circumference = 326.73;
+        const offset = circumference - (globalRate / 100) * circumference;
+        progressRing.style.strokeDashoffset = offset;
+    }
+
+    // Update not marked count
+    const notMarkedCount = totalMembers - presentCount - absentCount;
+    const notMarkedBadges = document.querySelectorAll('.badge.bg-secondary');
+    notMarkedBadges.forEach(badge => {
+        if (badge.textContent.includes('Non pointé') || badge.closest('.text-center')?.querySelector('small')?.textContent.includes('Non pointé')) {
+            badge.textContent = notMarkedCount;
+        }
+    });
+}
+
+// Custom template filters for JavaScript
+// Note: Math operations done client-side
+
+// ===== NOUVELLES FONCTIONNALITÉS =====
+
+// Activity log to track recent actions
+let activityLog = [];
+
+function addActivityLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    activityLog.unshift({ message, type, timestamp });
+    if (activityLog.length > 10) activityLog.pop();
+    renderActivityLog();
+}
+
+function renderActivityLog() {
+    const container = document.getElementById('activity-log');
+    if (!container) return;
+
+    if (activityLog.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center py-3">Aucune activité récente</div>';
+        return;
+    }
+
+    container.innerHTML = activityLog.map(log => {
+        const iconClass = log.type === 'success' ? 'bi-check-circle text-success' :
+                         log.type === 'error' ? 'bi-x-circle text-danger' :
+                         log.type === 'warning' ? 'bi-exclamation-circle text-warning' :
+                         'bi-info-circle text-info';
+        return `
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                <i class="bi ${iconClass}"></i>
+                <span class="flex-grow-1">${log.message}</span>
+                <small class="text-muted">${log.timestamp}</small>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateLiveStats() {
+    const markedCount = presentCount + absentCount;
+    const responseRate = totalMembers > 0 ? Math.round((markedCount / totalMembers) * 100) : 0;
+    const presentRate = markedCount > 0 ? Math.round((presentCount / markedCount) * 100) : 0;
+
+    // Update response rate
+    const responseRateEl = document.getElementById('response-rate');
+    const responseBar = document.getElementById('response-bar');
+    if (responseRateEl) responseRateEl.textContent = responseRate + '%';
+    if (responseBar) responseBar.style.width = responseRate + '%';
+
+    // Update present ratio
+    const presentRatioEl = document.getElementById('present-ratio');
+    const presentBar = document.getElementById('present-bar');
+    if (presentRatioEl) presentRatioEl.textContent = presentCount + ':' + absentCount;
+    if (presentBar) presentBar.style.width = presentRate + '%';
+
+    // Update last activity
+    const lastActivityEl = document.getElementById('last-activity');
+    if (lastActivityEl && activityLog.length > 0) {
+        lastActivityEl.textContent = activityLog[0].message;
+    }
+}
+
+// Export to CSV
+function exportToCSV() {
+    const rows = [
+        ['N°', 'Nom', 'Prénom', 'Statut', 'Heure', 'Notes']
+    ];
+
+    document.querySelectorAll('.member-item').forEach((item, index) => {
+        const name = item.querySelector('h6')?.textContent || '';
+        const number = item.querySelector('small')?.textContent || '';
+        const status = item.getAttribute('data-status');
+        const statusText = status === 'present' ? 'Présent' : status === 'absent' ? 'Absent' : 'Non pointé';
+
+        rows.push([
+            number,
+            name.split(' ')[0] || '',
+            name.split(' ').slice(1).join(' ') || '',
+            statusText,
+            '',
+            ''
+        ]);
+    });
+
+    const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `presence_{{ event.title|slugify }}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    addActivityLog('Export CSV effectué', 'success');
+}
+
+// QR Code Scan Modal
+function openScanModal() {
+    const modalHtml = `
+        <div class="modal fade" id="qrScanModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-qr-code-scan me-2"></i>Scan QR Code</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Fonctionnalité de scan QR Code à implémenter avec la caméra.
+                        </div>
+                        <div class="p-4 border rounded bg-light">
+                            <i class="bi bi-camera" style="font-size: 3rem; color: #6366f1;"></i>
+                            <p class="mt-3 text-muted">Scannez le QR code du membre pour marquer sa présence automatiquement.</p>
+                        </div>
+                        <div class="mt-3">
+                            <input type="text" class="form-control" id="manual-qr-input" placeholder="Entrer le code manuellement...">
+                            <button class="btn btn-primary mt-2" onclick="processManualQR()">
+                                <i class="bi bi-check me-2"></i>Valider
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById('qrScanModal');
+    if (existingModal) existingModal.remove();
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('qrScanModal'));
+    modal.show();
+
+    // Focus on input
+    setTimeout(() => document.getElementById('manual-qr-input')?.focus(), 500);
+}
+
+function processManualQR() {
+    const input = document.getElementById('manual-qr-input');
+    const code = input?.value?.trim();
+
+    if (!code) {
+        alert('Veuillez entrer un code');
+        return;
+    }
+
+    // Try to find member by code (member number or ID)
+    const memberItem = document.querySelector(`[data-member-id="${code}"]`) ||
+                      Array.from(document.querySelectorAll('.member-item')).find(item => {
+                          const memberNumber = item.querySelector('small')?.textContent;
+                          return memberNumber === code;
+                      });
+
+    if (memberItem) {
+        const memberId = memberItem.getAttribute('data-member-id');
+        const memberName = memberItem.querySelector('h6')?.textContent;
+        markAttendance(memberId, 'present', memberItem.querySelector('.present-btn'));
+        addActivityLog(`${memberName} - Présence par QR`, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
+    } else {
+        alert('Membre non trouvé avec ce code: ' + code);
+    }
+}
+
+// Compact Mode for mobile
+let compactMode = false;
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    document.body.classList.toggle('compact-mode', compactMode);
+
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        if (compactMode) {
+            item.style.padding = '8px 12px';
+            item.querySelector('img, .rounded-circle')?.classList?.add('d-none');
+        } else {
+            item.style.padding = '12px 16px';
+            item.querySelector('img, .rounded-circle')?.classList?.remove('d-none');
+        }
+    });
+
+    addActivityLog(compactMode ? 'Mode compact activé' : 'Mode compact désactivé', 'info');
+}
+
+// Override updateUI to add activity log
+const originalUpdateUI = updateUI;
+updateUI = function(memberId, action, data) {
+    originalUpdateUI(memberId, action, data);
+
+    const memberName = data.member_name || 'Membre';
+    const message = action === 'present' ? `${memberName} marqué présent` : `${memberName} marqué absent`;
+    addActivityLog(message, action === 'present' ? 'success' : 'warning');
+    updateLiveStats();
+};
+
+// Initialize live stats on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveStats();
+    addActivityLog('Page de pointage chargée', 'info');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + F to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('memberSearch')?.focus();
+    }
+    // Esc to close modals
+    if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+            bootstrap.Modal.getInstance(modal).hide();
+        }
+    }
+});
+</script>
+
+<style>
+/* Compact mode styles */
+.compact-mode .member-item h6 {
+    font-size: 0.9rem;
+}
+.compact-mode .check-btn {
+    width: 32px;
+    height: 32px;
+}
+
+/* Print styles */
+@media print {
+    .sidebar, .navbar, .btn, .search-box, .d-grid, .modal {
+        display: none !important;
+    }
+    .col-lg-4 {
+        width: 30% !important;
+    }
+    .col-lg-8 {
+        width: 70% !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock content %}

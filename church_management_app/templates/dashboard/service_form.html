@@ -1,0 +1,172 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}{% if action == 'create' %}Nouveau Culte{% else %}Modifier le Culte{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi {% if action == 'create' %}bi-plus-circle{% else %}bi-pencil-square{% endif %} me-2 text-primary"></i>
+                {% if action == 'create' %}Nouveau Culte{% else %}Modifier le Culte{% endif %}
+            </h2>
+            <p class="text-muted mb-0">
+                {% if action == 'create' %}Ajoutez un nouvel horaire de culte{% else %}Modifiez les détails du culte{% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'church-services' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">Titre du culte</label>
+                                {{ form.title }}
+                                <small class="text-muted">Ex: Culte Dominical, Réunion de Prière, etc.</small>
+                                {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="{{ form.day.id_for_label }}" class="form-label fw-semibold">Jour</label>
+                                {{ form.day }}
+                                {% if form.day.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.day.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.time.id_for_label }}" class="form-label fw-semibold">Horaire</label>
+                                {{ form.time }}
+                                <small class="text-muted">Ex: 9h00 - 12h00</small>
+                                {% if form.time.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.time.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.color.id_for_label }}" class="form-label fw-semibold">Couleur de fond</label>
+                                {{ form.color }}
+                                <small class="text-muted">Couleur affichée sur la carte du culte</small>
+                                {% if form.color.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.color.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-12">
+                                <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Description</label>
+                                {{ form.description }}
+                                <small class="text-muted">Ex: Célébration, prédication, communion</small>
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.order.id_for_label }}" class="form-label fw-semibold">Ordre d'affichage</label>
+                                {{ form.order }}
+                                <small class="text-muted">Plus le nombre est petit, plus le culte apparaît en premier</small>
+                                {% if form.order.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.order.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    {{ form.is_active }}
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-check-label fw-semibold">
+                                        Culte visible
+                                    </label>
+                                    <small class="text-muted d-block">Cochez pour afficher ce culte sur le site</small>
+                                    {% if form.is_active.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'church-services' %}" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-x-lg me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>
+                                {% if action == 'create' %}Créer{% else %}Enregistrer{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Aide</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="fw-semibold">Couleurs disponibles</h6>
+                    <div class="d-flex flex-wrap gap-2 mt-2 mb-3">
+                        <span class="badge bg-primary">Primary (Bleu)</span>
+                        <span class="badge bg-success">Success (Vert)</span>
+                        <span class="badge bg-warning">Warning (Jaune)</span>
+                        <span class="badge bg-danger">Danger (Rouge)</span>
+                        <span class="badge bg-info">Info (Cyan)</span>
+                        <span class="badge bg-dark">Dark (Noir)</span>
+                        <span class="badge bg-secondary">Secondary (Gris)</span>
+                    </div>
+
+                    <h6 class="fw-semibold mt-3">Exemples d'horaires</h6>
+                    <ul class="list-unstyled small text-muted">
+                        <li><i class="bi bi-clock me-1"></i>9h00 - 12h00</li>
+                        <li><i class="bi bi-clock me-1"></i>14h00 - 16h00</li>
+                        <li><i class="bi bi-clock me-1"></i>18h00 - 20h00</li>
+                        <li><i class="bi bi-clock me-1"></i>Toute la journée</li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if service %}
+            <div class="card border-0 shadow-sm mt-3 bg-{{ service.color }} bg-opacity-10">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0"><i class="bi bi-eye me-2"></i>Aperçu</h6>
+                </div>
+                <div class="card-body text-center">
+                    <span class="badge bg-{{ service.color }} mb-2">{{ service.day }}</span>
+                    <h6>{{ service.title }}</h6>
+                    <p class="text-muted small mb-1">{{ service.time }}</p>
+                    <p class="text-muted small">{{ service.description|default:"" }}</p>
+                    {% if service.is_active %}
+                    <span class="badge bg-success">Visible sur le site</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Masqué</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

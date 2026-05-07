@@ -8,7 +8,6 @@ class User(AbstractUser):
         ('super_admin', 'Super Admin'),
         ('pastor', 'Pastor'),
         ('admin', 'Administrator'),
-        ('administrator', 'Administrator'),
         ('protocol_head', 'Protocol Head'),
         ('financial_head', 'Financial Head'),
         ('logistics_head', 'Logistics Head'),
@@ -25,11 +24,31 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+class UserPermissionProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='permission_profile')
+    permissions = models.JSONField(blank=True, null=True, default=dict)
+    is_locked = models.BooleanField(default=False)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='updated_permission_profiles')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Permissions: {self.user.username}"
+
 class Member(models.Model):
     GENDER_CHOICES = [
-        ('M', 'Male'),
-        ('F', 'Female'),
-        ('O', 'Other'),
+        ('M', 'Masculin'),
+        ('F', 'Féminin'),
+    ]
+    
+    INACTIVE_REASON_CHOICES = [
+        ('deceased', 'Décédé'),
+        ('excluded', 'Exclu'),
+        ('resigned', 'Démissionné'),
+        ('transferred', 'Transféré'),
+        ('absent', 'Absent prolongé'),
+        ('other', 'Autre'),
     ]
     user = models.OneToOneField(User, on_delete=models.SET_NULL, blank=True, null=True)
     member_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
@@ -60,16 +79,64 @@ class Member(models.Model):
     department = models.ForeignKey('Department', on_delete=models.SET_NULL, blank=True, null=True, related_name='members')
     ministry = models.ForeignKey('Ministry', on_delete=models.SET_NULL, blank=True, null=True, related_name='members')
     is_active = models.BooleanField(default=True)
-    inactive_reason = models.CharField(max_length=30, blank=True, null=True)
+    inactive_reason = models.CharField(max_length=30, choices=INACTIVE_REASON_CHOICES, blank=True, null=True)
     archived_date = models.DateTimeField(blank=True, null=True)
+    qr_code = models.ImageField(upload_to='qr_codes/members/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_full_name(self):
+        """Retourne le nom complet du membre"""
+        if self.user:
+            return f"{self.user.first_name} {self.user.last_name}".strip()
+        return self.member_number or "Membre inconnu"
+
     def save(self, *args, **kwargs):
+        # Générer le numéro de membre si nécessaire
+        is_new = not self.pk
         super().save(*args, **kwargs)
-        if not self.member_number and self.pk:
+        
+        if not self.member_number:
             self.member_number = f"CPD-MEM-{self.pk:06d}"
             super().save(update_fields=['member_number'])
+        
+        # Générer le QR code pour les nouveaux membres ou si absent
+        if is_new or not self.qr_code:
+            self._generate_qr_code()
+            super().save(update_fields=['qr_code'])
+    
+    def _generate_qr_code(self):
+        """Génère un QR code unique pour le membre"""
+        import qrcode
+        from io import BytesIO
+        from django.core.files import File
+        import os
+        
+        # Données à encoder dans le QR code
+        qr_data = f"MEMBER:{self.member_number}|ID:{self.pk}|CHURCH:CPD"
+        
+        # Créer le QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        # Générer l'image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Sauvegarder dans un buffer
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Créer le fichier Django
+        filename = f"member_{self.member_number.replace('-', '_')}.png"
+        self.qr_code.save(filename, File(buffer), save=False)
+        buffer.close()
 
 class Family(models.Model):
     name = models.CharField(max_length=100)
@@ -138,7 +205,7 @@ class Event(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='service')
-    duration_type = models.CharField(max_length=20, default='daily')
+    duration_type = models.CharField(max_length=20, choices=DURATION_CHOICES, default='daily')
     date = models.DateField()
     time = models.TimeField()
     location = models.TextField(blank=True, null=True)
@@ -179,13 +246,44 @@ class Attendance(models.Model):
 
 class EventAttendanceAggregate(models.Model):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='attendance_aggregate')
-    male_adults = models.PositiveIntegerField(default=0)
-    female_adults = models.PositiveIntegerField(default=0)
-    male_children = models.PositiveIntegerField(default=0)
-    female_children = models.PositiveIntegerField(default=0)
+
+    # Adultes
+    male_adults = models.PositiveIntegerField(default=0, verbose_name="Hommes adultes")
+    female_adults = models.PositiveIntegerField(default=0, verbose_name="Femmes adultes")
+
+    # Jeunes
+    young_men = models.PositiveIntegerField(default=0, verbose_name="Jeunes hommes (garçons)")
+    young_women = models.PositiveIntegerField(default=0, verbose_name="Jeunes filles")
+
+    # Enfants
+    male_children = models.PositiveIntegerField(default=0, verbose_name="Garçons (enfants)")
+    female_children = models.PositiveIntegerField(default=0, verbose_name="Filles (enfants)")
+    children_total = models.PositiveIntegerField(default=0, verbose_name="Total enfants")
+
+    # Personnes âgées
+    elderly_men = models.PositiveIntegerField(default=0, verbose_name="Hommes âgés (papas/vieillards)")
+    elderly_women = models.PositiveIntegerField(default=0, verbose_name="Femmes âgées (mamas)")
+
+    # Totaux calculés
+    total_men = models.PositiveIntegerField(default=0, verbose_name="Total hommes")
+    total_women = models.PositiveIntegerField(default=0, verbose_name="Total femmes")
+    grand_total = models.PositiveIntegerField(default=0, verbose_name="Total général")
+
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='updated_event_attendance_aggregates')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def calculate_totals(self):
+        """Calcule les totaux automatiquement"""
+        self.total_men = self.male_adults + self.young_men + self.male_children + self.elderly_men
+        self.total_women = self.female_adults + self.young_women + self.female_children + self.elderly_women
+        self.children_total = self.male_children + self.female_children
+        self.grand_total = self.total_men + self.total_women
+        return self.grand_total
+
+    def save(self, *args, **kwargs):
+        self.calculate_totals()
+        super().save(*args, **kwargs)
 
 
 class EventVisitorAggregate(models.Model):
@@ -527,6 +625,52 @@ class LogisticsItem(models.Model):
             super().save(update_fields=['asset_tag'])
 
 
+class LogisticsCategory(models.Model):
+    """Catégories dynamiques pour les articles logistiques"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.SlugField(max_length=50, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Catégorie logistique"
+        verbose_name_plural = "Catégories logistiques"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.name.lower().replace(' ', '_')
+        super().save(*args, **kwargs)
+
+
+class LogisticsCondition(models.Model):
+    """États/conditions dynamiques pour les articles logistiques"""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.SlugField(max_length=50, unique=True)
+    display_color = models.CharField(max_length=20, default='secondary', help_text="Couleur du badge (success, warning, danger, info, secondary)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "État logistique"
+        verbose_name_plural = "États logistiques"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = self.name.lower().replace(' ', '_')
+        super().save(*args, **kwargs)
+
+
 class AuditLogEntry(models.Model):
     ACTION_CHOICES = [
         ('create', 'Create'),
@@ -564,7 +708,12 @@ class ReportCertificate(models.Model):
 class ChurchBiography(models.Model):
     """Modèle pour gérer la biographie de l'église"""
     title = models.CharField(max_length=200, default="Biographie de l'église")
-    content = models.TextField(help_text="Contenu de la biographie de l'église")
+    subtitle = models.CharField(max_length=300, blank=True, null=True, help_text="Sous-titre de la page À propos")
+    content = models.TextField(help_text="Contenu de la biographie de l'église (supporte le HTML)")
+    mission = models.TextField(blank=True, null=True, help_text="Notre mission")
+    vision = models.TextField(blank=True, null=True, help_text="Notre vision")
+    valeurs = models.TextField(blank=True, null=True, help_text="Nos valeurs")
+    image = models.ImageField(upload_to='biography/', blank=True, null=True, help_text="Image principale de la page À propos")
     # Champs de contact
     address = models.TextField(blank=True, null=True, help_text="Adresse complète de l'église")
     phone = models.CharField(max_length=50, blank=True, null=True, help_text="Numéro de téléphone principal")
@@ -651,15 +800,15 @@ class ChurchSettings(models.Model):
     """Modèle pour stocker les paramètres globaux de l'application"""
     
     # Informations générales
-    church_name = models.CharField(max_length=200, default="Consolation et Paix Divine", help_text="Nom de l'église")
-    church_slogan = models.CharField(max_length=300, blank=True, null=True, help_text="Slogan de l'église")
+    church_name = models.CharField(max_length=200, blank=True, default="Consolation et Paix Divine", help_text="Nom de l'église")
+    church_slogan = models.TextField(blank=True, null=True, help_text="Slogan de l'église (supporte le HTML)")
     logo = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Logo de l'application")
     favicon = models.ImageField(upload_to='settings/', blank=True, null=True, help_text="Favicon de l'application")
     
     # Adresse
     address = models.TextField(blank=True, null=True, help_text="Adresse complète")
-    city = models.CharField(max_length=100, default="Kinshasa", help_text="Ville")
-    country = models.CharField(max_length=100, default="République Démocratique du Congo", help_text="Pays")
+    city = models.CharField(max_length=100, blank=True, default="Kinshasa", help_text="Ville")
+    country = models.CharField(max_length=100, blank=True, default="République Démocratique du Congo", help_text="Pays")
     
     # Contacts
     phone_primary = models.CharField(max_length=30, blank=True, null=True, help_text="Téléphone principal")
@@ -679,7 +828,33 @@ class ChurchSettings(models.Model):
     twitter_url = models.URLField(blank=True, null=True, help_text="URL Twitter/X")
     whatsapp_number = models.CharField(max_length=30, blank=True, null=True, help_text="Numéro WhatsApp")
     telegram_url = models.URLField(blank=True, null=True, help_text="URL Telegram")
-    
+
+    # Horaires des cultes
+    service_sunday_title = models.CharField(max_length=100, blank=True, default="Culte Dominical", help_text="Titre du culte du dimanche")
+    service_sunday_time = models.CharField(max_length=50, blank=True, default="Dim 9h00 - 12h00", help_text="Horaire du culte du dimanche")
+    service_sunday_desc = models.CharField(max_length=200, blank=True, default="Célébration et prédication", help_text="Description du culte du dimanche")
+
+    service_tuesday_title = models.CharField(max_length=100, blank=True, default="Étude Biblique", help_text="Titre du culte du mardi")
+    service_tuesday_time = models.CharField(max_length=50, blank=True, default="Mar 17h00 - 19h00", help_text="Horaire du culte du mardi")
+    service_tuesday_desc = models.CharField(max_length=200, blank=True, default="Approfondissement de la Parole", help_text="Description du culte du mardi")
+
+    service_thursday_title = models.CharField(max_length=100, blank=True, default="Prière et Intercession", help_text="Titre du culte du jeudi")
+    service_thursday_time = models.CharField(max_length=50, blank=True, default="Jeu 17h00 - 19h00", help_text="Horaire du culte du jeudi")
+    service_thursday_desc = models.CharField(max_length=200, blank=True, default="Moment de communion avec Dieu", help_text="Description du culte du jeudi")
+
+    service_saturday_title = models.CharField(max_length=100, blank=True, default="Réunion Jeunes", help_text="Titre du culte du samedi")
+    service_saturday_time = models.CharField(max_length=50, blank=True, default="Sam 14h00 - 16h00", help_text="Horaire du culte du samedi")
+    service_saturday_desc = models.CharField(max_length=200, blank=True, default="Édification de la jeunesse", help_text="Description du culte du samedi")
+
+    # Section Nos Activités
+    activities_section_title = models.CharField(max_length=100, blank=True, default="Nos Activités", help_text="Titre de la section activités")
+    activities_section_subtitle = models.CharField(max_length=300, blank=True, default="Découvrez ce que nous offrons à notre communauté", help_text="Sous-titre de la section activités")
+
+    # Section Rejoignez notre communauté (CTA)
+    cta_title = models.CharField(max_length=200, blank=True, default="Rejoignez notre communauté", help_text="Titre de la section CTA")
+    cta_subtitle = models.TextField(blank=True, null=True, default="Que vous soyez nouveau dans la foi ou à la recherche d'une famille spirituelle, vous êtes le bienvenu parmi nous.", help_text="Sous-titre/description de la section CTA")
+    cta_button_text = models.CharField(max_length=50, blank=True, default="Nous Contacter", help_text="Texte du bouton CTA")
+
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -692,11 +867,8 @@ class ChurchSettings(models.Model):
         return self.church_name
     
     def save(self, *args, **kwargs):
-        # Empêcher la création de plusieurs instances - Pattern Singleton
-        if not self.pk and ChurchSettings.objects.exists():
-            # Mettre à jour l'instance existante au lieu d'en créer une nouvelle
-            existing = ChurchSettings.objects.first()
-            self.pk = existing.pk
+        # Pattern Singleton - forcer l'ID à 1 pour garantir une seule instance
+        self.pk = 1
         super().save(*args, **kwargs)
     
     @classmethod
@@ -704,3 +876,99 @@ class ChurchSettings(models.Model):
         """Récupérer ou créer les paramètres"""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
+
+
+class ChurchActivity(models.Model):
+    """Activités de l'église affichées sur la page d'accueil"""
+
+    ICON_CHOICES = [
+        ('bi-book', 'Bible (book)'),
+        ('bi-heart', 'Coeur (heart)'),
+        ('bi-people', 'Gens (people)'),
+        ('bi-music-note-beamed', 'Musique (music)'),
+        ('bi-calendar-event', 'Calendrier (calendar)'),
+        ('bi-hand-thumbs-up', 'Pouce levé (thumbs-up)'),
+        ('bi-star', 'Étoile (star)'),
+        ('bi-lightbulb', 'Idée (lightbulb)'),
+        ('bi-globe', 'Monde (globe)'),
+        ('bi-emoji-smile', 'Sourire (smile)'),
+        ('bi-basket', 'Panier (basket)'),
+        ('bi-tree', 'Arbre (tree)'),
+        ('bi-trophy', 'Trophée (trophy)'),
+        ('bi-camera', 'Caméra (camera)'),
+        ('bi-film', 'Film (film)'),
+        ('bi-controller', 'Manette (controller)'),
+        ('bi-gift', 'Cadeau (gift)'),
+        ('bi-geo-alt', 'Localisation (geo-alt)'),
+        ('bi-house', 'Maison (house)'),
+        ('bi-briefcase', 'Mallette (briefcase)'),
+    ]
+
+    COLOR_CHOICES = [
+        ('primary', 'Bleu (Primary)'),
+        ('success', 'Vert (Success)'),
+        ('warning', 'Jaune (Warning)'),
+        ('danger', 'Rouge (Danger)'),
+        ('info', 'Cyan (Info)'),
+        ('dark', 'Noir (Dark)'),
+    ]
+
+    title = models.CharField(max_length=100, help_text="Titre de l'activité")
+    description = models.TextField(help_text="Description de l'activité")
+    icon = models.CharField(max_length=50, choices=ICON_CHOICES, default='bi-star', help_text="Icône Bootstrap")
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='primary', help_text="Couleur de l'icône")
+    order = models.PositiveIntegerField(default=0, help_text="Ordre d'affichage")
+    is_active = models.BooleanField(default=True, help_text="Activité visible sur le site")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Activité de l'église"
+        verbose_name_plural = "Activités de l'église"
+        ordering = ['order', 'title']
+
+    def __str__(self):
+        return self.title
+
+
+class ChurchService(models.Model):
+    """Horaires des cultes de l'église - Gestion dynamique"""
+
+    COLOR_CHOICES = [
+        ('primary', 'Bleu (Primary)'),
+        ('success', 'Vert (Success)'),
+        ('warning', 'Jaune (Warning)'),
+        ('danger', 'Rouge (Danger)'),
+        ('info', 'Cyan (Info)'),
+        ('dark', 'Noir (Dark)'),
+        ('secondary', 'Gris (Secondary)'),
+        ('light', 'Blanc (Light)'),
+    ]
+
+    DAY_CHOICES = [
+        ('Dimanche', 'Dimanche'),
+        ('Lundi', 'Lundi'),
+        ('Mardi', 'Mardi'),
+        ('Mercredi', 'Mercredi'),
+        ('Jeudi', 'Jeudi'),
+        ('Vendredi', 'Vendredi'),
+        ('Samedi', 'Samedi'),
+    ]
+
+    title = models.CharField(max_length=100, help_text="Titre du culte (ex: Culte Dominical)")
+    day = models.CharField(max_length=20, choices=DAY_CHOICES, default='Dimanche', help_text="Jour de la semaine")
+    time = models.CharField(max_length=50, help_text="Horaire (ex: 9h00 - 12h00)")
+    description = models.CharField(max_length=200, blank=True, null=True, help_text="Description courte (ex: Célébration et prédication)")
+    color = models.CharField(max_length=20, choices=COLOR_CHOICES, default='primary', help_text="Couleur de fond")
+    order = models.PositiveIntegerField(default=0, help_text="Ordre d'affichage")
+    is_active = models.BooleanField(default=True, help_text="Culte visible sur le site")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Horaire de culte"
+        verbose_name_plural = "Horaires des cultes"
+        ordering = ['order', 'day', 'time']
+
+    def __str__(self):
+        return f"{self.title} - {self.day} {self.time}"

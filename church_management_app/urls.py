@@ -1,6 +1,7 @@
-# church_management_app/urls.py - URLs Django traditionnelles (sans API)
+# church_management_app/urls.py - URLs Django
 from django.urls import path
 from . import views
+from .views_user_management import user_management, user_create_admin, user_created_success, user_edit_admin, user_delete_admin, user_toggle_active, user_permissions_admin
 
 urlpatterns = [
     # Page d'accueil
@@ -19,6 +20,11 @@ urlpatterns = [
     path('members/<int:pk>/', views.member_detail, name='member-detail'),
     path('members/<int:pk>/edit/', views.member_edit, name='member-edit'),
     path('members/<int:pk>/delete/', views.member_delete, name='member-delete'),
+    path('members/print/', views.member_print_list, name='member-print-list'),
+    path('members/print-preview/', views.member_print_preview, name='member-print-preview'),
+    path('members/export/', views.member_export, name='member-export'),
+    path('members/<int:pk>/print-card/', views.member_print_card, name='member-print-card'),
+    path('members/<int:pk>/profile-print/', views.member_profile_print, name='member-profile-print'),
     
     # Familles - CRUD
     path('families/', views.family_list, name='family-list'),
@@ -57,6 +63,7 @@ urlpatterns = [
     
     # Finances - CRUD
     path('finances/', views.finance_list, name='finance-list'),
+    path('finances/<int:pk>/', views.transaction_detail, name='transaction-detail'),
     path('finances/transactions/create/', views.transaction_create, name='transaction-create'),
     path('finances/transactions/<int:pk>/edit/', views.transaction_edit, name='transaction-edit'),
     path('finances/transactions/<int:pk>/delete/', views.transaction_delete, name='transaction-delete'),
@@ -78,9 +85,27 @@ urlpatterns = [
     # Diaconat (Pointage et Logistique)
     path('diaconat/', views.diaconat, name='diaconat'),
     path('diaconat/attendance/', views.diaconat_attendance, name='diaconat-attendance'),
-    
-    # Logistique - CRUD
+
+    # Logistique - CRUD (alias sous diaconat pour cohérence)
+    path('diaconat/logistics/create/', views.logistics_create, name='diaconat-logistics-create'),
+    path('diaconat/logistics/<int:pk>/', views.logistics_detail, name='diaconat-logistics-detail'),
+    path('diaconat/logistics/<int:pk>/edit/', views.logistics_edit, name='diaconat-logistics-edit'),
+    path('diaconat/logistics/<int:pk>/delete/', views.logistics_delete, name='diaconat-logistics-delete'),
+
+    # Logistique - AJAX pour catégories et états dynamiques
+    path('diaconat/logistics/category/create-ajax/', views.logistics_create_category_ajax, name='logistics-category-ajax'),
+    path('diaconat/logistics/condition/create-ajax/', views.logistics_create_condition_ajax, name='logistics-condition-ajax'),
+
+    # Logistique - Attribution aux événements
+    path('diaconat/logistics/event-resources/', views.event_logistics_list, name='event-logistics-list'),
+    path('diaconat/logistics/event-resources/add/', views.event_logistics_add, name='event-logistics-add'),
+    path('diaconat/logistics/event-resources/<int:pk>/edit/', views.event_logistics_edit, name='event-logistics-edit'),
+    path('diaconat/logistics/event-resources/<int:pk>/delete/', views.event_logistics_delete, name='event-logistics-delete'),
+    path('ajax/logistics/item/quantity/', views.ajax_get_item_quantity, name='ajax-get-item-quantity'),
+
+    # Logistique - CRUD (URLs originales)
     path('logistics/', views.logistics_list, name='logistics-list'),
+    path('logistics/<int:pk>/', views.logistics_detail, name='logistics-detail'),
     path('logistics/create/', views.logistics_create, name='logistics-create'),
     path('logistics/<int:pk>/edit/', views.logistics_edit, name='logistics-edit'),
     path('logistics/<int:pk>/delete/', views.logistics_delete, name='logistics-delete'),
@@ -107,12 +132,78 @@ urlpatterns = [
     # Documents - CRUD
     path('documents/', views.document_list, name='document-list'),
     path('documents/create/', views.document_create, name='document-create'),
+    path('documents/<int:pk>/', views.document_detail, name='document-detail'),
+    path('documents/<int:pk>/edit/', views.document_edit, name='document-edit'),
     path('documents/<int:pk>/delete/', views.document_delete, name='document-delete'),
     
     # Compte utilisateur
     path('account/', views.account, name='account'),
     path('account/edit/', views.account_edit, name='account-edit'),
     
+    # Gestion des utilisateurs système (Admin)
+    path('account/users/', user_management, name='user-management'),
+    path('account/users/create/', user_create_admin, name='user-create-admin'),
+    path('account/users/created/', user_created_success, name='user-created-success'),
+    path('account/users/<int:pk>/edit/', user_edit_admin, name='user-edit-admin'),
+    path('account/users/<int:pk>/delete/', user_delete_admin, name='user-delete-admin'),
+    path('account/users/<int:pk>/toggle/', user_toggle_active, name='user-toggle-active'),
+    path('account/users/<int:pk>/permissions/', user_permissions_admin, name='user-permissions-admin'),
+
+    # Baptêmes - CRUD
+    path('baptisms/', views.baptism_list, name='baptism-list'),
+    path('baptisms/create/', views.baptism_create, name='baptism-create'),
+    path('baptisms/<int:pk>/', views.baptism_detail, name='baptism-detail'),
+    path('baptisms/<int:pk>/edit/', views.baptism_edit, name='baptism-edit'),
+    path('baptisms/<int:pk>/delete/', views.baptism_delete, name='baptism-delete'),
+    path('baptisms/<int:pk>/candidates/add/', views.baptism_candidate_add, name='baptism-candidate-add'),
+
+    # Contact Admin (gestion des messages reçus)
+    path('management/contacts/', views.contact_admin_list, name='contact-admin-list'),
+    path('management/contacts/<int:pk>/', views.contact_admin_detail, name='contact-admin-detail'),
+    path('management/contacts/<int:pk>/mark-read/', views.contact_mark_read, name='contact-mark-read'),
+    path('management/contacts/<int:pk>/archive/', views.contact_archive, name='contact-archive'),
+
+    # Audit Logs (Logs système)
+    path('management/audit-logs/', views.audit_log_list, name='audit-log-list'),
+
+    # Demandes d'approbation
+    path('approval-requests/', views.approval_request_list, name='approval-request-list'),
+    path('approval-requests/<int:pk>/', views.approval_request_detail, name='approval-request-detail'),
+    path('approval-requests/<int:pk>/approve/', views.approval_request_approve, name='approval-request-approve'),
+    path('approval-requests/<int:pk>/reject/', views.approval_request_reject, name='approval-request-reject'),
+
+    # Rapports détaillés
+    path('reports/members/', views.report_members_detail, name='report-members-detail'),
+    path('reports/finances/', views.report_finances_detail, name='report-finances-detail'),
+    path('reports/activities/', views.report_activities_detail, name='report-activities-detail'),
+    path('reports/attendance/', views.report_attendance_detail, name='report-attendance-detail'),
+    path('reports/sacraments/', views.report_sacraments_detail, name='report-sacraments-detail'),
+    path('reports/export-excel/', views.export_reports_excel, name='reports-export-excel'),
+    path('reports/export-pdf/<str:report_type>/', views.export_report_pdf, name='reports-export-pdf'),
+
+    # Notifications
+    path('notifications/', views.notification_list, name='notification-list'),
+    path('notifications/<int:pk>/mark-read/', views.notification_mark_read, name='notification-mark-read'),
+    path('notifications/mark-all-read/', views.notification_mark_all_read, name='notification-mark-all-read'),
+    path('notifications/<int:pk>/delete/', views.notification_delete, name='notification-delete'),
+
+    # Paramètres de l'église
+    path('settings/', views.church_settings_view, name='church-settings'),
+    path('settings/biography/', views.church_biography_view, name='church-biography'),
+    path('settings/activities/', views.church_activities_view, name='church-activities'),
+    path('settings/activities/create/', views.activity_create_view, name='activity-create'),
+    path('settings/activities/<int:pk>/edit/', views.activity_edit_view, name='activity-edit'),
+    path('settings/activities/<int:pk>/delete/', views.activity_delete_view, name='activity-delete'),
+    path('settings/services/', views.church_services_view, name='church-services'),
+    path('settings/services/create/', views.service_create_view, name='service-create'),
+    path('settings/services/<int:pk>/edit/', views.service_edit_view, name='service-edit'),
+    path('settings/services/<int:pk>/delete/', views.service_delete_view, name='service-delete'),
+
+    # AJAX Endpoints pour création dynamique
+    path('ajax/family/create/', views.ajax_create_family, name='ajax-create-family'),
+    path('ajax/department/create/', views.ajax_create_department, name='ajax-create-department'),
+    path('ajax/ministry/create/', views.ajax_create_ministry, name='ajax-create-ministry'),
+
     # Pages publiques
     path('about/', views.public_about, name='about'),
     path('contact/', views.contact, name='contact'),

@@ -1,0 +1,528 @@
+{% load static %}
+{% load permissions_tags %}
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} - {% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</title>
+    {% if church_settings and church_settings.logo %}
+    <link rel="icon" type="image/png" href="{{ church_settings.logo.url }}">
+    {% else %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/logo.svg' %}">
+    {% endif %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            z-index: 1040;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+        [data-bs-theme="dark"] .sidebar {
+            background: #0f172a;
+            border-right-color: #334155;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+        [data-bs-theme="dark"] .main-content {
+            background: #0f172a;
+        }
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1035;
+        }
+        .sidebar-backdrop.show {
+            display: block;
+        }
+        
+        /* Navigation Styles */
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            padding: 1rem 1.25rem 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            color: #64748b;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            margin: 0.125rem 0.75rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        [data-bs-theme="dark"] .nav-link:hover {
+            background: #1e293b;
+            color: #f8fafc;
+        }
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        .nav-link i {
+            font-size: 1.125rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% include 'includes/messages.html' %}
+    
+    <!-- Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <!-- Logo & Accueil -->
+        <div class="p-4 border-bottom">
+            <a href="{% url 'home' %}" class="d-flex align-items-center gap-3 text-decoration-none" title="Voir le site public">
+                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                    {% if church_settings and church_settings.logo %}
+                    <img src="{{ church_settings.logo.url }}" alt="{{ church_settings.church_name }}" 
+                         style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    {% else %}
+                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h6 class="mb-0 fw-semibold text-body">{% if church_settings %}{{ church_settings.church_name }}{% else %}Consolation et Paix Divine{% endif %}</h6>
+                    <small class="text-muted">Plateforme de gestion</small>
+                </div>
+            </a>
+            <div class="mt-3">
+                <a href="{% url 'home' %}" class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                    <i class="bi bi-globe"></i>
+                    <span>Voir le site public</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- User Info avec photo -->
+        <div class="p-3">
+            <div class="rounded-3 p-3" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center overflow-hidden" 
+                         style="width: 40px; height: 40px; background: white;">
+                        {% if user.photo %}
+                        <img src="{{ user.photo.url }}" alt="{{ user.get_full_name }}" 
+                             style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                        <i class="bi bi-person" style="color: #6366f1; font-size: 1.25rem;"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <small class="text-white-50 d-block" style="font-size: 0.7rem;">Connecté en tant que</small>
+                        <span class="fw-semibold text-white" style="font-size: 0.875rem;">{{ user.get_full_name|default:user.username }}</span>
+                    </div>
+                </div>
+                <span class="badge bg-white text-primary" style="font-size: 0.7rem;">
+                    {{ user|role_display }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="px-3 pb-4">
+            {% with user=user %}
+            
+            <!-- Principal -->
+            {% if user|can_access_menu:"dashboard" %}
+            <div class="nav-section-title">Principal</div>
+            <a href="{% url 'dashboard' %}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-grid"></i>
+                <span>Tableau de bord</span>
+            </a>
+            {% endif %}
+            
+            <!-- Gestion -->
+            {% if user|can_access_menu:"members" or user|can_access_menu:"events" or user|can_access_menu:"attendance" or user|can_access_menu:"finances" %}
+            <div class="nav-section-title">Gestion</div>
+            
+            {% if user|can_access_menu:"members" %}
+            <a href="{% url 'member-list' %}" class="nav-link {% if active_page == 'members' %}active{% endif %}">
+                <i class="bi bi-people"></i>
+                <span>Membres</span>
+                {% if total_members > 0 %}
+                <span class="badge bg-primary ms-auto">{{ total_members }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"families" %}
+            <a href="{% url 'family-list' %}" class="nav-link {% if active_page == 'families' %}active{% endif %}">
+                <i class="bi bi-house-heart"></i>
+                <span>Familles</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"home_groups" %}
+            <a href="{% url 'homegroup-list' %}" class="nav-link {% if active_page == 'home_groups' %}active{% endif %}">
+                <i class="bi bi-houses"></i>
+                <span>Groupes de maison</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"departments" %}
+            <a href="{% url 'department-list' %}" class="nav-link {% if active_page == 'departments' %}active{% endif %}">
+                <i class="bi bi-building"></i>
+                <span>Départements</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"ministries" %}
+            <a href="{% url 'ministry-list' %}" class="nav-link {% if active_page == 'ministries' %}active{% endif %}">
+                <i class="bi bi-person-workspace"></i>
+                <span>Ministères</span>
+            </a>
+            {% endif %}
+            
+            {% if user|can_access_menu:"events" %}
+            <a href="{% url 'event-list' %}" class="nav-link {% if active_page == 'events' %}active{% endif %}">
+                <i class="bi bi-calendar-event"></i>
+                <span>Événements</span>
+                {% if upcoming_events > 0 %}
+                <span class="badge bg-success ms-auto">{{ upcoming_events }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+            
+            {% if user|can_access_menu:"finances" %}
+            <a href="{% url 'finance-list' %}" class="nav-link {% if active_page == 'finances' %}active{% endif %}">
+                <i class="bi bi-wallet2"></i>
+                <span>Finances</span>
+            </a>
+            {% endif %}
+            {% endif %}
+            
+            <!-- Communication -->
+            {% if user|can_access_menu:"announcements" %}
+            <div class="nav-section-title">Communication</div>
+            
+            <a href="{% url 'announcement-list' %}" class="nav-link {% if active_page == 'announcements' %}active{% endif %}">
+                <i class="bi bi-megaphone"></i>
+                <span>Annonces</span>
+                {% if active_announcements > 0 %}
+                <span class="badge bg-warning ms-auto">{{ active_announcements }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+            
+            <!-- Ressources -->
+            {% if user|can_access_menu:"logistics" or user|can_access_menu:"evangelisation" or user|can_access_menu:"marriages" or user|can_access_menu:"baptisms" or user|can_access_menu:"trainings" %}
+            <div class="nav-section-title">Ressources</div>
+
+            {% if user|can_access_menu:"logistics" %}
+            <a href="{% url 'diaconat' %}" class="nav-link {% if active_page == 'diaconat' %}active{% endif %}">
+                <i class="bi bi-box-seam"></i>
+                <span>Diaconat</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"baptisms" %}
+            <a href="{% url 'baptism-list' %}" class="nav-link {% if active_page == 'baptisms' %}active{% endif %}">
+                <i class="bi bi-droplet"></i>
+                <span>Baptêmes</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"evangelisation" %}
+            <a href="{% url 'evangelisation-list' %}" class="nav-link {% if active_page == 'evangelisation' %}active{% endif %}">
+                <i class="bi bi-globe"></i>
+                <span>Évangélisation</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"trainings" %}
+            <a href="{% url 'training-list' %}" class="nav-link {% if active_page == 'trainings' %}active{% endif %}">
+                <i class="bi bi-mortarboard"></i>
+                <span>Formations</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"marriages" %}
+            <a href="{% url 'marriage-list' %}" class="nav-link {% if active_page == 'marriages' %}active{% endif %}">
+                <i class="bi bi-heart"></i>
+                <span>Mariages</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"documents" %}
+            <a href="{% url 'document-list' %}" class="nav-link {% if active_page == 'documents' %}active{% endif %}">
+                <i class="bi bi-files"></i>
+                <span>Documents</span>
+            </a>
+            {% endif %}
+            {% endif %}
+
+            <!-- Administration -->
+            {% if user|can_access_menu:"contacts" or user|can_access_menu:"audit_logs" or user|can_access_menu:"approvals" %}
+            <div class="nav-section-title">Administration</div>
+
+            {% if user|can_access_menu:"contacts" %}
+            <a href="{% url 'contact-admin-list' %}" class="nav-link {% if active_page == 'contacts' %}active{% endif %}">
+                <i class="bi bi-envelope"></i>
+                <span>Messages contact</span>
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"audit_logs" %}
+            <a href="{% url 'audit-log-list' %}" class="nav-link {% if active_page == 'audit_logs' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i>
+                <span>Logs système</span>
+            </a>
+            {% endif %}
+            {% endif %}
+            
+            <!-- Personnel -->
+            {% if user|can_access_menu:"notifications" or user|can_access_menu:"approvals" %}
+            <div class="nav-section-title">Personnel</div>
+
+            {% if user|can_access_menu:"notifications" %}
+            <a href="{% url 'notification-list' %}" class="nav-link {% if active_page == 'notifications' %}active{% endif %}">
+                <i class="bi bi-bell"></i>
+                <span>Notifications</span>
+                {% if unread_notifications_count > 0 %}
+                <span class="badge bg-danger ms-auto">{{ unread_notifications_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+
+            {% if user|can_access_menu:"approvals" %}
+            <a href="{% url 'approval-request-list' %}" class="nav-link {% if active_page == 'approvals' %}active{% endif %}">
+                <i class="bi bi-check2-square"></i>
+                <span>Demandes d'approbation</span>
+                {% if pending_approvals_count > 0 %}
+                <span class="badge bg-warning ms-auto">{{ pending_approvals_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+            {% endif %}
+
+            <!-- Rapports & Compte -->
+            {% if user|can_access_menu:"reports" or user|can_access_menu:"account" %}
+            <div class="nav-section-title">Rapports & Compte</div>
+            
+            {% if user|can_access_menu:"reports" %}
+            <a href="{% url 'reports' %}" class="nav-link {% if active_page == 'reports' %}active{% endif %}">
+                <i class="bi bi-graph-up"></i>
+                <span>Rapports</span>
+            </a>
+            {% endif %}
+            
+            {% if user|can_access_menu:"account" %}
+            <a href="{% url 'account' %}" class="nav-link {% if active_page == 'account' %}active{% endif %}">
+                <i class="bi bi-person-gear"></i>
+                <span>Mon compte</span>
+            </a>
+            {% endif %}
+            
+            {% if user|can_access_menu:"settings" %}
+            <a href="{% url 'church-settings' %}" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
+                <i class="bi bi-gear"></i>
+                <span>Paramètres</span>
+            </a>
+            {% endif %}
+            {% endif %}
+            
+            <!-- Déconnexion -->
+            <a href="#" class="nav-link text-danger" onclick="showLogoutModal(event)">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Déconnexion</span>
+            </a>
+            
+            {% endwith %}
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.95);">
+            <div class="container-fluid py-3 px-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-light d-lg-none" id="sidebarToggle">
+                            <i class="bi bi-list"></i>
+                        </button>
+                        <div>
+                            <h5 class="mb-0 fw-semibold">{% block page_title %}Tableau de bord{% endblock %}</h5>
+                            {% block page_subtitle %}{% endblock %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Theme Toggle -->
+                        <button class="btn btn-light" id="themeToggle" title="Changer de thème">
+                            <i class="bi bi-moon" id="themeIcon"></i>
+                        </button>
+                        
+                        <!-- User Menu -->
+                        <div class="dropdown">
+                            <button class="btn btn-light d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                                <div class="rounded-circle overflow-hidden d-flex align-items-center justify-content-center" 
+                                     style="width: 32px; height: 32px; background: {% if user.photo %}white{% else %}#6366f1{% endif %};">
+                                    {% if user.photo %}
+                                    <img src="{{ user.photo.url }}" alt="{{ user.get_full_name }}" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                    {% else %}
+                                    <i class="bi bi-person text-white"></i>
+                                    {% endif %}
+                                </div>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <div class="dropdown-item-text d-flex align-items-center gap-2 py-2">
+                                        <div class="rounded-circle overflow-hidden" style="width: 40px; height: 40px; background: {% if user.photo %}white{% else %}#6366f1{% endif %};">
+                                            {% if user.photo %}
+                                            <img src="{{ user.photo.url }}" alt="{{ user.get_full_name }}" 
+                                                 style="width: 100%; height: 100%; object-fit: cover;">
+                                            {% else %}
+                                            <div class="d-flex align-items-center justify-content-center h-100">
+                                                <i class="bi bi-person text-white fs-5"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                                            <small class="text-muted">{{ user|role_display }}</small>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'account' %}"><i class="bi bi-person me-2"></i>Mon compte</a></li>
+                                {% if user|can_manage_users %}
+                                <li><a class="dropdown-item" href="{% url 'account' %}#users"><i class="bi bi-people me-2"></i>Gérer les utilisateurs</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="showLogoutModal(event)"><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
+                        Confirmer la déconnexion
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <a href="{% url 'logout' %}" class="btn btn-danger">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Se déconnecter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarBackdrop').classList.toggle('show');
+        });
+        
+        document.getElementById('sidebarBackdrop').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('show');
+            document.getElementById('sidebarBackdrop').classList.remove('show');
+        });
+        
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', function() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+        
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            icon.className = theme === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
+        }
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        // Logout confirmation modal
+        const logoutModal = new bootstrap.Modal(document.getElementById('logoutModal'));
+        
+        function showLogoutModal(event) {
+            event.preventDefault();
+            logoutModal.show();
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

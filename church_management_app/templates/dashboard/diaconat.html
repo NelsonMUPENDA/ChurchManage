@@ -1,539 +1,1621 @@
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diaconat - Consolation et Paix Divine</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="static/css/main.css">
-    <style>
-        .sidebar { width: 280px; height: 100vh; position: fixed; top: 0; left: 0; background: white; border-right: 1px solid #e2e8f0; z-index: 1040; overflow-y: auto; transition: transform 0.3s; }
-        [data-bs-theme="dark"] .sidebar { background: #0f172a; border-right-color: #334155; }
-        .main-content { margin-left: 280px; min-height: 100vh; background: #f8fafc; }
-        [data-bs-theme="dark"] .main-content { background: #0f172a; }
-        @media (max-width: 991.98px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.show { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-        }
-        .sidebar-backdrop { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1035; }
-        .sidebar-backdrop.show { display: block; }
-        .presence-present { background: rgba(16,185,129,0.1); color: #10b981; }
-        .presence-absent { background: rgba(239,68,68,0.1); color: #ef4444; }
-        .presence-late { background: rgba(245,158,11,0.1); color: #f59e0b; }
-    </style>
-</head>
-<body>
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-    <aside class="sidebar" id="sidebar">
-        <div class="p-4 border-bottom">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-3 p-2" style="background: rgba(99,102,241,0.1);">
-                    <i class="bi bi-layers fs-4" style="color: #6366f1;"></i>
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load permissions_tags %}
+
+{% block title %}Diaconat - Pointage & Logistique{% endblock %}
+
+{% block page_title %}Diaconat{% endblock %}
+{% block page_subtitle %}Gestion des présences et logistique{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-card {
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        transition: all 0.3s ease;
+    }
+    .attendance-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+    .member-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .member-item:hover {
+        background: #f8fafc;
+    }
+    .member-item.present {
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .member-item.absent {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .check-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border: 2px solid #e2e8f0;
+        background: white;
+    }
+    .check-btn.present {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    .check-btn.absent {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: white;
+    }
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .search-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+    .progress-ring {
+        width: 120px;
+        height: 120px;
+        position: relative;
+    }
+    .progress-ring svg {
+        transform: rotate(-90deg);
+    }
+    .progress-ring-bg {
+        fill: none;
+        stroke: #e2e8f0;
+        stroke-width: 8;
+    }
+    .progress-ring-fill {
+        fill: none;
+        stroke: #10b981;
+        stroke-width: 8;
+        stroke-linecap: round;
+        transition: stroke-dashoffset 0.5s ease;
+    }
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+    .presence-present { background: rgba(16,185,129,0.1); color: #10b981; }
+    .presence-absent { background: rgba(239,68,68,0.1); color: #ef4444; }
+    .presence-late { background: rgba(245,158,11,0.1); color: #f59e0b; }
+
+    /* Compact mode */
+    .compact-mode .member-item h6 { font-size: 0.9rem; }
+    .compact-mode .check-btn { width: 32px; height: 32px; }
+
+    /* Print styles */
+    @media print {
+        .sidebar, .navbar, .btn, .search-box, .nav-tabs, .modal { display: none !important; }
+        .tab-content > .tab-pane { display: block !important; opacity: 1 !important; }
+        #logistique { display: none !important; }
+        .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Tabs -->
+<ul class="nav nav-pills mb-4" id="diaconatTabs">
+    {% if user|can:'diaconat.view' %}
+    <li class="nav-item">
+        <a class="nav-link {% if view != 'event_logistics_list' %}active{% endif %}" href="#pointage" data-bs-toggle="tab">
+            <i class="bi bi-clipboard-check me-2"></i>Pointage
+        </a>
+    </li>
+    {% endif %}
+    {% if user|can:'logistics.view' %}
+    <li class="nav-item">
+        <a class="nav-link" href="#logistique" data-bs-toggle="tab">
+            <i class="bi bi-box-seam me-2"></i>Logistique
+        </a>
+    </li>
+    {% endif %}
+    {% if user|can:'logistics.view' %}
+    <li class="nav-item">
+        <a class="nav-link {% if view == 'event_logistics_list' %}active{% endif %}" href="{% url 'event-logistics-list' %}">
+            <i class="bi bi-calendar-check me-2"></i>Ressources par Événement
+        </a>
+    </li>
+    {% endif %}
+</ul>
+
+<div class="tab-content">
+    <!-- POINTAGE TAB - Avec toutes les fonctionnalités -->
+    {% if user|can:'diaconat.view' %}
+    <div class="tab-pane fade show active" id="pointage">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                <i class="bi bi-info-circle me-2"></i>{{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Event Selection -->
+        <div class="card attendance-card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event me-2"></i>Sélectionner un événement
+                        </label>
+                        <select name="event" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- Choisir un événement --</option>
+                            {% for evt in events %}
+                            <option value="{{ evt.pk }}" {% if selected_event and selected_event.pk == evt.pk %}selected{% endif %}>
+                                {{ evt.title }} - {{ evt.date|date:"d/m/Y" }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        {% if selected_event %}
+                        <a href="{% url 'attendance-event' selected_event.pk %}" class="btn btn-primary">
+                            <i class="bi bi-fullscreen me-2"></i>Vue complète
+                        </a>
+                        {% endif %}
+                        {% if user|can:'diaconat.print' %}
+                        <button type="button" class="btn btn-outline-dark" onclick="window.print()">
+                            <i class="bi bi-printer me-2"></i>Imprimer
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if selected_event %}
+        <div class="row g-4">
+            <!-- Left Column - Stats & Tools -->
+            <div class="col-lg-4">
+                <!-- Event Info -->
+                <div class="card attendance-card mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-semibold mb-3">{{ selected_event.title }}</h6>
+                        <p class="text-muted small mb-3">{{ selected_event.description|truncatewords:30|default:"Aucune description" }}</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                <i class="bi bi-calendar me-1"></i>{{ selected_event.date|date:"d/m/Y" }}
+                            </span>
+                            <span class="badge bg-info bg-opacity-10 text-info">
+                                <i class="bi bi-clock me-1"></i>{{ selected_event.time|time:"H:i" }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Progress Ring -->
+                <div class="card attendance-card mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-pie-chart me-2"></i>Taux de présence</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="progress-ring mx-auto mb-3">
+                            <svg width="120" height="120" viewBox="0 0 120 120">
+                                <circle class="progress-ring-bg" cx="60" cy="60" r="52"/>
+                                <circle class="progress-ring-fill" cx="60" cy="60" r="52"
+                                        stroke-dasharray="326.73"
+                                        stroke-dashoffset="{{ attendance_offset|default:326.73 }}"/>
+                            </svg>
+                            <div class="progress-text">
+                                <span class="h3 fw-bold text-success" id="global-rate">{{ attendance_rate|default:"0" }}%</span>
+                                <small class="text-muted d-block">présents</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-center gap-3">
+                            <div class="text-center">
+                                <span class="badge bg-success" id="stat-present">{{ present_count|default:"0" }}</span>
+                                <small class="text-muted d-block">Présents</small>
+                            </div>
+                            <div class="text-center">
+                                <span class="badge bg-danger" id="stat-absent">{{ absent_count|default:"0" }}</span>
+                                <small class="text-muted d-block">Absents</small>
+                            </div>
+                            <div class="text-center">
+                                <span class="badge bg-secondary" id="stat-pending">{{ not_marked_count|default:total_members }}</span>
+                                <small class="text-muted d-block">Non pointés</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card attendance-card mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-lightning me-2"></i>Actions rapides</h6>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="d-grid gap-2">
+                            {% if user|can:'diaconat.edit' %}
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="mark_all_present">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-all me-2"></i>Tous présents
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="mark_all_absent">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-square me-2"></i>Tous absents
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reset">
+                                <button type="submit" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Stats -->
+                <div class="card attendance-card mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-graph-up me-2"></i>Stats Temps Réel</h6>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Taux de réponse</span>
+                                <span id="response-rate">0%</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-primary" id="response-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>Présents vs Absents</span>
+                                <span id="present-ratio">0:0</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" id="present-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="alert alert-light border mb-0">
+                            <small class="text-muted d-block mb-1">Dernière activité:</small>
+                            <span id="last-activity" class="small fw-medium">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card attendance-card">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Activité Récente</h6>
+                    </div>
+                    <div class="card-body pt-0" style="max-height: 200px; overflow-y: auto;">
+                        <div id="activity-log" class="vstack gap-2 small">
+                            <div class="text-muted text-center py-3">Aucune activité récente</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Members List -->
+            <div class="col-lg-8">
+                <div class="card attendance-card">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h6 class="mb-0 fw-semibold"><i class="bi bi-people me-2"></i>Liste des membres</h6>
+                        <div class="d-flex gap-2">
+                            <span class="stat-pill bg-success bg-opacity-10 text-success">
+                                <i class="bi bi-check-circle"></i><span id="header-present">{{ present_count|default:"0" }}</span> Présents
+                            </span>
+                            <span class="stat-pill bg-danger bg-opacity-10 text-danger">
+                                <i class="bi bi-x-circle"></i><span id="header-absent">{{ absent_count|default:"0" }}</span> Absents
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filters -->
+                    <div class="card-body pt-0 pb-3">
+                        <div class="search-box mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control bg-transparent border-0" id="memberSearch"
+                                       placeholder="Rechercher un membre..." onkeyup="filterMembers()">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-sm btn-outline-primary active" onclick="filterByStatus('all')" id="filter-all">Tous</button>
+                            <button class="btn btn-sm btn-outline-success" onclick="filterByStatus('present')" id="filter-present">Présents</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="filterByStatus('absent')" id="filter-absent">Absents</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="filterByStatus('pending')" id="filter-pending">Non pointés</button>
+                        </div>
+
+                        <div class="alert alert-info mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-info-circle me-2"></i>Cliquez sur <i class="bi bi-check-lg text-success"></i> pour présent ou <i class="bi bi-x-lg text-danger"></i> pour absent</span>
+                                <button class="btn btn-sm btn-outline-warning" onclick="toggleCompactMode()">
+                                    <i class="bi bi-phone me-1"></i>Mode compact
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Members List -->
+                    <div class="card-body pt-0" style="max-height: 600px; overflow-y: auto;">
+                        <div class="vstack gap-2" id="membersList">
+                            {% for member in members %}
+                            {% with attendance=member_attendance|get_item:member.pk %}
+                            <div class="member-item {% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% endif %}"
+                                 data-member-id="{{ member.pk }}"
+                                 data-status="{% if attendance %}{% if attendance.attended %}present{% else %}absent{% endif %}{% else %}pending{% endif %}">
+                                <div class="d-flex align-items-center flex-grow-1">
+                                    {% if member.photo %}
+                                    <img src="{{ member.photo.url }}" class="rounded-circle me-3" width="48" height="48" alt="">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;">
+                                        <i class="bi bi-person text-primary fs-5"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ member.get_full_name }}</h6>
+                                        <small class="text-muted">{{ member.member_number }}</small>
+                                        {% if attendance and attendance.checked_in_at %}
+                                        <small class="text-success d-block"><i class="bi bi-clock me-1"></i>{{ attendance.checked_in_at|time:"H:i" }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    {% if user|can:'diaconat.edit' %}
+                                    <button type="button"
+                                            onclick="markAttendance('{{ member.pk }}', 'present', this)"
+                                            data-member-id="{{ member.pk }}"
+                                            data-action="present"
+                                            class="check-btn present-btn {% if attendance and attendance.attended %}present{% endif %}">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                    <button type="button"
+                                            onclick="markAttendance('{{ member.pk }}', 'absent', this)"
+                                            data-member-id="{{ member.pk }}"
+                                            data-action="absent"
+                                            class="check-btn absent-btn {% if attendance and not attendance.attended %}absent{% endif %}">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endwith %}
+                            {% empty %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-people fs-1 text-muted mb-3 d-block"></i>
+                                <p class="text-muted">Aucun membre actif</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- No event selected -->
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>Veuillez sélectionner un événement pour voir le pointage.
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Logistique Tab -->
+    {% if user|can:'logistics.view' %}
+    <div class="tab-pane fade" id="logistique">
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-3 p-3 me-3 bg-primary bg-opacity-10">
+                                <i class="bi bi-box-seam fs-4 text-primary"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-0 small">Total Articles</p>
+                                <h4 class="mb-0 fw-bold">{{ logistics_items|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-3 p-3 me-3 bg-success bg-opacity-10">
+                                <i class="bi bi-check-circle fs-4 text-success"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-0 small">Neufs/Bons</p>
+                                <h4 class="mb-0 fw-bold">{{ logistics_items|dictsort:"condition"|length }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-3 p-3 me-3 bg-warning bg-opacity-10">
+                                <i class="bi bi-exclamation-triangle fs-4 text-warning"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-0 small">À Réparer</p>
+                                <h4 class="mb-0 fw-bold">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-3 p-3 me-3 bg-info bg-opacity-10">
+                                <i class="bi bi-currency-exchange fs-4 text-info"></i>
+                            </div>
+                            <div>
+                                <p class="text-muted mb-0 small">Valeur Totale</p>
+                                <h4 class="mb-0 fw-bold">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-0 bg-light" id="itemSearch" placeholder="Rechercher un article..." {% if not user|can:'logistics.search' %}disabled{% endif %}>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select bg-light border-0" id="categoryFilter" {% if not user|can:'logistics.filter' %}disabled{% endif %}>
+                            <option value="">Toutes catégories</option>
+                            {% for cat_value, cat_label in logistics_categories %}
+                            <option value="{{ cat_value }}">{{ cat_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                        <div class="col-md-4 text-md-end">
+                            {% if user|can:'logistics.create' %}
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                                <i class="bi bi-plus-lg me-2"></i>Ajouter un article
+                            </button>
+                            {% endif %}
+                            {% if user|can:'logistics.create' %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLogisticsCategoryModal" title="Nouvelle catégorie">
+                                <i class="bi bi-tags me-2"></i>Catégorie
+                            </button>
+                            {% endif %}
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items List -->
+        <div class="row g-3" id="itemsGrid">
+            {% if logistics_items %}
+            {% for item in logistics_items %}
+            <div class="col-md-6 col-lg-4 item-card" data-category="{{ item.category|default:'' }}">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <span class="badge bg-secondary mb-1">{{ item.category|default:"Non catégorisé" }}</span>
+                                <h6 class="card-title mb-0 fw-bold">{{ item.name }}</h6>
+                                {% if item.asset_tag %}
+                                <small class="text-muted"><i class="bi bi-upc-scan me-1"></i>{{ item.asset_tag }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'diaconat-logistics-detail' item.id %}"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                    {% if user|can:'logistics.edit' %}
+                                    <li><a class="dropdown-item" href="{% url 'diaconat-logistics-edit' item.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                    {% endif %}
+                                    {% if user|can:'logistics.delete' %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'diaconat-logistics-delete' item.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Quantité</small>
+                                <span class="fw-semibold">{{ item.quantity }} {{ item.unit|default:"" }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">État</small>
+                                <span class="badge bg-{% if item.condition == 'new' or item.condition == 'good' %}success{% elif item.condition == 'fair' %}warning{% else %}danger{% endif %}">
+                                    {{ item.get_condition_display|default:item.condition }}
+                                </span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Emplacement</small>
+                                <span class="fw-semibold">{{ item.location|default:"-" }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Prix Unitaire</small>
+                                <span class="fw-semibold">{{ item.unit_price|default:"-" }} {{ item.purchase_currency }}</span>
+                            </div>
+                        </div>
+
+                        {% if item.supplier %}
+                        <div class="mb-2">
+                            <small class="text-muted"><i class="bi bi-shop me-1"></i>Fournisseur: {{ item.supplier }}</small>
+                        </div>
+                        {% endif %}
+
+                        {% if item.notes %}
+                        <p class="card-text text-muted small mb-0" style="white-space: pre-line; max-height: 60px; overflow: hidden;">{{ item.notes }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>Ajouté le {{ item.created_at|date:"d/m/Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-box fs-1 text-muted d-block mb-3"></i>
+                <p class="text-muted">Aucun article logistique enregistré</p>
+                {% if user|can:'logistics.create' %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                    <i class="bi bi-plus-lg me-2"></i>Ajouter un article
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Event Logistics List View -->
+{% if view == 'event_logistics_list' %}
+<div class="container-fluid">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+            <i class="bi bi-info-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Event Selection -->
+    <div class="card attendance-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-event me-2"></i>Sélectionner un événement
+                    </label>
+                    <select name="event" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Choisir un événement --</option>
+                        {% for evt in events %}
+                        <option value="{{ evt.pk }}" {% if selected_event and selected_event.pk == evt.pk %}selected{% endif %}>
+                            {{ evt.title }} - {{ evt.date|date:"d/m/Y" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{% url 'event-logistics-list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_event %}
+    <!-- Event Info Card -->
+    <div class="card attendance-card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="mb-0 fw-semibold">Consolation et Paix Divine</h6>
-                    <small class="text-muted">Plateforme de gestion</small>
+                    <h5 class="fw-bold mb-2">{{ selected_event.title }}</h5>
+                    <p class="text-muted mb-2">{{ selected_event.description|truncatewords:30|default:"Aucune description" }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-calendar me-1"></i>{{ selected_event.date|date:"d/m/Y" }}
+                        </span>
+                        <span class="badge bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-clock me-1"></i>{{ selected_event.time|time:"H:i" }}
+                        </span>
+                        {% if selected_event.location %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                            <i class="bi bi-geo-alt me-1"></i>{{ selected_event.location }}
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
+                {% if user|can:'logistics.create' %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                    <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
+                </button>
+                {% endif %}
             </div>
         </div>
-        <div class="p-3">
-            <div class="rounded-3 p-3 mb-3" style="background: #f1f5f9;">
-                <small class="text-muted d-block">Connecté en tant que</small>
-                <span class="fw-semibold" id="userRole">Utilisateur</span>
-            </div>
+    </div>
+
+    <!-- Resources List -->
+    <div class="card attendance-card">
+        <div class="card-header bg-white py-3 border-0">
+            <h6 class="mb-0 fw-semibold">
+                <i class="bi bi-box-seam me-2"></i>Ressources attribuées
+                <span class="badge bg-primary ms-2">{{ consumptions|length }}</span>
+            </h6>
         </div>
-        <nav class="px-3 pb-4" id="sidebarNav"></nav>
-    </aside>
-
-    <main class="main-content">
-        <header class="sticky-top bg-white border-bottom" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.9);">
-            <div class="container-fluid py-3 px-4">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
-                        <h5 class="mb-0 fw-semibold">Diaconat</h5>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-light" id="themeToggle"><i class="bi bi-moon" id="themeIcon"></i></button>
-                        <button class="btn btn-danger" id="logoutBtn" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right"></i></button>
-                    </div>
-                </div>
+        <div class="card-body pt-0">
+            {% if consumptions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Article</th>
+                            <th>Catégorie</th>
+                            <th>Quantité attribuée</th>
+                            <th>Stock total</th>
+                            <th>Restant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consumption in consumptions %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-3 p-2 me-3 bg-primary bg-opacity-10">
+                                        <i class="bi bi-box fs-5 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ consumption.item.name }}</h6>
+                                        {% if consumption.item.asset_tag %}
+                                        <small class="text-muted">{{ consumption.item.asset_tag }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ consumption.item.category|default:"Non catégorisé" }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-primary">{{ consumption.quantity_used }} {{ consumption.item.unit|default:"" }}</span>
+                            </td>
+                            <td>{{ consumption.item.quantity }} {{ consumption.item.unit|default:"" }}</td>
+                            <td>
+                                {% with remaining=consumption.item.quantity|add:"-"|add:consumption.quantity_used %}
+                                <span class="badge {% if remaining > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ consumption.item.quantity|add:"-"|add:consumption.quantity_used }} {{ consumption.item.unit|default:"" }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        {% if user|can:'logistics.edit' %}
+                                        <li>
+                                            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editResourceModal{{ consumption.pk }}">
+                                                <i class="bi bi-pencil me-2"></i>Modifier quantité
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                        {% if user|can:'logistics.delete' %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="{% url 'event-logistics-delete' consumption.pk %}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette attribution ?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        </header>
-
-        <div class="container-fluid p-4">
-            <!-- Tabs -->
-            <ul class="nav nav-pills mb-4" id="diaconatTabs">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#pointage" data-bs-toggle="tab">
-                        <i class="bi bi-clipboard-check me-2"></i>Pointage
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#logistique" data-bs-toggle="tab">
-                        <i class="bi bi-box-seam me-2"></i>Logistique
-                    </a>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <!-- Pointage Tab -->
-                <div class="tab-pane fade show active" id="pointage">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-4">
-                                    <label class="form-label">Événement</label>
-                                    <select class="form-select" id="eventSelect">
-                                        <option value="">Sélectionner un événement...</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Date</label>
-                                    <input type="date" class="form-control" id="attendanceDate">
-                                </div>
-                                <div class="col-md-5 text-md-end">
-                                    <button class="btn btn-primary" onclick="loadAttendance()">
-                                        <i class="bi bi-search me-2"></i>Charger
-                                    </button>
-                                    <button class="btn btn-success" onclick="saveAttendance()">
-                                        <i class="bi bi-save me-2"></i>Enregistrer
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4">
-                        <div class="col-lg-4">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-header bg-white py-3">
-                                    <h6 class="mb-0 fw-semibold">Statistiques</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center py-2">
-                                        <span class="text-muted">Présents</span>
-                                        <span class="badge bg-success" id="statPresent">0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center py-2">
-                                        <span class="text-muted">Absents</span>
-                                        <span class="badge bg-danger" id="statAbsent">0</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center py-2">
-                                        <span class="text-muted">Retards</span>
-                                        <span class="badge bg-warning" id="statLate">0</span>
-                                    </div>
-                                    <hr>
-                                    <div class="d-flex justify-content-between align-items-center py-2">
-                                        <span class="fw-semibold">Total</span>
-                                        <span class="fw-bold" id="statTotal">0</span>
-                                    </div>
-                                    <div class="progress mt-3" style="height: 8px;">
-                                        <div class="progress-bar bg-success" id="progressBar" style="width: 0%"></div>
-                                    </div>
-                                    <p class="text-muted small text-center mt-2 mb-0">
-                                        Taux de présence: <span id="presenceRate">0%</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-8">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-header bg-white py-3">
-                                    <h6 class="mb-0 fw-semibold">Liste de présence</h6>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive" style="max-height: 500px;">
-                                        <table class="table table-hover mb-0">
-                                            <thead class="table-light sticky-top">
-                                                <tr>
-                                                    <th>Membre</th>
-                                                    <th>Statut</th>
-                                                    <th>Heure d'arrivée</th>
-                                                    <th>Notes</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="attendanceTable">
-                                                <tr><td colspan="4" class="text-center py-4 text-muted">Sélectionnez un événement pour voir la liste</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Logistique Tab -->
-                <div class="tab-pane fade" id="logistique">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body">
-                            <div class="row g-3 align-items-center">
-                                <div class="col-md-4">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                        <input type="text" class="form-control border-0 bg-light" id="itemSearch" placeholder="Rechercher un article...">
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select bg-light border-0" id="categoryFilter">
-                                        <option value="">Toutes catégories</option>
-                                        <option value="furniture">Mobilier</option>
-                                        <option value="equipment">Équipement</option>
-                                        <option value="consumable">Consommable</option>
-                                        <option value="other">Autre</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 text-md-end">
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                                        <i class="bi bi-plus-lg me-2"></i>Ajouter un article
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3" id="itemsGrid">
-                        <div class="col-12 text-center py-5">
-                            <div class="spinner-border text-primary"></div>
-                            <p class="text-muted mt-2">Chargement...</p>
-                        </div>
-                    </div>
-                </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-box-seam fs-1 text-muted d-block mb-3"></i>
+                <p class="text-muted">Aucune ressource attribuée à cet événement</p>
+                {% if user|can:'logistics.create' %}
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                    <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
+                </button>
+                {% endif %}
             </div>
+            {% endif %}
         </div>
-    </main>
+    </div>
+    {% else %}
+    <div class="card attendance-card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-calendar-event fs-1 text-muted d-block mb-3"></i>
+            <h5 class="text-muted">Sélectionnez un événement</h5>
+            <p class="text-muted">Choisissez un événement dans la liste ci-dessus pour voir ou attribuer des ressources logistiques.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-    <!-- Add Item Modal -->
-    <div class="modal fade" id="addItemModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-semibold">Nouvel article</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+<!-- Add Resource Modal -->
+{% if selected_event and user|can:'logistics.create' %}
+<div class="modal fade" id="addResourceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Attribuer une ressource</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'event-logistics-add' %}">
+                {% csrf_token %}
+                <input type="hidden" name="event" value="{{ selected_event.pk }}">
                 <div class="modal-body">
-                    <form id="itemForm">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" class="form-control" name="name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Catégorie *</label>
-                                <select class="form-select" name="category" required>
-                                    <option value="furniture">Mobilier</option>
-                                    <option value="equipment">Équipement</option>
-                                    <option value="consumable">Consommable</option>
-                                    <option value="other">Autre</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Quantité *</label>
-                                <input type="number" class="form-control" name="quantity" min="0" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control" name="description" rows="2"></textarea>
-                            </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Événement</label>
+                        <input type="text" class="form-control" value="{{ selected_event.title }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Article logistique *</label>
+                        <select class="form-select" name="item" id="resourceItemSelect" required onchange="updateAvailableQuantity()">
+                            <option value="">-- Sélectionner un article --</option>
+                            {% for item in logistics_items %}
+                            <option value="{{ item.pk }}" data-quantity="{{ item.quantity }}" data-unit="{{ item.unit|default:'unité(s)' }}">
+                                {{ item.name }} (Stock: {{ item.quantity }} {{ item.unit|default:"" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div id="availableQuantityInfo" class="form-text mt-2 d-none">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Quantité disponible: <span id="availableQty" class="fw-bold">0</span> <span id="availableUnit"></span>
                         </div>
-                    </form>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantité à utiliser *</label>
+                        <input type="number" class="form-control" name="quantity_used" id="quantityUsed" min="1" required>
+                        <div class="form-text">
+                            <i class="bi bi-exclamation-triangle me-1 text-warning"></i>
+                            La quantité ne peut pas dépasser le stock disponible.
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="button" class="btn btn-primary" onclick="saveItem()">Enregistrer</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Attribuer</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
+</div>
+{% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="static/js/api.js"></script>
-    <script src="static/js/utils.js"></script>
-    <script src="static/js/toast.js"></script>
-    <script src="static/js/auth.js"></script>
-    <script src="static/js/navigation.js"></script>
-
-    <script>
-        let currentAttendance = [];
-        let members = [];
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!Auth.state.isAuthenticated) {
-                await Auth.refreshMe();
-                if (!Auth.state.isAuthenticated) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-            }
-
-            initUI();
-            loadEvents();
-            loadItems();
-
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            document.getElementById('sidebarBackdrop').addEventListener('click', toggleSidebar);
-            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-            document.getElementById('itemSearch').addEventListener('input', debounce(loadItems, 300));
-            document.getElementById('categoryFilter').addEventListener('change', loadItems);
-
-            // Set today
-            document.getElementById('attendanceDate').valueAsDate = new Date();
-        });
-
-        function initUI() {
-            const user = Auth.state.user;
-            document.getElementById('userRole').textContent = user?.role || 'Utilisateur';
-            if (window.Navigation) Navigation.render('sidebarNav', 'diaconat');
-            Utils.Theme.init();
-            updateThemeIcon();
-
-            // Check for tab param
-            const params = Utils.getUrlParams();
-            if (params.tab === 'logistique') {
-                document.querySelector('[href="#logistique"]').click();
-            }
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.getElementById('sidebarBackdrop').classList.toggle('show');
-        }
-
-        function toggleTheme() {
-            Utils.Theme.toggle();
-            updateThemeIcon();
-        }
-
-        function updateThemeIcon() {
-            document.getElementById('themeIcon').className = Utils.Theme.get() === 'dark' ? 'bi bi-sun' : 'bi bi-moon';
-        }
-
-        function debounce(fn, delay) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => fn.apply(this, args), delay);
-            };
-        }
-
-        async function loadEvents() {
-            try {
-                const response = await API.api.get('/api/events/', { upcoming: 'true' });
-                const events = response.results || response;
-                
-                const options = events.map(e => `<option value="${e.id}">${e.title} - ${Utils.formatDateShort(e.date)}</option>`).join('');
-                document.getElementById('eventSelect').innerHTML = '<option value="">Sélectionner un événement...</option>' + options;
-            } catch (error) {
-                console.error('Failed to load events:', error);
-            }
-        }
-
-        async function loadAttendance() {
-            const eventId = document.getElementById('eventSelect').value;
-            const date = document.getElementById('attendanceDate').value;
-
-            if (!eventId) {
-                Toast.warning('Attention', 'Veuillez sélectionner un événement');
-                return;
-            }
-
-            try {
-                const response = await API.api.get('/api/attendance/', { event: eventId, date });
-                currentAttendance = response.results || response;
-                
-                renderAttendance();
-                updateStats();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de charger la liste');
-            }
-        }
-
-        function renderAttendance() {
-            const tbody = document.getElementById('attendanceTable');
-            
-            if (currentAttendance.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Aucune donnée</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = currentAttendance.map((a, index) => `
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-medium">${a.member_name || 'Membre #' + a.member}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <select class="form-select form-select-sm" style="width: auto;" onchange="updateStatus(${index}, this.value)">
-                            <option value="present" ${a.status === 'present' ? 'selected' : ''} class="presence-present">Présent</option>
-                            <option value="absent" ${a.status === 'absent' ? 'selected' : ''} class="presence-absent">Absent</option>
-                            <option value="late" ${a.status === 'late' ? 'selected' : ''} class="presence-late">Retard</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input type="time" class="form-control form-control-sm" value="${a.arrival_time || ''}" onchange="updateArrivalTime(${index}, this.value)">
-                    </td>
-                    <td>
-                        <input type="text" class="form-control form-control-sm" value="${a.notes || ''}" placeholder="Notes..." onchange="updateNotes(${index}, this.value)">
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function updateStats() {
-            const present = currentAttendance.filter(a => a.status === 'present').length;
-            const absent = currentAttendance.filter(a => a.status === 'absent').length;
-            const late = currentAttendance.filter(a => a.status === 'late').length;
-            const total = currentAttendance.length;
-            const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-
-            document.getElementById('statPresent').textContent = present;
-            document.getElementById('statAbsent').textContent = absent;
-            document.getElementById('statLate').textContent = late;
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('presenceRate').textContent = rate + '%';
-            document.getElementById('progressBar').style.width = rate + '%';
-        }
-
-        function updateStatus(index, value) {
-            currentAttendance[index].status = value;
-            updateStats();
-        }
-
-        function updateArrivalTime(index, value) {
-            currentAttendance[index].arrival_time = value;
-        }
-
-        function updateNotes(index, value) {
-            currentAttendance[index].notes = value;
-        }
-
-        async function saveAttendance() {
-            try {
-                for (const record of currentAttendance) {
-                    if (record.id) {
-                        await API.api.patch(`/api/attendance/${record.id}/`, record);
-                    } else {
-                        await API.api.post('/api/attendance/', record);
-                    }
-                }
-                Toast.success('Succès', 'Présences enregistrées');
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible d\'enregistrer');
-            }
-        }
-
-        async function loadItems() {
-            try {
-                const search = document.getElementById('itemSearch').value;
-                const category = document.getElementById('categoryFilter').value;
-                
-                const params = {};
-                if (search) params.search = search;
-                if (category) params.category = category;
-
-                const response = await API.api.get('/api/logistics-items/', params);
-                const items = response.results || response;
-                
-                renderItems(items);
-            } catch (error) {
-                console.error('Failed to load items:', error);
-                document.getElementById('itemsGrid').innerHTML = '<div class="col-12 text-center text-muted py-4">Erreur de chargement</div>';
-            }
-        }
-
-        function renderItems(items) {
-            const container = document.getElementById('itemsGrid');
-            
-            if (items.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center text-muted py-4">Aucun article</div>';
-                return;
-            }
-
-            container.innerHTML = items.map(item => `
-                <div class="col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-light text-dark">${getCategoryLabel(item.category)}</span>
-                                <span class="badge ${item.quantity > 0 ? 'bg-success' : 'bg-danger'}">${item.quantity} en stock</span>
-                            </div>
-                            <h6 class="fw-semibold mb-2">${item.name}</h6>
-                            <p class="text-muted small mb-3">${item.description || 'Pas de description'}</p>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-light" onclick="editItem(${item.id})"><i class="bi bi-pencil"></i></button>
-                                ${Auth.isAdmin() ? `<button class="btn btn-sm btn-light text-danger" onclick="deleteItem(${item.id})"><i class="bi bi-trash"></i></button>` : ''}
-                            </div>
+<!-- Edit Resource Modals -->
+{% if user|can:'logistics.edit' %}
+{% for consumption in consumptions %}
+<div class="modal fade" id="editResourceModal{{ consumption.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Modifier la quantité</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'event-logistics-edit' consumption.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Article</label>
+                        <input type="text" class="form-control" value="{{ consumption.item.name }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Événement</label>
+                        <input type="text" class="form-control" value="{{ consumption.event.title }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantité à utiliser *</label>
+                        <input type="number" class="form-control" name="quantity_used" value="{{ consumption.quantity_used }}" min="1" max="{{ consumption.item.quantity }}" required>
+                        <div class="form-text">
+                            Stock total disponible: <span class="fw-bold">{{ consumption.item.quantity }}</span> {{ consumption.item.unit|default:"" }}
                         </div>
                     </div>
                 </div>
-            `).join('');
-        }
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
 
-        function getCategoryLabel(cat) {
-            const labels = { furniture: 'Mobilier', equipment: 'Équipement', consumable: 'Consommable', other: 'Autre' };
-            return labels[cat] || cat;
-        }
+<script>
+function updateAvailableQuantity() {
+    const select = document.getElementById('resourceItemSelect');
+    const infoDiv = document.getElementById('availableQuantityInfo');
+    const qtySpan = document.getElementById('availableQty');
+    const unitSpan = document.getElementById('availableUnit');
+    const quantityInput = document.getElementById('quantityUsed');
 
-        async function saveItem() {
-            const form = document.getElementById('itemForm');
-            const data = Object.fromEntries(new FormData(form));
-            data.quantity = parseInt(data.quantity);
+    if (select.value) {
+        const option = select.options[select.selectedIndex];
+        const quantity = option.getAttribute('data-quantity');
+        const unit = option.getAttribute('data-unit');
 
-            try {
-                await API.api.post('/api/logistics-items/', data);
-                Toast.success('Succès', 'Article ajouté');
-                bootstrap.Modal.getInstance(document.getElementById('addItemModal')).hide();
-                form.reset();
-                loadItems();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible d\'ajouter');
+        qtySpan.textContent = quantity;
+        unitSpan.textContent = unit;
+        infoDiv.classList.remove('d-none');
+
+        // Mettre à jour le max de l'input
+        quantityInput.max = quantity;
+    } else {
+        infoDiv.classList.add('d-none');
+    }
+}
+
+// Validation avant soumission
+const addResourceForm = document.querySelector('#addResourceModal form');
+if (addResourceForm) {
+    addResourceForm.addEventListener('submit', function(e) {
+        const select = document.getElementById('resourceItemSelect');
+        const quantityInput = document.getElementById('quantityUsed');
+
+        if (select.value) {
+            const option = select.options[select.selectedIndex];
+            const availableQty = parseInt(option.getAttribute('data-quantity'));
+            const requestedQty = parseInt(quantityInput.value);
+
+            if (requestedQty > availableQty) {
+                e.preventDefault();
+                alert('La quantité demandée dépasse le stock disponible (' + availableQty + ' ' + option.getAttribute('data-unit') + ')');
+                return false;
             }
         }
+    });
+}
+</script>
+{% endif %}
 
-        async function deleteItem(id) {
-            if (!confirm('Supprimer cet article ?')) return;
-            try {
-                await API.api.delete(`/api/logistics-items/${id}/`);
-                Toast.success('Succès', 'Article supprimé');
-                loadItems();
-            } catch (error) {
-                Toast.error('Erreur', 'Impossible de supprimer');
-            }
-        }
+<!-- Add Item Modal -->
+    {% if user|can:'logistics.create' %}
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Nouvel article logistique</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="itemForm" method="post" action="{% url 'diaconat-logistics-create' %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <!-- name -->
+                            <div class="col-12">
+                                <label class="form-label">Nom de l'article *</label>
+                                <input type="text" class="form-control" name="name" required placeholder="Ex: Chaises pliantes">
+                            </div>
 
-        function editItem(id) {
-            Toast.info('Info', 'Fonctionnalité à implémenter');
-        }
-    </script>
+                            <!-- category -->
+                            <div class="col-md-6">
+                                <label class="form-label">Catégorie</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="category" id="categorySelect">
+                                        <option value="">-- Sélectionner --</option>
+                                        {% for cat_value, cat_label in logistics_categories %}
+                                        <option value="{{ cat_value }}">{{ cat_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" onclick="toggleNewCategory()" title="Ajouter une catégorie">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="newCategoryInput" placeholder="Nouvelle catégorie...">
+                            </div>
 
-    <!-- Logout Confirmation Modal -->
-    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-semibold">
-                        <i class="bi bi-box-arrow-right text-danger me-2"></i>
-                        Confirmer la déconnexion
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">Êtes-vous sûr de vouloir vous déconnecter ?</p>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
-                    <a href="{% url 'logout' %}" class="btn btn-danger">
-                        <i class="bi bi-box-arrow-right me-1"></i>
-                        Se déconnecter
-                    </a>
-                </div>
+                            <!-- asset_tag -->
+                            <div class="col-md-6">
+                                <label class="form-label">Code/Tag d'actif <small class="text-muted">(généré auto)</small></label>
+                                <input type="text" class="form-control bg-light" name="asset_tag" id="assetTagInput" placeholder="Généré automatiquement" readonly>
+                            </div>
+
+                            <!-- quantity + unit_price (reorganized) -->
+                            <div class="col-md-3">
+                                <label class="form-label">Quantité *</label>
+                                <input type="number" class="form-control" name="quantity" id="quantityInput" min="0" value="1" required oninput="calculateTotal()">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Prix unitaire</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="purchase_currency" id="currencySelect" style="max-width: 100px;">
+                                        {% for curr_value, curr_label in currency_choices %}
+                                        <option value="{{ curr_value }}" {% if curr_value == 'CDF' %}selected{% endif %}>{{ curr_value }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="unit_price" id="unitPriceInput" step="0.01" min="0" placeholder="0.00" oninput="calculateTotal()">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Prix total <small class="text-muted">(auto)</small></label>
+                                <input type="text" class="form-control bg-light" id="totalPriceInput" placeholder="0.00" readonly>
+                            </div>
+
+                            <!-- condition -->
+                            <div class="col-md-6">
+                                <label class="form-label">État</label>
+                                <div class="input-group">
+                                    <select class="form-select" name="condition" id="conditionSelect">
+                                        {% for cond_value, cond_label in condition_choices %}
+                                        <option value="{{ cond_value }}" {% if cond_value == 'good' %}selected{% endif %}>{{ cond_label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary" onclick="toggleNewCondition()" title="Ajouter un état">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="newConditionInput" placeholder="Nouvel état...">
+                            </div>
+
+                            <!-- location -->
+                            <div class="col-md-6">
+                                <label class="form-label">Emplacement</label>
+                                <input type="text" class="form-control" name="location" placeholder="Ex: Salle principale, Stock">
+                            </div>
+
+                            <!-- acquired_date -->
+                            <div class="col-md-6">
+                                <label class="form-label">Date d'acquisition</label>
+                                <input type="date" class="form-control" name="acquired_date">
+                            </div>
+
+                            <!-- supplier -->
+                            <div class="col-12">
+                                <label class="form-label">Fournisseur</label>
+                                <input type="text" class="form-control" name="supplier" placeholder="Nom du fournisseur">
+                            </div>
+
+                            <!-- notes -->
+                            <div class="col-12">
+                                <label class="form-label">Notes / Description</label>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Informations complémentaires..."></textarea>
+                            </div>
+
+                            <!-- is_active -->
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="is_active" id="isActive" checked>
+                                    <label class="form-check-label" for="isActive">Article actif</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>Enregistrer l'article
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-</body>
-</html>
+    {% endif %}
+
+<script>
+// Global variables
+let presentCount = parseInt('{{ present_count|default:0 }}') || 0;
+let absentCount = parseInt('{{ absent_count|default:0 }}') || 0;
+let totalMembers = parseInt('{{ total_members|default:0 }}') || 0;
+let activityLog = [];
+let compactMode = false;
+
+// Activity log functions
+function addActivityLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    activityLog.unshift({ message, type, timestamp });
+    if (activityLog.length > 10) activityLog.pop();
+    renderActivityLog();
+}
+
+function renderActivityLog() {
+    const container = document.getElementById('activity-log');
+    if (!container) return;
+
+    if (activityLog.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center py-3">Aucune activité récente</div>';
+        return;
+    }
+
+    container.innerHTML = activityLog.map(log => {
+        const iconClass = log.type === 'success' ? 'bi-check-circle text-success' :
+                         log.type === 'error' ? 'bi-x-circle text-danger' :
+                         log.type === 'warning' ? 'bi-exclamation-circle text-warning' :
+                         'bi-info-circle text-info';
+        return `
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                <i class="bi ${iconClass}"></i>
+                <span class="flex-grow-1">${log.message}</span>
+                <small class="text-muted">${log.timestamp}</small>
+            </div>
+        `;
+    }).join('');
+}
+
+// Filter functions
+function filterMembers() {
+    const searchTerm = document.getElementById('memberSearch').value.toLowerCase();
+    const items = document.querySelectorAll('.member-item');
+
+    items.forEach(item => {
+        const name = item.querySelector('h6').textContent.toLowerCase();
+        const number = item.querySelector('small').textContent.toLowerCase();
+        if (name.includes(searchTerm) || number.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function filterByStatus(status) {
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('filter-' + status).classList.add('active');
+
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        const itemStatus = item.getAttribute('data-status');
+        if (status === 'all' || itemStatus === status) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function updateUI(memberId, action, data) {
+    const memberItem = document.querySelector(`[data-member-id="${memberId}"]`);
+    if (!memberItem) return;
+
+    const presentBtn = memberItem.querySelector('.present-btn');
+    const absentBtn = memberItem.querySelector('.absent-btn');
+
+    if (action === 'present') {
+        presentBtn.classList.add('present');
+        absentBtn.classList.remove('absent');
+        memberItem.classList.remove('absent');
+        memberItem.classList.add('present');
+        memberItem.setAttribute('data-status', 'present');
+    } else {
+        absentBtn.classList.add('absent');
+        presentBtn.classList.remove('present');
+        memberItem.classList.remove('present');
+        memberItem.classList.add('absent');
+        memberItem.setAttribute('data-status', 'absent');
+    }
+
+    if (data.present_count !== undefined) {
+        presentCount = data.present_count;
+        absentCount = data.absent_count;
+        updateCounters();
+    }
+
+    const memberName = data.member_name || 'Membre';
+    const message = action === 'present' ? `${memberName} marqué présent` : `${memberName} marqué absent`;
+    addActivityLog(message, action === 'present' ? 'success' : 'warning');
+}
+
+function updateCounters() {
+    const presentBadge = document.getElementById('stat-present');
+    const absentBadge = document.getElementById('stat-absent');
+    const headerPresent = document.getElementById('header-present');
+    const headerAbsent = document.getElementById('header-absent');
+
+    if (presentBadge) presentBadge.textContent = presentCount;
+    if (absentBadge) absentBadge.textContent = absentCount;
+    if (headerPresent) headerPresent.textContent = presentCount;
+    if (headerAbsent) headerAbsent.textContent = absentCount;
+
+    const notMarkedCount = totalMembers - presentCount - absentCount;
+    const notMarkedBadge = document.getElementById('stat-pending');
+    if (notMarkedBadge) notMarkedBadge.textContent = notMarkedCount;
+
+    updateLiveStats();
+}
+
+function updateLiveStats() {
+    const markedCount = presentCount + absentCount;
+    const responseRate = totalMembers > 0 ? Math.round((markedCount / totalMembers) * 100) : 0;
+    const presentRate = markedCount > 0 ? Math.round((presentCount / markedCount) * 100) : 0;
+
+    const responseRateEl = document.getElementById('response-rate');
+    const responseBar = document.getElementById('response-bar');
+    if (responseRateEl) responseRateEl.textContent = responseRate + '%';
+    if (responseBar) responseBar.style.width = responseRate + '%';
+
+    const presentRatioEl = document.getElementById('present-ratio');
+    const presentBar = document.getElementById('present-bar');
+    if (presentRatioEl) presentRatioEl.textContent = presentCount + ':' + absentCount;
+    if (presentBar) presentBar.style.width = presentRate + '%';
+
+    const lastActivityEl = document.getElementById('last-activity');
+    if (lastActivityEl && activityLog.length > 0) {
+        lastActivityEl.textContent = activityLog[0].message;
+    }
+}
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    document.body.classList.toggle('compact-mode', compactMode);
+
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        if (compactMode) {
+            item.style.padding = '8px 12px';
+            item.querySelector('img, .rounded-circle')?.classList?.add('d-none');
+        } else {
+            item.style.padding = '12px 16px';
+            item.querySelector('img, .rounded-circle')?.classList?.remove('d-none');
+        }
+    });
+
+    addActivityLog(compactMode ? 'Mode compact activé' : 'Mode compact désactivé', 'info');
+}
+
+// Logistics functions
+function getCategoryLabel(cat) {
+    const labels = { furniture: 'Mobilier', equipment: 'Équipement', consumable: 'Consommable', other: 'Autre' };
+    return labels[cat] || cat;
+}
+
+const selectedEventId = '{{ selected_event.pk|default:"" }}';
+const hasSelectedEvent = selectedEventId !== '';
+const diaconatEventUrl = '{% url "diaconat" %}' + (hasSelectedEvent ? ('?event=' + selectedEventId) : '');
+const diaconatCsrfToken = '{{ csrf_token }}';
+
+function deleteItem(id) {
+    if (confirm('Supprimer cet article ?')) {
+        window.location.href = `/logistics/${id}/delete/`;
+    }
+}
+
+function editItem(id) {
+    window.location.href = `/logistics/${id}/edit/`;
+}
+
+function saveItem() {
+    alert('Fonctionnalité à implémenter - sauvegarde article logistique');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveStats();
+    if (document.getElementById('membersList')) {
+        addActivityLog('Page de pointage chargée', 'info');
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('memberSearch')?.focus();
+    }
+    if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+            bootstrap.Modal.getInstance(modal).hide();
+        }
+    }
+});
+
+// Mark attendance via AJAX
+function markAttendance(memberId, action, button) {
+    if (!hasSelectedEvent) {
+        alert('Veuillez sélectionner un événement d\'abord');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', diaconatCsrfToken);
+    formData.append('member_id', memberId);
+    formData.append('action', action);
+
+    fetch(diaconatEventUrl, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateUI(memberId, action, data);
+        } else {
+            alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        window.location.reload();
+    });
+}
+
+function updateUI(memberId, action, data) {
+    const memberItem = document.querySelector(`[data-member-id="${memberId}"]`);
+    if (!memberItem) return;
+
+    const presentBtn = memberItem.querySelector('.present-btn');
+    const absentBtn = memberItem.querySelector('.absent-btn');
+
+    if (action === 'present') {
+        presentBtn.classList.add('present');
+        absentBtn.classList.remove('absent');
+        memberItem.classList.remove('absent');
+        memberItem.classList.add('present');
+        memberItem.setAttribute('data-status', 'present');
+    } else {
+        absentBtn.classList.add('absent');
+        presentBtn.classList.remove('present');
+        memberItem.classList.remove('present');
+        memberItem.classList.add('absent');
+        memberItem.setAttribute('data-status', 'absent');
+    }
+
+    if (data.present_count !== undefined) {
+        presentCount = data.present_count;
+        absentCount = data.absent_count;
+        updateCounters();
+    }
+
+    const memberName = data.member_name || 'Membre';
+    const message = action === 'present' ? `${memberName} marqué présent` : `${memberName} marqué absent`;
+    addActivityLog(message, action === 'present' ? 'success' : 'warning');
+}
+
+function updateCounters() {
+    const presentBadge = document.getElementById('stat-present');
+    const absentBadge = document.getElementById('stat-absent');
+    const headerPresent = document.getElementById('header-present');
+    const headerAbsent = document.getElementById('header-absent');
+
+    if (presentBadge) presentBadge.textContent = presentCount;
+    if (absentBadge) absentBadge.textContent = absentCount;
+    if (headerPresent) headerPresent.textContent = presentCount;
+    if (headerAbsent) headerAbsent.textContent = absentCount;
+
+    const notMarkedCount = totalMembers - presentCount - absentCount;
+    const notMarkedBadge = document.getElementById('stat-pending');
+    if (notMarkedBadge) notMarkedBadge.textContent = notMarkedCount;
+
+    updateLiveStats();
+}
+
+function updateLiveStats() {
+    const markedCount = presentCount + absentCount;
+    const responseRate = totalMembers > 0 ? Math.round((markedCount / totalMembers) * 100) : 0;
+    const presentRate = markedCount > 0 ? Math.round((presentCount / markedCount) * 100) : 0;
+
+    const responseRateEl = document.getElementById('response-rate');
+    const responseBar = document.getElementById('response-bar');
+    if (responseRateEl) responseRateEl.textContent = responseRate + '%';
+    if (responseBar) responseBar.style.width = responseRate + '%';
+
+    const presentRatioEl = document.getElementById('present-ratio');
+    const presentBar = document.getElementById('present-bar');
+    if (presentRatioEl) presentRatioEl.textContent = presentCount + ':' + absentCount;
+    if (presentBar) presentBar.style.width = presentRate + '%';
+
+    const lastActivityEl = document.getElementById('last-activity');
+    if (lastActivityEl && activityLog.length > 0) {
+        lastActivityEl.textContent = activityLog[0].message;
+    }
+}
+
+function toggleCompactMode() {
+    compactMode = !compactMode;
+    document.body.classList.toggle('compact-mode', compactMode);
+
+    const items = document.querySelectorAll('.member-item');
+    items.forEach(item => {
+        if (compactMode) {
+            item.style.padding = '8px 12px';
+            item.querySelector('img, .rounded-circle')?.classList?.add('d-none');
+        } else {
+            item.style.padding = '12px 16px';
+            item.querySelector('img, .rounded-circle')?.classList?.remove('d-none');
+        }
+    });
+
+    addActivityLog(compactMode ? 'Mode compact activé' : 'Mode compact désactivé', 'info');
+}
+
+// Logistics functions
+function getCategoryLabel(cat) {
+    const labels = { furniture: 'Mobilier', equipment: 'Équipement', consumable: 'Consommable', other: 'Autre' };
+    return labels[cat] || cat;
+}
+
+function deleteItem(id) {
+    if (confirm('Supprimer cet article ?')) {
+        window.location.href = `/logistics/${id}/delete/`;
+    }
+}
+
+function editItem(id) {
+    window.location.href = `/logistics/${id}/edit/`;
+}
+
+function saveItem() {
+    alert('Fonctionnalité à implémenter - sauvegarde article logistique');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveStats();
+    if (document.getElementById('membersList')) {
+        addActivityLog('Page de pointage chargée', 'info');
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('memberSearch')?.focus();
+    }
+    if (e.key === 'Escape') {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+            bootstrap.Modal.getInstance(modal).hide();
+        }
+    }
+});
+
+// Search and Filter for Logistics Items
+function filterItems() {
+    const searchTerm = document.getElementById('itemSearch')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+    const items = document.querySelectorAll('.item-card');
+
+    items.forEach(item => {
+        const name = item.querySelector('.card-title')?.textContent.toLowerCase() || '';
+        const category = item.getAttribute('data-category') || '';
+        const assetTag = item.querySelector('.bi-upc-scan')?.parentElement?.textContent.toLowerCase() || '';
+
+        const matchesSearch = name.includes(searchTerm) || assetTag.includes(searchTerm);
+        const matchesCategory = !categoryFilter || category === categoryFilter;
+
+        if (matchesSearch && matchesCategory) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Attach filter events
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('itemSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterItems);
+    }
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterItems);
+    }
+});
+
+// Logistics functions - Calculate total price
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantityInput')?.value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unitPriceInput')?.value) || 0;
+    const currency = document.getElementById('currencySelect')?.value || 'CDF';
+    const total = (quantity * unitPrice).toFixed(2);
+    const totalInput = document.getElementById('totalPriceInput');
+    if (totalInput) {
+        totalInput.value = quantity > 0 && unitPrice > 0 ? `${total} ${currency}` : '';
+    }
+}
+
+// Toggle new category input with AJAX save
+function toggleNewCategory() {
+    const select = document.getElementById('categorySelect');
+    const newInput = document.getElementById('newCategoryInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+            
+            // Handler pour sauvegarder via AJAX
+            const saveCategory = function() {
+                const categoryName = newInput.value.trim();
+                if (categoryName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', categoryName);
+                    
+                    fetch('{% url "logistics-category-ajax" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Créer l'option dans le select
+                            const newOption = new Option(data.name, data.code);
+                            select.add(newOption, 1);
+                            select.value = data.code;
+                            alert('Catégorie "' + data.name + '" créée avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer la catégorie'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Fallback: ajouter localement seulement
+                        const newValue = categoryName.toLowerCase().replace(/\s+/g, '_');
+                        const newOption = new Option(categoryName, newValue);
+                        select.add(newOption, 1);
+                        select.value = newValue;
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveCategory);
+            };
+            
+            newInput.addEventListener('blur', saveCategory);
+            // Sauvegarder aussi sur touche Enter
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCategory();
+                }
+            });
+        }
+    }
+}
+
+// Toggle new condition input with AJAX save
+function toggleNewCondition() {
+    const select = document.getElementById('conditionSelect');
+    const newInput = document.getElementById('newConditionInput');
+    if (select && newInput) {
+        if (newInput.classList.contains('d-none')) {
+            newInput.classList.remove('d-none');
+            select.classList.add('d-none');
+            newInput.focus();
+            
+            // Handler pour sauvegarder via AJAX
+            const saveCondition = function() {
+                const conditionName = newInput.value.trim();
+                if (conditionName) {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    formData.append('name', conditionName);
+                    
+                    fetch('{% url "logistics-condition-ajax" %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Créer l'option dans le select
+                            const newOption = new Option(data.name, data.code);
+                            select.add(newOption, 1);
+                            select.value = data.code;
+                            alert('État "' + data.name + '" créé avec succès!');
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Impossible de créer l\'état'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Fallback: ajouter localement seulement
+                        const newValue = conditionName.toLowerCase().replace(/\s+/g, '_');
+                        const newOption = new Option(conditionName, newValue);
+                        select.add(newOption, 1);
+                        select.value = newValue;
+                    })
+                    .finally(() => {
+                        newInput.value = '';
+                        newInput.classList.add('d-none');
+                        select.classList.remove('d-none');
+                    });
+                } else {
+                    newInput.classList.add('d-none');
+                    select.classList.remove('d-none');
+                }
+                newInput.removeEventListener('blur', saveCondition);
+            };
+            
+            newInput.addEventListener('blur', saveCondition);
+            // Sauvegarder aussi sur touche Enter
+            newInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCondition();
+                }
+            });
+        }
+    }
+}
+</script>
+{% endblock content %}
+
+{% block extra_js %}
+<!-- Additional JavaScript can go here -->
+{% endblock extra_js %}

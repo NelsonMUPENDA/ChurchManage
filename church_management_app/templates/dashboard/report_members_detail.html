@@ -1,0 +1,132 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Rapport des Membres{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- En-tête administratif avec infos de l'église -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    {% if church_settings and church_settings.logo %}
+                    <img src="{{ church_settings.logo.url }}" alt="Logo" class="img-fluid" style="max-height: 80px;">
+                    {% else %}
+                    <i class="bi bi-building fs-1 text-primary"></i>
+                    {% endif %}
+                </div>
+                <div class="col-md-8 text-center">
+                    <h3 class="fw-bold mb-1">{{ church_settings.church_name|default:"Église" }}</h3>
+                    {% if church_settings.church_slogan %}
+                    <p class="text-muted mb-1">{{ church_settings.church_slogan }}</p>
+                    {% endif %}
+                    <p class="small text-muted mb-0">
+                        {% if church_settings.address %}{{ church_settings.address }}, {% endif %}
+                        {% if church_settings.city %}{{ church_settings.city }}{% endif %}
+                        {% if church_settings.phone_primary %} | Tél: {{ church_settings.phone_primary }}{% endif %}
+                        {% if church_settings.email_primary %} | Email: {{ church_settings.email_primary }}{% endif %}
+                    </p>
+                </div>
+                <div class="col-md-2 text-end">
+                    <div class="btn-group-vertical">
+                        <a href="{% url 'reports-export-pdf' 'members' %}{% if date_from and date_to %}?date_from={{ date_from }}&date_to={{ date_to }}{% endif %}" class="btn btn-danger btn-sm mb-1">
+                            <i class="bi bi-file-pdf me-1"></i>PDF
+                        </a>
+                        <a href="{% url 'reports' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="text-center">
+                <h4 class="fw-bold text-primary">RAPPORT DES MEMBRES</h4>
+                <p class="text-muted mb-0">
+                    {% if date_from and date_to %}
+                    Période: {{ date_from }} au {{ date_to }}
+                    {% else %}
+                    Rapport complet au {{ now|date:"d/m/Y" }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-primary">{{ total }}</h4>
+                    <small class="text-muted">Total membres</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-success">{{ by_gender.male }}</h4>
+                    <small class="text-muted">Hommes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-danger">{{ by_gender.female }}</h4>
+                    <small class="text-muted">Femmes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <h4 class="fw-bold text-info">{{ by_status.active }}</h4>
+                    <small class="text-muted">Actifs</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">Liste des membres</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>N°</th>
+                            <th>Nom</th>
+                            <th>Genre</th>
+                            <th>Famille</th>
+                            <th>Département</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                        <tr>
+                            <td>{{ member.member_number }}</td>
+                            <td>{{ member.get_full_name }}</td>
+                            <td>{{ member.get_gender_display }}</td>
+                            <td>{{ member.family.name|default:"-" }}</td>
+                            <td>{{ member.department.name|default:"-" }}</td>
+                            <td>
+                                {% if member.is_active %}
+                                    <span class="badge bg-success">Actif</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactif</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
