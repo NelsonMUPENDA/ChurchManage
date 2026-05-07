@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Registre des Mariages{% endblock %}
 
@@ -42,9 +43,11 @@
                         <a href="{% url 'marriage-list' %}" class="btn btn-secondary me-2">
                             <i class="bi bi-x-lg me-1"></i>Annuler
                         </a>
+                        {% if user|can:'marriages.delete' %}
                         <button type="submit" class="btn btn-danger">
                             <i class="bi bi-trash me-1"></i>Supprimer définitivement
                         </button>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -61,9 +64,11 @@
                         <i class="bi bi-heart-fill text-danger me-2"></i>Détail du Mariage
                     </h5>
                     <div>
+                        {% if user|can:'marriages.edit' %}
                         <a href="{% url 'marriage-edit' marriage.pk %}" class="btn btn-sm btn-primary me-2">
                             <i class="bi bi-pencil me-1"></i>Modifier
                         </a>
+                        {% endif %}
                         <a href="{% url 'marriage-list' %}" class="btn btn-sm btn-secondary">
                             <i class="bi bi-arrow-left me-1"></i>Retour
                         </a>
@@ -454,9 +459,11 @@
                     </select>
                 </div>
                 <div class="col-md-5 text-md-end">
+                    {% if user|can:'marriages.create' %}
                     <a href="{% url 'marriage-create' %}" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>Nouveau mariage
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -536,17 +543,21 @@
                                                 <i class="bi bi-eye me-2 text-info"></i>Voir détail
                                             </a>
                                         </li>
+                                        {% if user|can:'marriages.edit' %}
                                         <li>
                                             <a class="dropdown-item" href="{% url 'marriage-edit' marriage.pk %}">
                                                 <i class="bi bi-pencil me-2 text-primary"></i>Modifier
                                             </a>
                                         </li>
+                                        {% endif %}
+                                        {% if user|can:'marriages.delete' %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item text-danger" href="{% url 'marriage-delete' marriage.pk %}">
                                                 <i class="bi bi-trash me-2"></i>Supprimer
                                             </a>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -559,9 +570,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-heart text-muted" style="font-size: 3rem;"></i>
                 <p class="text-muted mt-3">Aucun registre de mariage enregistré</p>
+                {% if user|can:'marriages.create' %}
                 <a href="{% url 'marriage-create' %}" class="btn btn-primary mt-2">
                     <i class="bi bi-plus-lg me-2"></i>Créer le premier registre
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

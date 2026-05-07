@@ -98,11 +98,11 @@
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control border-0 bg-light" name="q" placeholder="Rechercher un membre..." value="{{ search|default:'' }}">
+                        <input type="text" class="form-control border-0 bg-light" name="q" placeholder="Rechercher un membre..." value="{{ search|default:'' }}" {% if not user|can:'members.search' %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select bg-light border-0" name="status">
+                    <select class="form-select bg-light border-0" name="status" {% if not user|can:'members.filter' %}disabled{% endif %}>
                         <option value="">Tous les statuts</option>
                         <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Actif</option>
                         <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactif</option>
@@ -111,29 +111,35 @@
                 </div>
                 <div class="col-md-5 text-md-end">
                     <div class="d-flex gap-2 justify-content-md-end flex-wrap">
-                        {% if user|can_export %}
+                        {% if user|can:'members.print' or user|can:'members.export' %}
                         <div class="btn-group">
+                            {% if user|can:'members.print' %}
                             <a href="{% url 'member-print-preview' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" class="btn btn-outline-secondary" target="_blank" title="Aperçu avant impression">
                                 <i class="bi bi-printer me-1"></i><span class="d-none d-md-inline">Imprimer</span>
                             </a>
+                            {% endif %}
                             <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="visually-hidden">Options d'export</span>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user|can:'members.print' %}
                                 <li><a class="dropdown-item" href="{% url 'member-print-preview' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" target="_blank">
                                     <i class="bi bi-eye me-2"></i>Aperçu avant impression
                                 </a></li>
                                 <li><a class="dropdown-item" href="{% url 'member-print-list' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}" target="_blank">
                                     <i class="bi bi-file-pdf me-2 text-danger"></i>Export PDF direct
                                 </a></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
+                                {% if user|can:'members.export' %}
                                 <li><a class="dropdown-item" href="{% url 'member-export' %}?{% if status_filter %}status={{ status_filter }}&{% endif %}{% if department_filter %}department={{ department_filter }}&{% endif %}{% if search %}search={{ search }}{% endif %}">
                                     <i class="bi bi-file-excel me-2 text-success"></i>Export Excel
                                 </a></li>
+                                {% endif %}
                             </ul>
                         </div>
                         {% endif %}
-                        {% if user|can_create %}
+                        {% if user|can:'members.create' %}
                         <a href="{% url 'member-create' %}" class="btn btn-primary">
                             <i class="bi bi-plus-lg me-1"></i><span class="d-none d-md-inline">Ajouter</span>
                         </a>
@@ -169,15 +175,17 @@
                             </div>
                         </div>
                         <div class="d-flex gap-2 mt-3 pt-3 border-top">
+                            {% if user|can:'members.view' %}
                             <a href="{% url 'member-detail' member.pk %}" class="btn btn-sm btn-outline-primary flex-fill">
                                 <i class="bi bi-eye me-1"></i>Voir
                             </a>
-                            {% if user|can_edit %}
+                            {% endif %}
+                            {% if user|can:'members.edit' %}
                             <a href="{% url 'member-edit' member.pk %}" class="btn btn-sm btn-outline-secondary" title="Modifier">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% endif %}
-                            {% if user|can_export %}
+                            {% if user|can:'members.print' %}
                             <div class="btn-group">
                                 <a href="{% url 'member-profile-print' member.pk %}" class="btn btn-sm btn-outline-info" target="_blank" title="Fiche complète">
                                     <i class="bi bi-file-text"></i>
@@ -195,7 +203,7 @@
                                 </ul>
                             </div>
                             {% endif %}
-                            {% if user|can_delete %}
+                            {% if user|can:'members.delete' %}
                             <a href="{% url 'member-delete' member.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')">
                                 <i class="bi bi-trash"></i>
                             </a>

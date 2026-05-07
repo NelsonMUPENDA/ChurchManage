@@ -268,7 +268,7 @@
                     </div>
                     {% endif %}
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3">
+                    <button type="submit" class="btn btn-primary w-100 mt-3" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                         <i class="bi bi-save me-2"></i>Enregistrer les compteurs
                     </button>
                 </form>
@@ -280,21 +280,21 @@
             <form method="post" action="{% url 'attendance-event' event.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="mark_all_present">
-                <button type="submit" class="btn btn-success w-100">
+                <button type="submit" class="btn btn-success w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                     <i class="bi bi-check-all me-2"></i>Tous présents
                 </button>
             </form>
             <form method="post" action="{% url 'attendance-event' event.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="mark_all_absent">
-                <button type="submit" class="btn btn-danger w-100">
+                <button type="submit" class="btn btn-danger w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                     <i class="bi bi-x-square me-2"></i>Tous absents
                 </button>
             </form>
             <form method="post" action="{% url 'attendance-event' event.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="reset">
-                <button type="submit" class="btn btn-outline-secondary w-100">
+                <button type="submit" class="btn btn-outline-secondary w-100" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                     <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
                 </button>
             </form>
@@ -307,10 +307,10 @@
             </div>
             <div class="card-body pt-0">
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="openScanModal()">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="openScanModal()" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                         <i class="bi bi-qr-code-scan me-2"></i>Scan QR Code
                     </button>
-                    <button type="button" class="btn btn-outline-info btn-sm" onclick="exportToCSV()">
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="exportToCSV()" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                         <i class="bi bi-filetype-csv me-2"></i>Export CSV
                     </button>
                     <button type="button" class="btn btn-outline-dark btn-sm" onclick="window.print()">
@@ -459,14 +459,14 @@
                                         onclick="markAttendance('{{ member.pk }}', 'present', this)"
                                         data-member-id="{{ member.pk }}"
                                         data-action="present"
-                                        class="check-btn present-btn {% if attendance and attendance.attended %}present{% endif %}">
+                                        class="check-btn present-btn {% if attendance and attendance.attended %}present{% endif %}" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                                     <i class="bi bi-check-lg"></i>
                                 </button>
                                 <button type="button"
                                         onclick="markAttendance('{{ member.pk }}', 'absent', this)"
                                         data-member-id="{{ member.pk }}"
                                         data-action="absent"
-                                        class="check-btn absent-btn {% if attendance and not attendance.attended %}absent{% endif %}">
+                                        class="check-btn absent-btn {% if attendance and not attendance.attended %}absent{% endif %}" {% if not user|can:'diaconat.edit' %}disabled{% endif %}>
                                     <i class="bi bi-x-lg"></i>
                                 </button>
                             </div>
@@ -486,6 +486,7 @@
 </div>
 
 <script>
+const canEditDiaconat = {{ user|can:'diaconat.edit'|yesno:"true,false" }};
 // Global counters from Django template
 var presentCount = parseInt('{{ present_count|default:0 }}') || 0;
 var absentCount = parseInt('{{ absent_count|default:0 }}') || 0;
@@ -527,6 +528,11 @@ function filterByStatus(status) {
 }
 
 function markAttendance(memberId, action, button) {
+    if (!canEditDiaconat) {
+        alert('Permission refusée.');
+        return;
+    }
+
     // Create form data
     const formData = new FormData();
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');

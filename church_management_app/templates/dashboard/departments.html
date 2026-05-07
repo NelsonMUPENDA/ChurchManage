@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load permissions_tags %}
 
 {% block title %}Départements{% endblock %}
 
@@ -10,9 +11,11 @@
             <h2 class="fw-bold mb-1">Départements</h2>
             <p class="text-muted mb-0">Gérer les départements de l'église</p>
         </div>
+        {% if user|can:'departments.create' %}
         <a href="{% url 'department-create' %}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-2"></i>Nouveau département
         </a>
+        {% endif %}
     </div>
 
     {% if view == 'list' %}
@@ -46,12 +49,16 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    {% if user|can:'departments.edit' %}
                                     <a href="{% url 'department-edit' dept.pk %}" class="btn btn-outline-secondary" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    {% endif %}
+                                    {% if user|can:'departments.delete' %}
                                     <a href="{% url 'department-delete' dept.pk %}" class="btn btn-outline-danger" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -63,9 +70,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-building fs-1 text-muted mb-3 d-block"></i>
                 <p class="text-muted">Aucun département enregistré</p>
+                {% if user|can:'departments.create' %}
                 <a href="{% url 'department-create' %}" class="btn btn-primary">
                     <i class="bi bi-plus-lg me-2"></i>Ajouter un département
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -85,7 +94,15 @@
                         {{ form.as_p }}
                         <div class="d-flex gap-2 justify-content-end mt-4">
                             <a href="{% url 'department-list' %}" class="btn btn-outline-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                            {% if action == 'Créer' %}
+                                {% if user|can:'departments.create' %}
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                {% endif %}
+                            {% else %}
+                                {% if user|can:'departments.edit' %}
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -108,7 +125,9 @@
                         {% csrf_token %}
                         <div class="d-flex gap-2 justify-content-center">
                             <a href="{% url 'department-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            {% if user|can:'departments.delete' %}
                             <button type="submit" class="btn btn-danger">Supprimer</button>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

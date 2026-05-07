@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -159,7 +160,7 @@
                         <label for="{{ form.family.id_for_label }}" class="form-label">Famille</label>
                         <div class="input-group">
                             {{ form.family }}
-                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewFamily()" title="Ajouter une famille">
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewFamily()" title="Ajouter une famille" {% if action == 'Créer' and not user|can:'members.create' %}disabled{% elif action != 'Créer' and not user|can:'members.edit' %}disabled{% endif %}>
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -195,7 +196,7 @@
                         <label for="{{ form.department.id_for_label }}" class="form-label">Département</label>
                         <div class="input-group">
                             {{ form.department }}
-                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewDepartment()" title="Ajouter un département">
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewDepartment()" title="Ajouter un département" {% if action == 'Créer' and not user|can:'members.create' %}disabled{% elif action != 'Créer' and not user|can:'members.edit' %}disabled{% endif %}>
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -205,7 +206,7 @@
                         <label for="{{ form.ministry.id_for_label }}" class="form-label">Ministère</label>
                         <div class="input-group">
                             {{ form.ministry }}
-                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewMinistry()" title="Ajouter un ministère">
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleNewMinistry()" title="Ajouter un ministère" {% if action == 'Créer' and not user|can:'members.create' %}disabled{% elif action != 'Créer' and not user|can:'members.edit' %}disabled{% endif %}>
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </div>
@@ -244,9 +245,19 @@
                     <a href="{% url 'member-list' %}" class="btn btn-outline-secondary">
                         <i class="bi bi-x-lg me-2"></i>Annuler
                     </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg me-2"></i>{{ action }}
-                    </button>
+                    {% if action == 'Créer' %}
+                        {% if user|can:'members.create' %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>{{ action }}
+                        </button>
+                        {% endif %}
+                    {% else %}
+                        {% if user|can:'members.edit' %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>{{ action }}
+                        </button>
+                        {% endif %}
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -255,7 +266,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<span id="member-perms" data-can-manage="{% if action == 'Créer' %}{{ user|can:'members.create'|yesno:'true,false' }}{% else %}{{ user|can:'members.edit'|yesno:'true,false' }}{% endif %}"></span>
 <script>
+const canManageMemberForm = document.getElementById('member-perms')?.dataset?.canManage === 'true';
 // Afficher/masquer la cause d'inactivité selon le statut
 const isActiveCheck = document.getElementById('is_active_check');
 const inactiveReasonContainer = document.getElementById('inactive_reason_container');
@@ -282,6 +295,10 @@ if (isActiveCheck) {
 
 // Toggle new Family input with AJAX save
 function toggleNewFamily() {
+    if (!canManageMemberForm) {
+        alert('Permission refusée.');
+        return;
+    }
     const select = document.getElementById('family_select');
     const newInput = document.getElementById('newFamilyInput');
     if (select && newInput) {
@@ -344,6 +361,10 @@ function toggleNewFamily() {
 
 // Toggle new Department input with AJAX save
 function toggleNewDepartment() {
+    if (!canManageMemberForm) {
+        alert('Permission refusée.');
+        return;
+    }
     const select = document.getElementById('department_select');
     const newInput = document.getElementById('newDepartmentInput');
     if (select && newInput) {
@@ -405,6 +426,10 @@ function toggleNewDepartment() {
 
 // Toggle new Ministry input with AJAX save
 function toggleNewMinistry() {
+    if (!canManageMemberForm) {
+        alert('Permission refusée.');
+        return;
+    }
     const select = document.getElementById('ministry_select');
     const newInput = document.getElementById('newMinistryInput');
     if (select && newInput) {

@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load permissions_tags %}
 
 {% block title %}Messages de Contact{% endblock %}
 
@@ -75,18 +76,22 @@
                             <td>{{ contact.created_at|date:"d/m/Y H:i" }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
+                                    {% if user|can:'contacts.view' %}
                                     <a href="{% url 'contact-admin-detail' contact.pk %}" class="btn btn-outline-primary" title="Voir">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    {% if contact.status != 'read' and contact.status != 'archived' %}
-                                    <a href="{% url 'contact-mark-read' contact.pk %}" class="btn btn-outline-info" title="Marquer comme lu">
-                                        <i class="bi bi-check"></i>
-                                    </a>
                                     {% endif %}
-                                    {% if contact.status != 'archived' %}
-                                    <a href="{% url 'contact-archive' contact.pk %}" class="btn btn-outline-secondary" title="Archiver">
-                                        <i class="bi bi-archive"></i>
-                                    </a>
+                                    {% if user|can:'contacts.edit' %}
+                                        {% if contact.status != 'read' and contact.status != 'archived' %}
+                                        <a href="{% url 'contact-mark-read' contact.pk %}" class="btn btn-outline-info" title="Marquer comme lu">
+                                            <i class="bi bi-check"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if contact.status != 'archived' %}
+                                        <a href="{% url 'contact-archive' contact.pk %}" class="btn btn-outline-secondary" title="Archiver">
+                                            <i class="bi bi-archive"></i>
+                                        </a>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
@@ -111,6 +116,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Détail du message</h5>
+                    {% if user|can:'contacts.edit' %}
                     <div>
                         {% if contact.status != 'read' and contact.status != 'archived' %}
                         <a href="{% url 'contact-mark-read' contact.pk %}" class="btn btn-sm btn-outline-info me-1">
@@ -123,6 +129,7 @@
                         </a>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="row g-3 mb-4">

@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}{% if view == 'event_form' %}{{ action }} Événement{% else %}Événements & Programmes{% endif %}{% endblock %}
 {% block page_title %}{% if view == 'event_form' %}{{ action }} un Événement{% else %}Événements & Programmes{% endif %}{% endblock %}
@@ -220,122 +221,156 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <select class="form-select bg-light border-0" name="status" onchange="this.form.submit()">
-                    <option value="">Tous les statuts</option>
-                    <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>À venir</option>
-                    <option value="past" {% if status_filter == 'past' %}selected{% endif %}>Passés</option>
-                    <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Publiés</option>
-                </select>
-            </div>
-            <div class="col-md-2 text-md-end">
-                <a href="{% url 'event-create' %}" class="btn btn-primary w-100">
-                    <i class="bi bi-plus-lg me-2"></i>Nouveau
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Events Grid -->
-<div class="row g-4">
-    {% for event in events %}
-    <div class="col-md-6 col-lg-4 col-xl-3">
-        <div class="card event-card shadow-sm h-100">
-            <!-- Poster or Placeholder -->
-            <div class="position-relative">
-                {% if event.poster_image %}
-                <img src="{{ event.poster_image.url }}" alt="{{ event.title }}" class="event-poster">
-                {% else %}
-                <div class="event-poster-placeholder">
-                    <i class="bi bi-calendar-event fs-1"></i>
-                </div>
-                {% endif %}
-                
-                <!-- Date Badge -->
-                <div class="event-date-badge">
-                    <div class="event-date-day">{{ event.date|date:"d" }}</div>
-                    <div class="event-date-month">{{ event.date|date:"M" }}</div>
-                </div>
-                
-                <!-- Alert Badge -->
-                {% if event.is_alert %}
-                <div class="position-absolute top-0 end-0 m-2">
-                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>Urgent</span>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="card-body">
-                <!-- Type & Time -->
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-primary bg-opacity-10 text-primary event-type-badge">
-                        {{ event.get_event_type_display }}
-                    </span>
-                    <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ event.time|time:"H:i" }}</small>
-                </div>
-                
-                <!-- Title -->
-                <h5 class="card-title fw-bold mb-2">{{ event.title }}</h5>
-                
-                <!-- Location -->
-                <p class="text-muted small mb-3"><i class="bi bi-geo-alt me-1"></i>{{ event.location|default:"Lieu non défini" }}</p>
-                
-                <!-- Team Info -->
-                <div class="mb-3">
-                    {% if event.preacher %}
-                    <span class="team-tag mb-1"><i class="bi bi-mic"></i> {{ event.preacher }}</span>
-                    {% endif %}
-                    {% if event.choir %}
-                    <span class="team-tag mb-1"><i class="bi bi-music-note-beamed"></i> {{ event.choir }}</span>
-                    {% endif %}
-                </div>
-                
-                <!-- Status -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    {% if event.is_published %}
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-check-circle me-1"></i>Publié</span>
-                    {% else %}
-                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-eye-slash me-1"></i>Brouillon</span>
-                    {% endif %}
-                    <small class="text-muted">{{ event.date|date:"d/m/Y" }}</small>
                 </div>
             </div>
-            
-            <!-- Actions -->
-            <div class="card-footer bg-transparent border-0 pt-0">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'event-detail' event.pk %}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-eye me-2"></i>Voir détails
-                    </a>
-                    <div class="d-flex gap-2">
-                        <a href="{% url 'attendance-event' event.pk %}" class="btn btn-outline-success btn-sm flex-fill" title="Pointage">
-                            <i class="bi bi-clipboard-check"></i> Pointage
-                        </a>
-                        <a href="{% url 'event-edit' event.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <a href="{% url 'event-delete' event.pk %}" class="btn btn-outline-danger btn-sm" title="Supprimer">
-                            <i class="bi bi-trash"></i>
-                        </a>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card-event">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-calendar-week fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Cette semaine</p>
+                        <h4 class="mb-0 fw-bold">{{ this_week_events|default:"0" }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card-event">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-eye fs-4 text-info"></i>
+                    </div>
+                    <div>
+                        <p class="text-muted mb-0 small">Publiés</p>
+                        <h4 class="mb-0 fw-bold">{{ published_events|default:"0" }}</h4>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    {% empty %}
-    <div class="col-12">
-        <div class="text-center py-5">
-            <i class="bi bi-calendar-x fs-1 text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">Aucun événement trouvé</h5>
-            <p class="text-muted">Commencez par créer votre premier événement</p>
-            <a href="{% url 'event-create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-lg me-2"></i>Créer un événement
-            </a>
+
+    <!-- Filters & Actions -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-0" name="q" placeholder="Rechercher un événement..." value="{{ search|default:'' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" name="type" onchange="this.form.submit()">
+                        <option value="">Tous les types</option>
+                        {% for type_value, type_label in event_types %}
+                        <option value="{{ type_value }}" {% if event_type == type_value %}selected{% endif %}>{{ type_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-light border-0" name="status" onchange="this.form.submit()">
+                        <option value="">Tous les statuts</option>
+                        <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>À venir</option>
+                        <option value="past" {% if status_filter == 'past' %}selected{% endif %}>Passés</option>
+                        <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Publiés</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-secondary w-100" {% if not user|can:'events.filter' %}disabled{% endif %}>
+                        <i class="bi bi-funnel me-2"></i>Filtrer
+                    </button>
+                </div>
+                <div class="col-md-3 text-md-end">
+                    {% if user|can:'events.create' %}
+                    <a href="{% url 'event-create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-2"></i>Nouvel événement
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
-    {% endfor %}
-</div>
+
+    <!-- Events Grid -->
+    <div class="row g-4">
+        {% for event in events %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card event-card shadow-sm h-100">
+                <div class="position-relative">
+                    {% if event.poster_image %}
+                    <img src="{{ event.poster_image.url }}" alt="{{ event.title }}" class="event-poster">
+                    {% else %}
+                    <div class="event-poster-placeholder">
+                        <i class="bi bi-calendar-event fs-1"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="event-date-badge">
+                        <div class="event-date-day">{{ event.date|date:"d" }}</div>
+                        <div class="event-date-month">{{ event.date|date:"M" }}</div>
+                    </div>
+                </div>
+
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary event-type-badge">{{ event.get_event_type_display }}</span>
+                        {% if event.is_alert %}
+                        <span class="badge bg-danger">Urgent</span>
+                        {% endif %}
+                    </div>
+
+                    <h6 class="fw-bold mb-2">{{ event.title }}</h6>
+                    <div class="text-muted small mb-3">
+                        <div><i class="bi bi-calendar me-1"></i>{{ event.date|date:"d/m/Y" }}</div>
+                        <div><i class="bi bi-clock me-1"></i>{{ event.time|time:"H:i" }}</div>
+                        {% if event.location %}
+                        <div><i class="bi bi-geo-alt me-1"></i>{{ event.location|truncatechars:24 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-auto d-flex gap-2">
+                        <a href="{% url 'event-detail' event.pk %}" class="btn btn-outline-primary btn-sm flex-fill" title="Détails">
+                            <i class="bi bi-eye"></i> Voir détails
+                        </a>
+                        <div class="d-flex gap-2">
+                            {% if user|can:'diaconat.view' %}
+                            <a href="{% url 'attendance-event' event.pk %}" class="btn btn-outline-success btn-sm" title="Pointage">
+                                <i class="bi bi-clipboard-check"></i>
+                            </a>
+                            {% endif %}
+                            {% if user|can:'events.edit' %}
+                            <a href="{% url 'event-edit' event.pk %}" class="btn btn-outline-secondary btn-sm" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            {% if user|can:'events.delete' %}
+                            <a href="{% url 'event-delete' event.pk %}" class="btn btn-outline-danger btn-sm" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-event fs-1 text-muted mb-3 d-block"></i>
+                <h5 class="text-muted">Aucun événement trouvé</h5>
+                <p class="text-muted">Commencez par créer votre premier événement</p>
+                {% if user|can:'events.create' %}
+                <a href="{% url 'event-create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-2"></i>Créer un événement
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
 <!-- Pagination -->
 {% if is_paginated %}
@@ -549,9 +584,19 @@
                     
                     <!-- Actions -->
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-lg me-2"></i>{{ action }}
-                        </button>
+                        {% if action == 'Créer' %}
+                            {% if user|can:'events.create' %}
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>{{ action }}
+                            </button>
+                            {% endif %}
+                        {% else %}
+                            {% if user|can:'events.edit' %}
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-lg me-2"></i>{{ action }}
+                            </button>
+                            {% endif %}
+                        {% endif %}
                         <a href="{% url 'event-list' %}" class="btn btn-outline-secondary">Annuler</a>
                     </div>
                 </form>
@@ -582,9 +627,11 @@
                 
                 <form method="post" class="d-flex gap-2 justify-content-center mt-4">
                     {% csrf_token %}
+                    {% if user|can:'events.delete' %}
                     <button type="submit" class="btn btn-danger px-4">
                         <i class="bi bi-trash me-2"></i>Oui, supprimer
                     </button>
+                    {% endif %}
                     <a href="{% url 'event-list' %}" class="btn btn-outline-secondary">Annuler</a>
                 </form>
             </div>

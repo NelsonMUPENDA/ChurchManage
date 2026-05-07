@@ -30,7 +30,7 @@ from .forms import (
 )
 from .permissions import (
     role_required, admin_required, finance_required, pastor_required,
-    member_management_required, can_access_menu, can_create, can_edit, can_delete
+    member_management_required, can_access_menu, can_create, can_edit, can_delete, has_permission
 )
 
 User = get_user_model()
@@ -244,11 +244,18 @@ def dashboard(request):
 @login_required
 def member_list(request):
     """Liste des membres avec pagination, recherche et filtres"""
+    if not has_permission(request.user, 'members', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les membres.")
+        return redirect('dashboard')
+
     members = Member.objects.select_related('user').all()
     
     # Recherche
     search = request.GET.get('q', '')
     if search:
+        if not has_permission(request.user, 'members', 'search'):
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de rechercher des membres.")
+            return redirect('member-list')
         members = members.filter(
             Q(user__first_name__icontains=search) |
             Q(user__last_name__icontains=search) |
@@ -259,10 +266,19 @@ def member_list(request):
     # Filtre par statut
     status_filter = request.GET.get('status', '')
     if status_filter == 'active':
+        if not has_permission(request.user, 'members', 'filter'):
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de filtrer les membres.")
+            return redirect('member-list')
         members = members.filter(is_active=True)
     elif status_filter == 'inactive':
+        if not has_permission(request.user, 'members', 'filter'):
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de filtrer les membres.")
+            return redirect('member-list')
         members = members.filter(is_active=False)
     elif status_filter == 'visitor':
+        if not has_permission(request.user, 'members', 'filter'):
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de filtrer les membres.")
+            return redirect('member-list')
         members = members.filter(user__isnull=True)
     
     # Statistiques
@@ -297,6 +313,10 @@ def member_list(request):
 @login_required
 def member_detail(request, pk):
     """Détail d'un membre"""
+    if not has_permission(request.user, 'members', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les membres.")
+        return redirect('dashboard')
+
     member = get_object_or_404(Member, pk=pk)
     attendance_history = Attendance.objects.filter(
         member=member
@@ -312,8 +332,8 @@ def member_detail(request, pk):
 @member_management_required
 def member_create(request):
     """Créer un nouveau membre"""
-    if not can_create(request.user):
-        messages.error(request, "Vous n'avez pas la permission de créer des membres.")
+    if not has_permission(request.user, 'members', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer des membres.")
         return redirect('member-list')
     
     if request.method == 'POST':
@@ -336,8 +356,8 @@ def member_create(request):
 @member_management_required
 def member_edit(request, pk):
     """Modifier un membre"""
-    if not can_edit(request.user):
-        messages.error(request, "Vous n'avez pas la permission de modifier des membres.")
+    if not has_permission(request.user, 'members', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier des membres.")
         return redirect('member-detail', pk=pk)
     
     member = get_object_or_404(Member, pk=pk)
@@ -363,8 +383,8 @@ def member_edit(request, pk):
 @member_management_required
 def member_delete(request, pk):
     """Supprimer un membre"""
-    if not can_delete(request.user):
-        messages.error(request, "Vous n'avez pas la permission de supprimer des membres.")
+    if not has_permission(request.user, 'members', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer des membres.")
         return redirect('member-detail', pk=pk)
     
     member = get_object_or_404(Member, pk=pk)
@@ -974,6 +994,10 @@ def member_print_card(request, pk):
 @login_required
 def family_list(request):
     """Liste des familles"""
+    if not has_permission(request.user, 'families', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les familles.")
+        return redirect('dashboard')
+
     families = Family.objects.all().prefetch_related('members')
     return render(request, 'dashboard/families.html', {'families': families, 'view': 'list'})
 
@@ -981,6 +1005,10 @@ def family_list(request):
 @login_required
 def family_create(request):
     """Créer une famille"""
+    if not has_permission(request.user, 'families', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer une famille.")
+        return redirect('family-list')
+
     if request.method == 'POST':
         form = FamilyForm(request.POST)
         if form.is_valid():
@@ -996,6 +1024,10 @@ def family_create(request):
 @login_required
 def family_edit(request, pk):
     """Modifier une famille"""
+    if not has_permission(request.user, 'families', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier cette famille.")
+        return redirect('family-list')
+
     family = get_object_or_404(Family, pk=pk)
     
     if request.method == 'POST':
@@ -1018,6 +1050,10 @@ def family_edit(request, pk):
 @login_required
 def family_delete(request, pk):
     """Supprimer une famille"""
+    if not has_permission(request.user, 'families', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer cette famille.")
+        return redirect('family-list')
+
     family = get_object_or_404(Family, pk=pk)
     
     if request.method == 'POST':
@@ -1035,6 +1071,10 @@ def family_delete(request, pk):
 @login_required
 def homegroup_list(request):
     """Liste des groupes de maison"""
+    if not has_permission(request.user, 'home_groups', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les groupes de maison.")
+        return redirect('dashboard')
+        
     homegroups = HomeGroup.objects.all().select_related('leader')
     return render(request, 'dashboard/homegroups.html', {'homegroups': homegroups, 'view': 'list'})
 
@@ -1042,6 +1082,10 @@ def homegroup_list(request):
 @login_required
 def homegroup_create(request):
     """Créer un groupe de maison"""
+    if not has_permission(request.user, 'home_groups', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer un groupe de maison.")
+        return redirect('homegroup-list')
+        
     if request.method == 'POST':
         form = HomeGroupForm(request.POST)
         if form.is_valid():
@@ -1057,6 +1101,10 @@ def homegroup_create(request):
 @login_required
 def homegroup_edit(request, pk):
     """Modifier un groupe de maison"""
+    if not has_permission(request.user, 'home_groups', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier ce groupe de maison.")
+        return redirect('homegroup-list')
+        
     homegroup = get_object_or_404(HomeGroup, pk=pk)
     
     if request.method == 'POST':
@@ -1079,6 +1127,10 @@ def homegroup_edit(request, pk):
 @login_required
 def homegroup_delete(request, pk):
     """Supprimer un groupe de maison"""
+    if not has_permission(request.user, 'home_groups', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer ce groupe de maison.")
+        return redirect('homegroup-list')
+        
     homegroup = get_object_or_404(HomeGroup, pk=pk)
     
     if request.method == 'POST':
@@ -1096,6 +1148,10 @@ def homegroup_delete(request, pk):
 @login_required
 def department_list(request):
     """Liste des départements"""
+    if not has_permission(request.user, 'departments', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les départements.")
+        return redirect('dashboard')
+        
     departments = Department.objects.all().select_related('head')
     return render(request, 'dashboard/departments.html', {'departments': departments, 'view': 'list'})
 
@@ -1103,6 +1159,10 @@ def department_list(request):
 @login_required
 def department_create(request):
     """Créer un département"""
+    if not has_permission(request.user, 'departments', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer un département.")
+        return redirect('department-list')
+        
     if request.method == 'POST':
         form = DepartmentForm(request.POST)
         if form.is_valid():
@@ -1118,6 +1178,10 @@ def department_create(request):
 @login_required
 def department_edit(request, pk):
     """Modifier un département"""
+    if not has_permission(request.user, 'departments', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier ce département.")
+        return redirect('department-list')
+        
     department = get_object_or_404(Department, pk=pk)
     
     if request.method == 'POST':
@@ -1140,6 +1204,10 @@ def department_edit(request, pk):
 @login_required
 def department_delete(request, pk):
     """Supprimer un département"""
+    if not has_permission(request.user, 'departments', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer ce département.")
+        return redirect('department-list')
+        
     department = get_object_or_404(Department, pk=pk)
 
     if request.method == 'POST':
@@ -1157,6 +1225,10 @@ def department_delete(request, pk):
 @login_required
 def ministry_list(request):
     """Liste des ministères"""
+    if not has_permission(request.user, 'ministries', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les ministères.")
+        return redirect('dashboard')
+        
     ministries = Ministry.objects.all().select_related('leader')
     return render(request, 'dashboard/ministries.html', {'ministries': ministries, 'view': 'list'})
 
@@ -1164,6 +1236,10 @@ def ministry_list(request):
 @login_required
 def ministry_create(request):
     """Créer un ministère"""
+    if not has_permission(request.user, 'ministries', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer un ministère.")
+        return redirect('ministry-list')
+        
     if request.method == 'POST':
         form = MinistryForm(request.POST)
         if form.is_valid():
@@ -1179,6 +1255,10 @@ def ministry_create(request):
 @login_required
 def ministry_edit(request, pk):
     """Modifier un ministère"""
+    if not has_permission(request.user, 'ministries', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier ce ministère.")
+        return redirect('ministry-list')
+        
     ministry = get_object_or_404(Ministry, pk=pk)
     
     if request.method == 'POST':
@@ -1201,6 +1281,10 @@ def ministry_edit(request, pk):
 @login_required
 def ministry_delete(request, pk):
     """Supprimer un ministère"""
+    if not has_permission(request.user, 'ministries', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer ce ministère.")
+        return redirect('ministry-list')
+        
     ministry = get_object_or_404(Ministry, pk=pk)
 
     if request.method == 'POST':
@@ -1219,6 +1303,10 @@ def ministry_delete(request, pk):
 def event_list(request):
     """Liste des événements avec pagination, recherche et filtres"""
     from datetime import date, timedelta
+
+    if not has_permission(request.user, 'events', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les événements.")
+        return redirect('dashboard')
     
     events = Event.objects.all().order_by('-date', '-time')
     
@@ -1273,6 +1361,10 @@ def event_list(request):
 @login_required
 def event_detail(request, pk):
     """Détail d'un événement"""
+    if not has_permission(request.user, 'events', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les événements.")
+        return redirect('dashboard')
+
     event = get_object_or_404(Event, pk=pk)
     attendance_list = Attendance.objects.filter(event=event).select_related('member')
 
@@ -1308,6 +1400,10 @@ def event_detail(request, pk):
 @login_required
 def event_create(request):
     """Créer un événement"""
+    if not has_permission(request.user, 'events', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer des événements.")
+        return redirect('event-list')
+
     if request.method == 'POST':
         form = EventForm(request.POST, request.FILES)
         if form.is_valid():
@@ -1332,6 +1428,10 @@ def event_create(request):
 @login_required
 def event_edit(request, pk):
     """Modifier un événement"""
+    if not has_permission(request.user, 'events', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier des événements.")
+        return redirect('event-detail', pk=pk)
+
     event = get_object_or_404(Event, pk=pk)
     
     if request.method == 'POST':
@@ -1356,6 +1456,10 @@ def event_edit(request, pk):
 @login_required
 def event_delete(request, pk):
     """Supprimer un événement"""
+    if not has_permission(request.user, 'events', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer des événements.")
+        return redirect('event-detail', pk=pk)
+
     event = get_object_or_404(Event, pk=pk)
     
     if request.method == 'POST':
@@ -1382,6 +1486,10 @@ def attendance_event(request, event_pk):
     """Pointage pour un événement spécifique"""
     event = get_object_or_404(Event, pk=event_pk)
 
+    if not has_permission(request.user, 'diaconat', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter le pointage des événements.")
+        return redirect('dashboard')
+
     # Get or create aggregate for the event (always needed for context)
     aggregate, created = EventAttendanceAggregate.objects.get_or_create(
         event=event,
@@ -1390,6 +1498,13 @@ def attendance_event(request, event_pk):
     )
 
     if request.method == 'POST':
+        if not has_permission(request.user, 'diaconat', 'edit'):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
+
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier le pointage.")
+            return redirect('attendance-event', event_pk=event_pk)
+
         action = request.POST.get('action', '')
         member_id = request.POST.get('member_id')
 
@@ -1546,8 +1661,15 @@ def finance_list(request):
     """Liste des transactions financières avec création directe"""
     from datetime import datetime
 
+    if not has_permission(request.user, 'finances', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les finances.")
+        return redirect('dashboard')
+
     # Handle POST request for creating transaction directly from main page
     if request.method == 'POST':
+        if not has_permission(request.user, 'finances', 'create'):
+            messages.error(request, "Accès refusé : vous n'avez pas la permission de créer des transactions.")
+            return redirect('finance-list')
         try:
             direction = request.POST.get('direction', 'in')
             amount = request.POST.get('amount', '0')
@@ -1719,6 +1841,10 @@ def finance_list(request):
 @finance_required
 def transaction_create(request):
     """Créer une transaction"""
+    if not has_permission(request.user, 'finances', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer des transactions.")
+        return redirect('finance-list')
+
     if request.method == 'POST':
         form = FinancialTransactionForm(request.POST)
         if form.is_valid():
@@ -1735,6 +1861,10 @@ def transaction_create(request):
 @finance_required
 def transaction_edit(request, pk):
     """Modifier une transaction"""
+    if not has_permission(request.user, 'finances', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier des transactions.")
+        return redirect('finance-list')
+
     transaction = get_object_or_404(FinancialTransaction, pk=pk)
 
     if request.method == 'POST':
@@ -1801,6 +1931,10 @@ def transaction_edit(request, pk):
 @finance_required
 def transaction_delete(request, pk):
     """Supprimer une transaction"""
+    if not has_permission(request.user, 'finances', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer des transactions.")
+        return redirect('finance-list')
+
     transaction = get_object_or_404(FinancialTransaction, pk=pk)
     
     if request.method == 'POST':
@@ -1815,6 +1949,10 @@ def transaction_delete(request, pk):
 @finance_required
 def transaction_detail(request, pk):
     """Détail d'une transaction"""
+    if not has_permission(request.user, 'finances', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les transactions.")
+        return redirect('dashboard')
+
     transaction = get_object_or_404(FinancialTransaction, pk=pk)
     return render(request, 'dashboard/finances.html', {
         'transaction': transaction,
@@ -1826,6 +1964,10 @@ def transaction_detail(request, pk):
 @finance_required
 def category_list(request):
     """Liste des catégories financières"""
+    if not has_permission(request.user, 'finances', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les catégories financières.")
+        return redirect('dashboard')
+
     categories = FinancialCategory.objects.all()
     return render(request, 'dashboard/finances.html', {'categories': categories, 'view': 'category_list'})
 
@@ -1834,6 +1976,10 @@ def category_list(request):
 @finance_required
 def category_create(request):
     """Créer une catégorie"""
+    if not has_permission(request.user, 'finances', 'create'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de créer des catégories financières.")
+        return redirect('finance-list')
+
     if request.method == 'POST':
         form = FinancialCategoryForm(request.POST)
         if form.is_valid():
@@ -1850,6 +1996,10 @@ def category_create(request):
 @finance_required
 def category_edit(request, pk):
     """Modifier une catégorie"""
+    if not has_permission(request.user, 'finances', 'edit'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de modifier des catégories financières.")
+        return redirect('category-list')
+
     category = get_object_or_404(FinancialCategory, pk=pk)
     
     if request.method == 'POST':
@@ -1872,6 +2022,10 @@ def category_edit(request, pk):
 @login_required
 def category_delete(request, pk):
     """Supprimer une catégorie"""
+    if not has_permission(request.user, 'finances', 'delete'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de supprimer des catégories financières.")
+        return redirect('category-list')
+
     category = get_object_or_404(FinancialCategory, pk=pk)
     
     if request.method == 'POST':
@@ -1889,6 +2043,10 @@ def category_delete(request, pk):
 @login_required
 def reports(request):
     """Rapports et statistiques complets avec filtres de période"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('dashboard')
+
     # Récupérer les paramètres de période
     period = request.GET.get('period', 'month')
     date_from = request.GET.get('date_from', '')
@@ -2023,6 +2181,10 @@ def reports(request):
 @login_required
 def report_members_detail(request):
     """Rapport détaillé des membres"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('reports')
+
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -2038,6 +2200,7 @@ def report_members_detail(request):
         'members': members,
         'date_from': date_from,
         'date_to': date_to,
+        'now': timezone.now(),
         'total': members.count(),
         'by_gender': {
             'male': members.filter(gender='male').count(),
@@ -2055,6 +2218,10 @@ def report_members_detail(request):
 @login_required
 def report_finances_detail(request):
     """Rapport détaillé des finances"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('reports')
+
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -2070,6 +2237,7 @@ def report_finances_detail(request):
         'transactions': transactions,
         'date_from': date_from,
         'date_to': date_to,
+        'now': timezone.now(),
         'total_in': transactions.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
         'total_out': transactions.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
         'church_settings': church_settings,
@@ -2080,6 +2248,10 @@ def report_finances_detail(request):
 @login_required
 def report_activities_detail(request):
     """Rapport détaillé des activités"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('reports')
+
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -2095,6 +2267,7 @@ def report_activities_detail(request):
         'events': events,
         'date_from': date_from,
         'date_to': date_to,
+        'now': timezone.now(),
         'total_events': events.count(),
         'church_settings': church_settings,
     }
@@ -2104,6 +2277,10 @@ def report_activities_detail(request):
 @login_required
 def report_attendance_detail(request):
     """Rapport détaillé des présences"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('reports')
+
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
@@ -2123,6 +2300,7 @@ def report_attendance_detail(request):
         'attendances': attendances,
         'date_from': date_from,
         'date_to': date_to,
+        'now': timezone.now(),
         'total': total,
         'present': present,
         'rate': rate,
@@ -2134,6 +2312,10 @@ def report_attendance_detail(request):
 @login_required
 def report_sacraments_detail(request):
     """Rapport détaillé des sacrements (mariages et baptêmes)"""
+    if not has_permission(request.user, 'reports', 'view'):
+        messages.error(request, "Accès refusé : vous n'avez pas la permission de consulter les rapports.")
+        return redirect('reports')
+
     marriages = MarriageRecord.objects.all().select_related('groom', 'bride')
     baptisms = BaptismEvent.objects.all().prefetch_related('candidates')
 
@@ -2143,6 +2325,7 @@ def report_sacraments_detail(request):
     context = {
         'marriages': marriages,
         'baptisms': baptisms,
+        'now': timezone.now(),
         'marriages_count': marriages.count(),
         'baptisms_count': baptisms.count(),
         'church_settings': church_settings,
@@ -2155,7 +2338,6 @@ def report_sacraments_detail(request):
 # ============================================================
 
 @login_required
-@admin_required
 def export_report_pdf(request, report_type):
     """Export d'un rapport spécifique en PDF avec xhtml2pdf (compatible Windows)"""
     from xhtml2pdf import pisa
@@ -2167,6 +2349,10 @@ def export_report_pdf(request, report_type):
     # Récupérer les paramètres
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
+
+    if not has_permission(request.user, 'reports', 'export'):
+        messages.error(request, "Vous n'avez pas la permission d'exporter les rapports.")
+        return redirect('reports')
 
     # Récupérer les paramètres de l'église
     church_settings = ChurchSettings.objects.first()
@@ -2278,6 +2464,10 @@ def export_reports_excel(request):
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
     from django.http import HttpResponse
+
+    if not has_permission(request.user, 'reports', 'export'):
+        messages.error(request, "Vous n'avez pas la permission d'exporter les rapports.")
+        return redirect('reports')
 
     # Créer le workbook
     wb = Workbook()
@@ -2471,7 +2661,15 @@ def export_reports_excel(request):
 @login_required
 def announcement_list(request):
     """Liste des annonces"""
+    if not has_permission(request.user, 'announcements', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les annonces.")
+        return redirect('dashboard')
+
     if request.method == 'POST':
+        if not has_permission(request.user, 'announcements', 'create'):
+            messages.error(request, "Vous n'avez pas la permission de créer des annonces.")
+            return redirect('announcement-list')
+
         # Handle create from main page
         try:
             title = request.POST.get('title')
@@ -2518,6 +2716,10 @@ def announcement_list(request):
 @login_required
 def announcement_detail(request, pk):
     """Détail d'une annonce"""
+    if not has_permission(request.user, 'announcements', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les annonces.")
+        return redirect('dashboard')
+
     announcement = get_object_or_404(Announcement, pk=pk)
     return render(request, 'dashboard/announcements.html', {
         'announcement': announcement,
@@ -2528,6 +2730,10 @@ def announcement_detail(request, pk):
 @login_required
 def announcement_create(request):
     """Créer une annonce - formulaire dédié"""
+    if not has_permission(request.user, 'announcements', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer des annonces.")
+        return redirect('announcement-list')
+
     if request.method == 'POST':
         try:
             title = request.POST.get('title')
@@ -2569,6 +2775,10 @@ def announcement_create(request):
 @login_required
 def announcement_edit(request, pk):
     """Modifier une annonce"""
+    if not has_permission(request.user, 'announcements', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier des annonces.")
+        return redirect('announcement-detail', pk=pk)
+
     announcement = get_object_or_404(Announcement, pk=pk)
 
     if request.method == 'POST':
@@ -2599,6 +2809,10 @@ def announcement_edit(request, pk):
 @login_required
 def announcement_delete(request, pk):
     """Supprimer une annonce"""
+    if not has_permission(request.user, 'announcements', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer des annonces.")
+        return redirect('announcement-detail', pk=pk)
+
     announcement = get_object_or_404(Announcement, pk=pk)
 
     if request.method == 'POST':
@@ -2619,6 +2833,10 @@ def announcement_delete(request, pk):
 @login_required
 def diaconat(request):
     """Diaconat - Pointage et logistique"""
+    if not (has_permission(request.user, 'diaconat', 'view') or has_permission(request.user, 'logistics', 'view')):
+        messages.error(request, "Vous n'avez pas la permission d'accéder au module Diaconat / Logistique.")
+        return redirect('dashboard')
+
     today = timezone.now().date()
 
     # Get all events for the dropdown (upcoming and past 30 days)
@@ -2641,6 +2859,15 @@ def diaconat(request):
     if request.method == 'POST':
         action = request.POST.get('action', '')
         selected_event_id = request.GET.get('event') or request.POST.get('event_id')
+
+        if action in ['mark_all_present', 'mark_all_absent', 'reset', 'present', 'absent'] and not has_permission(request.user, 'diaconat', 'edit'):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': "Permission refusée."}, status=403)
+
+            messages.error(request, "Vous n'avez pas la permission de modifier le pointage.")
+            if selected_event_id:
+                return redirect(f'{request.path}?event={selected_event_id}')
+            return redirect('diaconat')
 
         if selected_event_id:
             try:
@@ -2782,6 +3009,10 @@ def diaconat(request):
 @login_required
 def diaconat_attendance(request):
     """Pointage pour le diaconat"""
+    if not has_permission(request.user, 'diaconat', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter le pointage du diaconat.")
+        return redirect('dashboard')
+
     today = timezone.now().date()
     events = Event.objects.filter(date=today).order_by('time')
     return render(request, 'dashboard/diaconat.html', {'events': events, 'view': 'diaconat_attendance'})
@@ -2794,6 +3025,10 @@ def diaconat_attendance(request):
 @login_required
 def logistics_list(request):
     """Liste des éléments logistiques"""
+    if not has_permission(request.user, 'logistics', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter la logistique.")
+        return redirect('dashboard')
+
     items = LogisticsItem.objects.filter(is_active=True).order_by('-created_at')[:50]
     return render(request, 'dashboard/diaconat.html', {
         'logistics_items': items,
@@ -2811,6 +3046,10 @@ def logistics_list(request):
 @login_required
 def logistics_create(request):
     """Créer un élément logistique avec tous les champs du modèle"""
+    if not has_permission(request.user, 'logistics', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer des articles logistiques.")
+        return redirect('diaconat')
+
     if request.method == 'POST':
         try:
             item = LogisticsItem.objects.create(
@@ -2839,6 +3078,10 @@ def logistics_create(request):
 @login_required
 def logistics_edit(request, pk):
     """Modifier un élément logistique"""
+    if not has_permission(request.user, 'logistics', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier des articles logistiques.")
+        return redirect('diaconat')
+
     item = get_object_or_404(LogisticsItem, pk=pk)
 
     if request.method == 'POST':
@@ -2869,6 +3112,9 @@ def logistics_edit(request, pk):
 @require_http_methods(['POST'])
 def logistics_create_category_ajax(request):
     """Créer une nouvelle catégorie via AJAX"""
+    if not has_permission(request.user, 'logistics', 'create'):
+        return JsonResponse({'success': False, 'error': 'Permission refusée.'}, status=403)
+
     name = request.POST.get('name', '').strip()
     if name:
         code = name.lower().replace(' ', '_')
@@ -2889,6 +3135,9 @@ def logistics_create_category_ajax(request):
 @require_http_methods(['POST'])
 def logistics_create_condition_ajax(request):
     """Créer un nouvel état via AJAX"""
+    if not has_permission(request.user, 'logistics', 'create'):
+        return JsonResponse({'success': False, 'error': 'Permission refusée.'}, status=403)
+
     name = request.POST.get('name', '').strip()
     if name:
         code = name.lower().replace(' ', '_')
@@ -2908,6 +3157,10 @@ def logistics_create_condition_ajax(request):
 @login_required
 def logistics_delete(request, pk):
     """Supprimer un élément logistique"""
+    if not has_permission(request.user, 'logistics', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer des articles logistiques.")
+        return redirect('diaconat')
+
     item = get_object_or_404(LogisticsItem, pk=pk)
 
     if request.method == 'POST':
@@ -2921,6 +3174,10 @@ def logistics_delete(request, pk):
 @login_required
 def logistics_detail(request, pk):
     """Détail d'un élément logistique"""
+    if not has_permission(request.user, 'logistics', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les détails logistiques.")
+        return redirect('dashboard')
+
     item = get_object_or_404(LogisticsItem, pk=pk)
     return render(request, 'dashboard/diaconat.html', {
         'logistics_item': item,
@@ -2935,6 +3192,10 @@ def logistics_detail(request, pk):
 @login_required
 def event_logistics_list(request):
     """Liste des attributions de ressources logistiques aux événements"""
+    if not has_permission(request.user, 'logistics', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les ressources logistiques par événement.")
+        return redirect('dashboard')
+
     # Filtre par événement si sélectionné
     event_id = request.GET.get('event')
     selected_event = None
@@ -2982,6 +3243,10 @@ def event_logistics_list(request):
 @login_required
 def event_logistics_add(request):
     """Ajouter une ressource logistique à un événement"""
+    if not has_permission(request.user, 'logistics', 'create'):
+        messages.error(request, "Vous n'avez pas la permission d'attribuer des ressources logistiques.")
+        return redirect('event-logistics-list')
+
     if request.method == 'POST':
         event_id = request.POST.get('event')
         item_id = request.POST.get('item')
@@ -3052,6 +3317,10 @@ def event_logistics_add(request):
 @login_required
 def event_logistics_edit(request, pk):
     """Modifier une attribution de ressource logistique"""
+    if not has_permission(request.user, 'logistics', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier les attributions logistiques.")
+        return redirect('event-logistics-list')
+
     consumption = get_object_or_404(EventLogisticsConsumption, pk=pk)
 
     if request.method == 'POST':
@@ -3089,6 +3358,10 @@ def event_logistics_edit(request, pk):
 @login_required
 def event_logistics_delete(request, pk):
     """Supprimer une attribution de ressource logistique"""
+    if not has_permission(request.user, 'logistics', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer les attributions logistiques.")
+        return redirect('event-logistics-list')
+
     consumption = get_object_or_404(EventLogisticsConsumption, pk=pk)
     event_id = consumption.event.pk
 
@@ -3106,6 +3379,9 @@ def event_logistics_delete(request, pk):
 @login_required
 def ajax_get_item_quantity(request):
     """AJAX endpoint pour obtenir la quantité disponible d'un article"""
+    if not has_permission(request.user, 'logistics', 'view'):
+        return JsonResponse({'success': False, 'error': 'Permission refusée.'}, status=403)
+
     item_id = request.GET.get('item_id')
 
     if item_id:
@@ -3200,6 +3476,10 @@ def ajax_create_ministry(request):
 @login_required
 def evangelisation_list(request):
     """Liste des activités d'évangélisation"""
+    if not has_permission(request.user, 'evangelisation', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter l'évangélisation.")
+        return redirect('dashboard')
+        
     activities = EvangelismActivity.objects.all().order_by('-date', '-time')
     activity_choices = EvangelismActivity.ACTIVITY_TYPE_CHOICES
     
@@ -3216,6 +3496,10 @@ def evangelisation_list(request):
 @login_required
 def evangelisation_create(request):
     """Créer une activité d'évangélisation"""
+    if not has_permission(request.user, 'evangelisation', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer une activité d'évangélisation.")
+        return redirect('evangelisation-list')
+        
     if request.method == 'POST':
         try:
             activity = EvangelismActivity.objects.create(
@@ -3243,6 +3527,10 @@ def evangelisation_create(request):
 @login_required
 def evangelisation_edit(request, pk):
     """Modifier une activité d'évangélisation"""
+    if not has_permission(request.user, 'evangelisation', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier cette activité.")
+        return redirect('evangelisation-list')
+        
     activity = get_object_or_404(EvangelismActivity, pk=pk)
     
     if request.method == 'POST':
@@ -3271,6 +3559,10 @@ def evangelisation_edit(request, pk):
 @login_required
 def evangelisation_delete(request, pk):
     """Supprimer une activité d'évangélisation"""
+    if not has_permission(request.user, 'evangelisation', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer cette activité.")
+        return redirect('evangelisation-list')
+        
     activity = get_object_or_404(EvangelismActivity, pk=pk)
     
     if request.method == 'POST':
@@ -3288,6 +3580,10 @@ def evangelisation_delete(request, pk):
 @login_required
 def training_list(request):
     """Liste des formations"""
+    if not has_permission(request.user, 'trainings', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les formations.")
+        return redirect('dashboard')
+
     trainings = TrainingEvent.objects.all().order_by('-date', '-time')
     return render(request, 'dashboard/trainings.html', {'trainings': trainings, 'view': 'trainings'})
 
@@ -3295,6 +3591,10 @@ def training_list(request):
 @login_required
 def training_create(request):
     """Créer une formation"""
+    if not has_permission(request.user, 'trainings', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer des formations.")
+        return redirect('training-list')
+
     if request.method == 'POST':
         form = TrainingEventForm(request.POST)
         if form.is_valid():
@@ -3310,6 +3610,10 @@ def training_create(request):
 @login_required
 def training_edit(request, pk):
     """Modifier une formation"""
+    if not has_permission(request.user, 'trainings', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier des formations.")
+        return redirect('training-list')
+
     training = get_object_or_404(TrainingEvent, pk=pk)
     
     if request.method == 'POST':
@@ -3332,6 +3636,10 @@ def training_edit(request, pk):
 @login_required
 def training_delete(request, pk):
     """Supprimer une formation"""
+    if not has_permission(request.user, 'trainings', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer des formations.")
+        return redirect('training-list')
+
     training = get_object_or_404(TrainingEvent, pk=pk)
     
     if request.method == 'POST':
@@ -3349,6 +3657,10 @@ def training_delete(request, pk):
 @login_required
 def marriage_list(request):
     """Liste des registres de mariage"""
+    if not has_permission(request.user, 'marriages', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les mariages.")
+        return redirect('dashboard')
+
     marriages = MarriageRecord.objects.all().select_related('groom', 'bride').order_by('-planned_date')
     return render(request, 'dashboard/mariage.html', {'marriages': marriages})
 
@@ -3356,6 +3668,10 @@ def marriage_list(request):
 @login_required
 def marriage_detail(request, pk):
     """Détail d'un registre de mariage"""
+    if not has_permission(request.user, 'marriages', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les mariages.")
+        return redirect('dashboard')
+
     marriage = get_object_or_404(MarriageRecord, pk=pk)
     return render(request, 'dashboard/mariage.html', {'marriage': marriage, 'view': 'detail'})
 
@@ -3363,6 +3679,10 @@ def marriage_detail(request, pk):
 @login_required
 def marriage_create(request):
     """Créer un registre de mariage"""
+    if not has_permission(request.user, 'marriages', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer des mariages.")
+        return redirect('marriage-list')
+
     if request.method == 'POST':
         try:
             marriage = MarriageRecord.objects.create(
@@ -3401,6 +3721,10 @@ def marriage_create(request):
 @login_required
 def marriage_edit(request, pk):
     """Modifier un registre de mariage"""
+    if not has_permission(request.user, 'marriages', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier des mariages.")
+        return redirect('marriage-detail', pk=pk)
+
     marriage = get_object_or_404(MarriageRecord, pk=pk)
     
     if request.method == 'POST':
@@ -3444,6 +3768,10 @@ def marriage_edit(request, pk):
 @login_required
 def marriage_delete(request, pk):
     """Supprimer un registre de mariage"""
+    if not has_permission(request.user, 'marriages', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer des mariages.")
+        return redirect('marriage-detail', pk=pk)
+
     marriage = get_object_or_404(MarriageRecord, pk=pk)
     
     if request.method == 'POST':
@@ -3473,6 +3801,10 @@ def format_file_size(size):
 @login_required
 def document_list(request):
     """Liste des documents avec recherche et filtres"""
+    if not has_permission(request.user, 'documents', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les documents.")
+        return redirect('dashboard')
+
     documents = Document.objects.all().order_by('-uploaded_at')
 
     # Recherche
@@ -3521,6 +3853,10 @@ def document_list(request):
 @login_required
 def document_create(request):
     """Uploader un document"""
+    if not has_permission(request.user, 'documents', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer des documents.")
+        return redirect('document-list')
+
     if request.method == 'POST':
         form = DocumentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -3538,6 +3874,10 @@ def document_create(request):
 @login_required
 def document_detail(request, pk):
     """Détail d'un document"""
+    if not has_permission(request.user, 'documents', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les documents.")
+        return redirect('dashboard')
+
     document = get_object_or_404(Document, pk=pk)
     document.file_size_formatted = format_file_size(document.file.size) if document.file else "0 o"
     return render(request, 'dashboard/documents.html', {'document': document, 'view': 'detail'})
@@ -3546,6 +3886,10 @@ def document_detail(request, pk):
 @login_required
 def document_edit(request, pk):
     """Modifier un document (métadonnées uniquement, pas le fichier)"""
+    if not has_permission(request.user, 'documents', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier des documents.")
+        return redirect('document-detail', pk=pk)
+
     document = get_object_or_404(Document, pk=pk)
 
     if request.method == 'POST':
@@ -3569,6 +3913,10 @@ def document_edit(request, pk):
 @login_required
 def document_delete(request, pk):
     """Supprimer un document"""
+    if not has_permission(request.user, 'documents', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer des documents.")
+        return redirect('document-detail', pk=pk)
+
     document = get_object_or_404(Document, pk=pk)
     
     if request.method == 'POST':
@@ -3586,6 +3934,10 @@ def document_delete(request, pk):
 @login_required
 def baptism_list(request):
     """Liste des événements de baptême"""
+    if not has_permission(request.user, 'baptisms', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les baptêmes.")
+        return redirect('dashboard')
+        
     baptisms = BaptismEvent.objects.all().select_related('event').prefetch_related('candidates').order_by('-event__date')
     return render(request, 'dashboard/baptism.html', {'baptisms': baptisms, 'view': 'list'})
 
@@ -3593,6 +3945,10 @@ def baptism_list(request):
 @login_required
 def baptism_detail(request, pk):
     """Détail d'un événement de baptême"""
+    if not has_permission(request.user, 'baptisms', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les baptêmes.")
+        return redirect('dashboard')
+        
     baptism = get_object_or_404(BaptismEvent.objects.select_related('event').prefetch_related('candidates'), pk=pk)
     return render(request, 'dashboard/baptism.html', {'baptism': baptism, 'view': 'detail'})
 
@@ -3600,6 +3956,10 @@ def baptism_detail(request, pk):
 @login_required
 def baptism_create(request):
     """Créer un événement de baptême"""
+    if not has_permission(request.user, 'baptisms', 'create'):
+        messages.error(request, "Vous n'avez pas la permission de créer un baptême.")
+        return redirect('baptism-list')
+        
     if request.method == 'POST':
         # Créer l'événement associé
         event_form = EventForm(request.POST, prefix='event')
@@ -3621,6 +3981,10 @@ def baptism_create(request):
 @login_required
 def baptism_edit(request, pk):
     """Modifier un événement de baptême"""
+    if not has_permission(request.user, 'baptisms', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier ce baptême.")
+        return redirect('baptism-list')
+        
     baptism = get_object_or_404(BaptismEvent.objects.select_related('event'), pk=pk)
 
     if request.method == 'POST':
@@ -3643,6 +4007,10 @@ def baptism_edit(request, pk):
 @login_required
 def baptism_delete(request, pk):
     """Supprimer un événement de baptême"""
+    if not has_permission(request.user, 'baptisms', 'delete'):
+        messages.error(request, "Vous n'avez pas la permission de supprimer ce baptême.")
+        return redirect('baptism-list')
+        
     baptism = get_object_or_404(BaptismEvent, pk=pk)
 
     if request.method == 'POST':
@@ -3659,6 +4027,10 @@ def baptism_delete(request, pk):
 @login_required
 def baptism_candidate_add(request, pk):
     """Ajouter un candidat au baptême"""
+    if not has_permission(request.user, 'baptisms', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de gérer les candidats.")
+        return redirect('baptism-detail', pk=pk)
+        
     baptism = get_object_or_404(BaptismEvent, pk=pk)
 
     if request.method == 'POST':
@@ -3686,6 +4058,10 @@ def baptism_candidate_add(request, pk):
 @login_required
 def contact_admin_list(request):
     """Liste des messages de contact reçus"""
+    if not has_permission(request.user, 'contacts', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter les messages de contact.")
+        return redirect('dashboard')
+        
     contacts = Contact.objects.all().order_by('-created_at')
     status_filter = request.GET.get('status', '')
 
@@ -3702,6 +4078,10 @@ def contact_admin_list(request):
 @login_required
 def contact_admin_detail(request, pk):
     """Détail d'un message de contact"""
+    if not has_permission(request.user, 'contacts', 'view'):
+        messages.error(request, "Vous n'avez pas la permission de consulter ce message.")
+        return redirect('contact-admin-list')
+        
     contact = get_object_or_404(Contact, pk=pk)
 
     # Marquer comme lu automatiquement
@@ -3718,6 +4098,10 @@ def contact_admin_detail(request, pk):
 @login_required
 def contact_mark_read(request, pk):
     """Marquer un message comme lu"""
+    if not has_permission(request.user, 'contacts', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission de modifier les messages.")
+        return redirect('contact-admin-list')
+        
     contact = get_object_or_404(Contact, pk=pk)
     contact.status = 'read'
     contact.save(update_fields=['status'])
@@ -3728,6 +4112,10 @@ def contact_mark_read(request, pk):
 @login_required
 def contact_archive(request, pk):
     """Archiver un message"""
+    if not has_permission(request.user, 'contacts', 'edit'):
+        messages.error(request, "Vous n'avez pas la permission d'archiver les messages.")
+        return redirect('contact-admin-list')
+        
     contact = get_object_or_404(Contact, pk=pk)
     contact.status = 'archived'
     contact.save(update_fields=['status'])

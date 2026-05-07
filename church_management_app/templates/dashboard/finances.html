@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Gestion Financière{% endblock %}
 
@@ -30,16 +31,24 @@
                             </a>
                             <span class="ms-3 fw-bold">Détail de la transaction</span>
                         </div>
+                        {% if user|can:'finances.edit' or user|can:'finances.delete' %}
                         <div class="dropdown">
                             <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user|can:'finances.edit' %}
                                 <li><a class="dropdown-item" href="{% url 'transaction-edit' transaction.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                {% endif %}
+                                {% if user|can:'finances.edit' and user|can:'finances.delete' %}
                                 <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                {% if user|can:'finances.delete' %}
                                 <li><a class="dropdown-item text-danger" href="{% url 'transaction-delete' transaction.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                                {% endif %}
                             </ul>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body p-4">
@@ -353,11 +362,11 @@
                         <div class="col-md-3">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
+                                <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher..." {% if not user|can:'finances.search' %}disabled{% endif %}>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <select class="form-select bg-light border-0" id="typeFilter">
+                            <select class="form-select bg-light border-0" id="typeFilter" {% if not user|can:'finances.filter' %}disabled{% endif %}>
                                 <option value="">Tous les types</option>
                                 {% for type in transaction_types %}
                                 <option value="{{ type.id }}">{{ type.name }}</option>
@@ -365,7 +374,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <select class="form-select bg-light border-0" id="categoryFilter">
+                            <select class="form-select bg-light border-0" id="categoryFilter" {% if not user|can:'finances.filter' %}disabled{% endif %}>
                                 <option value="">Toutes catégories</option>
                                 {% for cat in categories %}
                                 <option value="{{ cat.id }}">{{ cat.name }}</option>
@@ -373,9 +382,11 @@
                             </select>
                         </div>
                         <div class="col-md-3 text-md-end">
+                            {% if user|can:'finances.create' %}
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
                                 <i class="bi bi-plus-lg me-2"></i>Nouvelle transaction
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -385,6 +396,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-semibold">Transactions récentes</h6>
+                    {% if user|can:'finances.export' %}
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="bi bi-download me-1"></i>Exporter
@@ -394,6 +406,7 @@
                             <li><a class="dropdown-item" href="#" onclick="exportPDF()"><i class="bi bi-filetype-pdf me-2"></i>PDF</a></li>
                         </ul>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -441,12 +454,14 @@
                                         <small class="text-muted ms-1">{{ transaction.currency }}</small>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-light" onclick="viewTransaction({{ transaction.id }})" title="Voir détails">
+                                        <a class="btn btn-sm btn-light" href="{% url 'transaction-detail' transaction.id %}" title="Voir détails">
                                             <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-light" onclick="deleteTransaction({{ transaction.id }})" title="Supprimer">
+                                        </a>
+                                        {% if user|can:'finances.delete' %}
+                                        <a class="btn btn-sm btn-light" href="{% url 'transaction-delete' transaction.id %}" title="Supprimer">
                                             <i class="bi bi-trash"></i>
-                                        </button>
+                                        </a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -476,6 +491,7 @@
     </div>
 
     <!-- Add Transaction Modal -->
+    {% if user|can:'finances.create' %}
     <div class="modal fade" id="addTransactionModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -527,9 +543,11 @@
                                         <option value="{{ cat.id }}">{{ cat.name }}</option>
                                         {% endfor %}
                                     </select>
+                                    {% if user|can:'finances.create' %}
                                     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Ajouter une catégorie">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-12">
@@ -588,6 +606,7 @@
     </div>
 
     <!-- Add Category Modal -->
+    {% if user|can:'finances.create' %}
     <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
@@ -615,6 +634,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     {% endif %}
 {% endblock %}
 

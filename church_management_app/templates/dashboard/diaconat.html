@@ -120,25 +120,32 @@
 {% block content %}
 <!-- Tabs -->
 <ul class="nav nav-pills mb-4" id="diaconatTabs">
+    {% if user|can:'diaconat.view' %}
     <li class="nav-item">
         <a class="nav-link {% if view != 'event_logistics_list' %}active{% endif %}" href="#pointage" data-bs-toggle="tab">
             <i class="bi bi-clipboard-check me-2"></i>Pointage
         </a>
     </li>
+    {% endif %}
+    {% if user|can:'logistics.view' %}
     <li class="nav-item">
         <a class="nav-link" href="#logistique" data-bs-toggle="tab">
             <i class="bi bi-box-seam me-2"></i>Logistique
         </a>
     </li>
+    {% endif %}
+    {% if user|can:'logistics.view' %}
     <li class="nav-item">
         <a class="nav-link {% if view == 'event_logistics_list' %}active{% endif %}" href="{% url 'event-logistics-list' %}">
             <i class="bi bi-calendar-check me-2"></i>Ressources par Événement
         </a>
     </li>
+    {% endif %}
 </ul>
 
 <div class="tab-content">
     <!-- POINTAGE TAB - Avec toutes les fonctionnalités -->
+    {% if user|can:'diaconat.view' %}
     <div class="tab-pane fade show active" id="pointage">
         <!-- Messages -->
         {% if messages %}
@@ -173,9 +180,11 @@
                             <i class="bi bi-fullscreen me-2"></i>Vue complète
                         </a>
                         {% endif %}
+                        {% if user|can:'diaconat.print' %}
                         <button type="button" class="btn btn-outline-dark" onclick="window.print()">
                             <i class="bi bi-printer me-2"></i>Imprimer
                         </button>
+                        {% endif %}
                     </div>
                 </form>
             </div>
@@ -244,6 +253,7 @@
                     </div>
                     <div class="card-body pt-0">
                         <div class="d-grid gap-2">
+                            {% if user|can:'diaconat.edit' %}
                             <form method="post" action="{% url 'diaconat' %}?event={{ selected_event.pk }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="mark_all_present">
@@ -265,6 +275,7 @@
                                     <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -380,6 +391,7 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
+                                    {% if user|can:'diaconat.edit' %}
                                     <button type="button"
                                             onclick="markAttendance('{{ member.pk }}', 'present', this)"
                                             data-member-id="{{ member.pk }}"
@@ -394,6 +406,7 @@
                                             class="check-btn absent-btn {% if attendance and not attendance.attended %}absent{% endif %}">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endwith %}
@@ -415,8 +428,10 @@
         </div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- Logistique Tab -->
+    {% if user|can:'logistics.view' %}
     <div class="tab-pane fade" id="logistique">
         <!-- Stats Cards -->
         <div class="row g-3 mb-4">
@@ -489,22 +504,29 @@
                     <div class="col-md-4">
                         <div class="input-group">
                             <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control border-0 bg-light" id="itemSearch" placeholder="Rechercher un article...">
+                            <input type="text" class="form-control border-0 bg-light" id="itemSearch" placeholder="Rechercher un article..." {% if not user|can:'logistics.search' %}disabled{% endif %}>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <select class="form-select bg-light border-0" id="categoryFilter">
+                        <select class="form-select bg-light border-0" id="categoryFilter" {% if not user|can:'logistics.filter' %}disabled{% endif %}>
                             <option value="">Toutes catégories</option>
                             {% for cat_value, cat_label in logistics_categories %}
                             <option value="{{ cat_value }}">{{ cat_label }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4 text-md-end">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
-                            <i class="bi bi-plus-lg me-2"></i>Ajouter un article
-                        </button>
-                    </div>
+                        <div class="col-md-4 text-md-end">
+                            {% if user|can:'logistics.create' %}
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                                <i class="bi bi-plus-lg me-2"></i>Ajouter un article
+                            </button>
+                            {% endif %}
+                            {% if user|can:'logistics.create' %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addLogisticsCategoryModal" title="Nouvelle catégorie">
+                                <i class="bi bi-tags me-2"></i>Catégorie
+                            </button>
+                            {% endif %}
+                        </div>
                 </div>
             </div>
         </div>
@@ -530,9 +552,13 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="{% url 'diaconat-logistics-detail' item.id %}"><i class="bi bi-eye me-2"></i>Voir</a></li>
+                                    {% if user|can:'logistics.edit' %}
                                     <li><a class="dropdown-item" href="{% url 'diaconat-logistics-edit' item.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                    {% endif %}
+                                    {% if user|can:'logistics.delete' %}
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger" href="{% url 'diaconat-logistics-delete' item.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </div>
@@ -580,13 +606,16 @@
             <div class="col-12 text-center py-5">
                 <i class="bi bi-box fs-1 text-muted d-block mb-3"></i>
                 <p class="text-muted">Aucun article logistique enregistré</p>
+                {% if user|can:'logistics.create' %}
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
                     <i class="bi bi-plus-lg me-2"></i>Ajouter un article
                 </button>
+                {% endif %}
             </div>
             {% endif %}
         </div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Event Logistics List View -->
@@ -650,9 +679,11 @@
                         {% endif %}
                     </div>
                 </div>
+                {% if user|can:'logistics.create' %}
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
                     <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -715,11 +746,14 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        {% if user|can:'logistics.edit' %}
                                         <li>
                                             <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editResourceModal{{ consumption.pk }}">
                                                 <i class="bi bi-pencil me-2"></i>Modifier quantité
                                             </button>
                                         </li>
+                                        {% endif %}
+                                        {% if user|can:'logistics.delete' %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <form method="post" action="{% url 'event-logistics-delete' consumption.pk %}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette attribution ?');">
@@ -729,6 +763,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -741,9 +776,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-box-seam fs-1 text-muted d-block mb-3"></i>
                 <p class="text-muted">Aucune ressource attribuée à cet événement</p>
+                {% if user|can:'logistics.create' %}
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
                     <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
                 </button>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -760,7 +797,7 @@
 </div>
 
 <!-- Add Resource Modal -->
-{% if selected_event %}
+{% if selected_event and user|can:'logistics.create' %}
 <div class="modal fade" id="addResourceModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -811,6 +848,7 @@
 {% endif %}
 
 <!-- Edit Resource Modals -->
+{% if user|can:'logistics.edit' %}
 {% for consumption in consumptions %}
 <div class="modal fade" id="editResourceModal{{ consumption.pk }}" tabindex="-1">
     <div class="modal-dialog">
@@ -847,6 +885,7 @@
     </div>
 </div>
 {% endfor %}
+{% endif %}
 
 <script>
 function updateAvailableQuantity() {
@@ -873,26 +912,30 @@ function updateAvailableQuantity() {
 }
 
 // Validation avant soumission
-document.querySelector('#addResourceModal form').addEventListener('submit', function(e) {
-    const select = document.getElementById('resourceItemSelect');
-    const quantityInput = document.getElementById('quantityUsed');
+const addResourceForm = document.querySelector('#addResourceModal form');
+if (addResourceForm) {
+    addResourceForm.addEventListener('submit', function(e) {
+        const select = document.getElementById('resourceItemSelect');
+        const quantityInput = document.getElementById('quantityUsed');
 
-    if (select.value) {
-        const option = select.options[select.selectedIndex];
-        const availableQty = parseInt(option.getAttribute('data-quantity'));
-        const requestedQty = parseInt(quantityInput.value);
+        if (select.value) {
+            const option = select.options[select.selectedIndex];
+            const availableQty = parseInt(option.getAttribute('data-quantity'));
+            const requestedQty = parseInt(quantityInput.value);
 
-        if (requestedQty > availableQty) {
-            e.preventDefault();
-            alert('La quantité demandée dépasse le stock disponible (' + availableQty + ' ' + option.getAttribute('data-unit') + ')');
-            return false;
+            if (requestedQty > availableQty) {
+                e.preventDefault();
+                alert('La quantité demandée dépasse le stock disponible (' + availableQty + ' ' + option.getAttribute('data-unit') + ')');
+                return false;
+            }
         }
-    }
-});
+    });
+}
 </script>
 {% endif %}
 
 <!-- Add Item Modal -->
+    {% if user|can:'logistics.create' %}
     <div class="modal fade" id="addItemModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -1013,6 +1056,7 @@ document.querySelector('#addResourceModal form').addEventListener('submit', func
             </div>
         </div>
     </div>
+    {% endif %}
 
 <script>
 // Global variables
@@ -1180,6 +1224,11 @@ function getCategoryLabel(cat) {
     return labels[cat] || cat;
 }
 
+const selectedEventId = '{{ selected_event.pk|default:"" }}';
+const hasSelectedEvent = selectedEventId !== '';
+const diaconatEventUrl = '{% url "diaconat" %}' + (hasSelectedEvent ? ('?event=' + selectedEventId) : '');
+const diaconatCsrfToken = '{{ csrf_token }}';
+
 function deleteItem(id) {
     if (confirm('Supprimer cet article ?')) {
         window.location.href = `/logistics/${id}/delete/`;
@@ -1217,14 +1266,18 @@ document.addEventListener('keydown', function(e) {
 });
 
 // Mark attendance via AJAX
-{% if selected_event %}
 function markAttendance(memberId, action, button) {
+    if (!hasSelectedEvent) {
+        alert('Veuillez sélectionner un événement d\'abord');
+        return;
+    }
+
     const formData = new FormData();
-    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('csrfmiddlewaretoken', diaconatCsrfToken);
     formData.append('member_id', memberId);
     formData.append('action', action);
 
-    fetch('{% url "diaconat" %}?event={{ selected_event.pk }}', {
+    fetch(diaconatEventUrl, {
         method: 'POST',
         body: formData,
         headers: {
@@ -1244,11 +1297,6 @@ function markAttendance(memberId, action, button) {
         window.location.reload();
     });
 }
-{% else %}
-function markAttendance(memberId, action, button) {
-    alert('Veuillez sélectionner un événement d\'abord');
-}
-{% endif %}
 
 function updateUI(memberId, action, data) {
     const memberItem = document.querySelector(`[data-member-id="${memberId}"]`);

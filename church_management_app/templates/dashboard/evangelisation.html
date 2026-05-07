@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Évangélisation{% endblock %}
 
@@ -38,9 +39,11 @@
                         <a href="{% url 'evangelisation-list' %}" class="btn btn-secondary me-2">
                             <i class="bi bi-x-lg me-1"></i>Annuler
                         </a>
+                        {% if user|can:'evangelisation.delete' %}
                         <button type="submit" class="btn btn-danger">
                             <i class="bi bi-trash me-1"></i>Supprimer définitivement
                         </button>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -107,9 +110,19 @@
                             <a href="{% url 'evangelisation-list' %}" class="btn btn-secondary">
                                 <i class="bi bi-x-lg me-1"></i>Annuler
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-lg me-1"></i>{{ action }}
-                            </button>
+                            {% if action == 'Créer' %}
+                                {% if user|can:'evangelisation.create' %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-1"></i>{{ action }}
+                                </button>
+                                {% endif %}
+                            {% else %}
+                                {% if user|can:'evangelisation.edit' %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-1"></i>{{ action }}
+                                </button>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -194,9 +207,11 @@
                     </select>
                 </div>
                 <div class="col-md-5 text-md-end">
+                    {% if user|can:'evangelisation.create' %}
                     <a href="{% url 'evangelisation-create' %}" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>Nouvelle activité
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -265,17 +280,21 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        {% if user|can:'evangelisation.edit' %}
                                         <li>
                                             <a class="dropdown-item" href="{% url 'evangelisation-edit' activity.pk %}">
                                                 <i class="bi bi-pencil me-2 text-primary"></i>Modifier
                                             </a>
                                         </li>
+                                        {% endif %}
+                                        {% if user|can:'evangelisation.delete' %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item text-danger" href="{% url 'evangelisation-delete' activity.pk %}">
                                                 <i class="bi bi-trash me-2"></i>Supprimer
                                             </a>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -288,9 +307,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-megaphone text-muted" style="font-size: 3rem;"></i>
                 <p class="text-muted mt-3">Aucune activité d'évangélisation enregistrée</p>
+                {% if user|can:'evangelisation.create' %}
                 <a href="{% url 'evangelisation-create' %}" class="btn btn-primary mt-2">
                     <i class="bi bi-plus-lg me-2"></i>Créer la première activité
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load permissions_tags %}
 
 {% block title %}Documents{% endblock %}
 
@@ -10,9 +11,11 @@
             <h2 class="fw-bold mb-1">Gestion des Documents</h2>
             <p class="text-muted mb-0">Documents et fichiers de l'église</p>
         </div>
+        {% if user|can:'documents.create' %}
         <a href="{% url 'document-create' %}" class="btn btn-primary">
             <i class="bi bi-upload me-2"></i>Uploader un document
         </a>
+        {% endif %}
     </div>
 
     {% if view == 'list' %}
@@ -80,11 +83,11 @@
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
                         <input type="text" class="form-control border-0 bg-light" name="search" 
-                               placeholder="Rechercher un document..." value="{{ search_query|default:'' }}">
+                               placeholder="Rechercher un document..." value="{{ search_query|default:'' }}" {% if not user|can:'documents.search' %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select bg-light border-0" name="doc_type">
+                    <select class="form-select bg-light border-0" name="doc_type" {% if not user|can:'documents.filter' %}disabled{% endif %}>
                         <option value="">Tous les types</option>
                         <option value="sermon" {% if doc_type_filter == 'sermon' %}selected{% endif %}>Sermon</option>
                         <option value="official" {% if doc_type_filter == 'official' %}selected{% endif %}>Document officiel</option>
@@ -93,7 +96,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <select class="form-select bg-light border-0" name="type">
+                    <select class="form-select bg-light border-0" name="type" {% if not user|can:'documents.filter' %}disabled{% endif %}>
                         <option value="">Tous les types</option>
                         <option value="pdf" {% if type_filter == 'pdf' %}selected{% endif %}>PDF</option>
                         <option value="word" {% if type_filter == 'word' %}selected{% endif %}>Word</option>
@@ -103,7 +106,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-outline-secondary w-100">Filtrer</button>
+                    <button type="submit" class="btn btn-outline-secondary w-100" {% if not user|can:'documents.filter' %}disabled{% endif %}>Filtrer</button>
                 </div>
             </form>
         </div>
@@ -162,15 +165,21 @@
                                     <a href="{% url 'document-detail' document.pk %}" class="btn btn-outline-info" title="Détails">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    {% if user|can:'documents.export' %}
                                     <a href="{{ document.file.url }}" class="btn btn-outline-primary" target="_blank" title="Télécharger">
                                         <i class="bi bi-download"></i>
                                     </a>
+                                    {% endif %}
+                                    {% if user|can:'documents.edit' %}
                                     <a href="{% url 'document-edit' document.pk %}" class="btn btn-outline-secondary" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    {% endif %}
+                                    {% if user|can:'documents.delete' %}
                                     <a href="{% url 'document-delete' document.pk %}" class="btn btn-outline-danger" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -182,9 +191,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-folder fs-1 text-muted mb-3 d-block"></i>
                 <p class="text-muted">Aucun document</p>
+                {% if user|can:'documents.create' %}
                 <a href="{% url 'document-create' %}" class="btn btn-primary">
                     <i class="bi bi-upload me-2"></i>Uploader un document
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -198,15 +209,21 @@
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Détails du document</h5>
                     <div class="btn-group btn-group-sm">
+                        {% if user|can:'documents.export' %}
                         <a href="{{ document.file.url }}" class="btn btn-outline-primary" target="_blank">
                             <i class="bi bi-download me-1"></i>Télécharger
                         </a>
+                        {% endif %}
+                        {% if user|can:'documents.edit' %}
                         <a href="{% url 'document-edit' document.pk %}" class="btn btn-outline-secondary">
                             <i class="bi bi-pencil me-1"></i>Modifier
                         </a>
+                        {% endif %}
+                        {% if user|can:'documents.delete' %}
                         <a href="{% url 'document-delete' document.pk %}" class="btn btn-outline-danger">
                             <i class="bi bi-trash me-1"></i>Supprimer
                         </a>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body">

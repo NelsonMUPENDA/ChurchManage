@@ -8,7 +8,6 @@ class User(AbstractUser):
         ('super_admin', 'Super Admin'),
         ('pastor', 'Pastor'),
         ('admin', 'Administrator'),
-        ('administrator', 'Administrator'),
         ('protocol_head', 'Protocol Head'),
         ('financial_head', 'Financial Head'),
         ('logistics_head', 'Logistics Head'),

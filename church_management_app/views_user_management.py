@@ -8,6 +8,7 @@ from django.db.models import Q
 from .forms import UserCreateForm, UserUpdateForm
 from .permissions import admin_required
 from .permissions import get_or_create_permission_profile
+from .permissions import get_user_permissions
 
 User = get_user_model()
 
@@ -232,6 +233,17 @@ def user_permissions_admin(request, pk):
     profile = get_or_create_permission_profile(target_user)
     current_perms = profile.permissions or {}
 
+    # Afficher uniquement les modules du menu du rôle de l'utilisateur
+    role_perms = get_user_permissions(target_user)
+    allowed_role_menus = set(role_perms.get('menu', []))
+
+    filtered_modules = [('global', 'Global')]
+    for module_key, module_label in PERMISSION_MODULES:
+        if module_key == 'global':
+            continue
+        if module_key in allowed_role_menus:
+            filtered_modules.append((module_key, module_label))
+
     if request.method == 'POST':
         action = request.POST.get('action')
 
@@ -258,7 +270,7 @@ def user_permissions_admin(request, pk):
 
         # Enregistrer les permissions
         new_perms = {}
-        for module_key, _ in PERMISSION_MODULES:
+        for module_key, _ in filtered_modules:
             module_dict = {}
             for action_key, _ in PERMISSION_ACTIONS:
                 field_name = f'perm__{module_key}__{action_key}'
@@ -279,7 +291,7 @@ def user_permissions_admin(request, pk):
         'view': 'user_permissions',
         'target_user': target_user,
         'permission_profile': profile,
-        'permission_modules': PERMISSION_MODULES,
+        'permission_modules': filtered_modules,
         'permission_actions': PERMISSION_ACTIONS,
         'current_permissions': current_perms,
     }

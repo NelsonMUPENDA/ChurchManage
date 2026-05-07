@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Rapports & Statistiques{% endblock %}
 
@@ -26,12 +27,14 @@
             <p class="text-muted mb-0">Période: {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}</p>
         </div>
         <div class="d-flex gap-2">
+            {% if user|can:'reports.export' %}
             <button class="btn btn-outline-primary" onclick="generateCompileReport()">
                 <i class="bi bi-file-earmark-text me-2"></i>Rapport Compile
             </button>
             <button class="btn btn-primary" onclick="generateGlobalCompile()">
                 <i class="bi bi-globe me-2"></i>Global Compile
             </button>
+            {% endif %}
         </div>
     </div>
 
@@ -62,9 +65,11 @@
                     </button>
                 </div>
                 <div class="col-md-2">
-                    <a href="{% url 'reports-export-excel' %}" class="btn btn-success w-100">
-                        <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
-                    </a>
+                    {% if user|can:'reports.export' %}
+                        <a href="{% url 'reports-export-excel' %}" class="btn btn-success w-100">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
+                        </a>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -311,12 +316,16 @@
                             <td>Liste complète avec statistiques par genre, âge, statut</td>
                             <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
                             <td class="text-end">
+                                {% if user|can:'reports.view' %}
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewReport('members')">
                                     <i class="bi bi-eye me-1"></i>Voir
                                 </button>
+                                {% endif %}
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-light" onclick="generateReport('members')">
                                     <i class="bi bi-download me-1"></i>PDF
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -324,12 +333,16 @@
                             <td>Bilan détaillé des entrées et sorties par catégorie</td>
                             <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
                             <td class="text-end">
+                                {% if user|can:'reports.view' %}
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewReport('finances')">
                                     <i class="bi bi-eye me-1"></i>Voir
                                 </button>
+                                {% endif %}
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-light" onclick="generateReport('finances')">
                                     <i class="bi bi-download me-1"></i>PDF
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -337,12 +350,16 @@
                             <td>Événements, participations et statistiques</td>
                             <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
                             <td class="text-end">
+                                {% if user|can:'reports.view' %}
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewReport('activities')">
                                     <i class="bi bi-eye me-1"></i>Voir
                                 </button>
+                                {% endif %}
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-light" onclick="generateReport('activities')">
                                     <i class="bi bi-download me-1"></i>PDF
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -350,12 +367,16 @@
                             <td>Taux de présence aux cultes et événements</td>
                             <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
                             <td class="text-end">
+                                {% if user|can:'reports.view' %}
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewReport('attendance')">
                                     <i class="bi bi-eye me-1"></i>Voir
                                 </button>
+                                {% endif %}
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-light" onclick="generateReport('attendance')">
                                     <i class="bi bi-download me-1"></i>PDF
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -363,12 +384,16 @@
                             <td>Registre des mariages et baptêmes célébrés</td>
                             <td>Tout l'historique</td>
                             <td class="text-end">
+                                {% if user|can:'reports.view' %}
                                 <button class="btn btn-sm btn-outline-primary" onclick="viewReport('sacraments')">
                                     <i class="bi bi-eye me-1"></i>Voir
                                 </button>
+                                {% endif %}
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-light" onclick="generateReport('sacraments')">
                                     <i class="bi bi-download me-1"></i>PDF
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr class="table-primary">
@@ -376,9 +401,11 @@
                             <td>Rapport consolidé de toutes les activités de la période</td>
                             <td>{{ date_from|date:"d/m/Y" }} - {{ date_to|date:"d/m/Y" }}</td>
                             <td class="text-end">
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-primary" onclick="generateCompileReport()">
                                     <i class="bi bi-file-earmark-text me-1"></i>Générer
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                         <tr class="table-success">
@@ -386,9 +413,11 @@
                             <td>Rapport global annuel avec toutes les statistiques</td>
                             <td>Année complète</td>
                             <td class="text-end">
+                                {% if user|can:'reports.export' %}
                                 <button class="btn btn-sm btn-success" onclick="generateGlobalCompile()">
                                     <i class="bi bi-globe me-1"></i>Générer
                                 </button>
+                                {% endif %}
                             </td>
                         </tr>
                     </tbody>

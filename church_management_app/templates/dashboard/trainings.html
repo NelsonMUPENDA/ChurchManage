@@ -1,4 +1,5 @@
 {% extends 'dashboard/base.html' %}
+{% load permissions_tags %}
 
 {% block title %}Formations{% endblock %}
 
@@ -10,9 +11,11 @@
             <h2 class="fw-bold mb-1">Gestion des Formations</h2>
             <p class="text-muted mb-0">Organiser les formations et enseignements</p>
         </div>
+        {% if user|can:'trainings.create' %}
         <a href="{% url 'training-create' %}" class="btn btn-primary">
             <i class="bi bi-plus-lg me-2"></i>Nouvelle formation
         </a>
+        {% endif %}
     </div>
 
     {% if view == 'trainings' %}
@@ -99,12 +102,16 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group">
+                                    {% if user|can:'trainings.edit' %}
                                     <a href="{% url 'training-edit' training.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    {% endif %}
+                                    {% if user|can:'trainings.delete' %}
                                     <a href="{% url 'training-delete' training.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -116,9 +123,11 @@
             <div class="text-center py-5">
                 <i class="bi bi-mortarboard fs-1 text-muted mb-3 d-block"></i>
                 <p class="text-muted">Aucune formation programmée</p>
+                {% if user|can:'trainings.create' %}
                 <a href="{% url 'training-create' %}" class="btn btn-primary">
                     <i class="bi bi-plus-lg me-2"></i>Planifier une formation
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -138,7 +147,15 @@
                         {{ form.as_p }}
                         <div class="d-flex gap-2 justify-content-end mt-4">
                             <a href="{% url 'training-list' %}" class="btn btn-outline-secondary">Annuler</a>
-                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                            {% if action == 'Créer' %}
+                                {% if user|can:'trainings.create' %}
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                {% endif %}
+                            {% else %}
+                                {% if user|can:'trainings.edit' %}
+                                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -161,7 +178,9 @@
                         {% csrf_token %}
                         <div class="d-flex gap-2 justify-content-center">
                             <a href="{% url 'training-list' %}" class="btn btn-outline-secondary">Annuler</a>
+                            {% if user|can:'trainings.delete' %}
                             <button type="submit" class="btn btn-danger">Supprimer</button>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

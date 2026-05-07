@@ -49,6 +49,22 @@ def can_manage_users_filter(user):
         return False
     return can_manage_users(user)
 
+
+@register.filter(name='can')
+def can_filter(user, permission_name):
+    """Filtre pour vérifier une permission module.action.
+
+    Exemple: {% if user|can:'members.create' %}
+    """
+    if not user or not user.is_authenticated:
+        return False
+
+    if not isinstance(permission_name, str) or '.' not in permission_name:
+        return False
+
+    module, action = permission_name.split('.', 1)
+    return has_permission_func(user, module, action)
+
 @register.filter(name='role_display')
 def role_display_filter(user):
     """Filtre pour afficher le nom du rôle"""

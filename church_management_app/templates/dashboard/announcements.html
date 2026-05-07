@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load permissions_tags %}
 
 {% block title %}Annonces{% endblock %}
 
@@ -37,9 +38,13 @@
                                 <i class="bi bi-three-dots-vertical"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user|can:'announcements.edit' %}
                                 <li><a class="dropdown-item" href="{% url 'announcement-edit' announcement.id %}"><i class="bi bi-pencil me-2"></i>Modifier</a></li>
+                                {% endif %}
+                                {% if user|can:'announcements.delete' %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="{% url 'announcement-delete' announcement.id %}"><i class="bi bi-trash me-2"></i>Supprimer</a></li>
+                                {% endif %}
                             </ul>
                         </div>
                     </div>
@@ -252,20 +257,22 @@
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher...">
+                        <input type="text" class="form-control border-0 bg-light" id="searchInput" placeholder="Rechercher..." {% if not user|can:'announcements.search' %}disabled{% endif %}>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select bg-light border-0" id="statusFilter">
+                    <select class="form-select bg-light border-0" id="statusFilter" {% if not user|can:'announcements.filter' %}disabled{% endif %}>
                         <option value="">Tous les statuts (is_active)</option>
                         <option value="published">Publiées (is_active=True)</option>
                         <option value="draft">Brouillons (is_active=False)</option>
                     </select>
                 </div>
                 <div class="col-md-4 text-md-end">
+                    {% if user|can:'announcements.create' %}
                     <a href="{% url 'announcement-create' %}" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>Nouvelle annonce
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

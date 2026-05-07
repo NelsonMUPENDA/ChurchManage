@@ -45,18 +45,6 @@ ROLE_PERMISSIONS = {
         'can_manage_users': True,
         'can_manage_settings': False,
     },
-    'administrator': {
-        'menu': ['dashboard', 'members', 'families', 'home_groups', 'departments', 'ministries',
-                 'events', 'attendance', 'finances', 'announcements',
-                 'trainings', 'logistics', 'diaconat', 'baptisms', 'evangelisation', 'marriages',
-                 'documents', 'contacts', 'reports', 'account'],
-        'can_create': True,
-        'can_edit': True,
-        'can_delete': True,
-        'can_export': True,
-        'can_manage_users': True,
-        'can_manage_settings': False,
-    },
     'financial_head': {
         'menu': ['dashboard', 'finances', 'reports', 'account'],
         'can_create': True,
@@ -158,7 +146,7 @@ def get_user_permissions(user):
 def is_admin_user(user):
     if not user or not user.is_authenticated:
         return False
-    return user.is_superuser or user.role in ['admin', 'administrator', 'super_admin']
+    return user.is_superuser or user.role in ['admin', 'super_admin']
 
 
 def get_or_create_permission_profile(user):
@@ -222,9 +210,13 @@ def has_permission(user, module, action):
 
 def can_access_menu(user, menu_name):
     """Vérifie si l'utilisateur peut accéder à un menu"""
-    if user.is_superuser:
+    # Le menu visible est basé sur le rôle (UX stable), tandis que les actions
+    # sont limitées par les permissions custom définies par l'admin.
+    if is_admin_user(user):
         return True
-    return has_permission(user, 'menu', menu_name)
+    role_perms = get_user_permissions(user)
+    allowed_menus = role_perms.get('menu', [])
+    return menu_name in allowed_menus
 
 def can_create(user):
     """Vérifie si l'utilisateur peut créer"""
@@ -262,7 +254,6 @@ def get_role_display_name(role):
         'super_admin': 'Super Administrateur',
         'pastor': 'Pasteur',
         'admin': 'Administrateur',
-        'administrator': 'Administrateur',
         'financial_head': 'Responsable Financier',
         'treasurer': 'Trésorier',
         'protocol_head': 'Responsable Protocole',
@@ -300,7 +291,7 @@ def admin_required(view_func):
     """Décorateur pour les vues réservées aux administrateurs"""
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.user.is_superuser or request.user.role in ['admin', 'administrator', 'super_admin']:
+        if request.user.is_superuser or request.user.role in ['admin', 'super_admin']:
             return view_func(request, *args, **kwargs)
         messages.error(request, "Accès réservé aux administrateurs.")
         return redirect('dashboard')
