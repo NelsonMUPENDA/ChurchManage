@@ -7,8 +7,46 @@ from django.db.models import Q
 
 from .forms import UserCreateForm, UserUpdateForm
 from .permissions import admin_required
+from .permissions import get_or_create_permission_profile
 
 User = get_user_model()
+
+
+PERMISSION_MODULES = [
+    ('global', 'Global'),
+    ('members', 'Membres'),
+    ('families', 'Familles'),
+    ('events', 'Événements'),
+    ('attendance', 'Présences'),
+    ('finances', 'Finances'),
+    ('announcements', 'Annonces'),
+    ('trainings', 'Formations'),
+    ('logistics', 'Logistique'),
+    ('diaconat', 'Diaconat'),
+    ('baptisms', 'Baptêmes'),
+    ('evangelisation', 'Évangélisation'),
+    ('marriages', 'Mariages'),
+    ('documents', 'Documents'),
+    ('contacts', 'Contacts'),
+    ('reports', 'Rapports'),
+    ('notifications', 'Notifications'),
+    ('approvals', 'Approbations'),
+    ('audit_logs', 'Audit Logs'),
+    ('settings', 'Paramètres'),
+    ('account', 'Compte'),
+]
+
+
+PERMISSION_ACTIONS = [
+    ('view', 'Voir'),
+    ('create', 'Créer'),
+    ('edit', 'Modifier'),
+    ('delete', 'Supprimer'),
+    ('search', 'Rechercher'),
+    ('filter', 'Filtrer'),
+    ('export', 'Exporter'),
+    ('print', 'Imprimer'),
+]
 
 
 @login_required
@@ -178,3 +216,71 @@ def user_toggle_active(request, pk):
     status = 'activé' if target_user.is_active else 'désactivé'
     messages.success(request, f'Utilisateur {target_user.get_full_name()} {status}.')
     return redirect('user-management')
+
+
+@login_required
+@admin_required
+def user_permissions_admin(request, pk):
+    """Gérer les permissions custom par module/action pour un utilisateur."""
+    target_user = get_object_or_404(User, pk=pk)
+
+    # Empêcher la gestion de ses propres permissions ici (optionnel mais plus safe)
+    if target_user == request.user:
+        messages.warning(request, 'Vous ne pouvez pas modifier vos propres permissions depuis cet écran.')
+        return redirect('user-management')
+
+    profile = get_or_create_permission_profile(target_user)
+    current_perms = profile.permissions or {}
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'lock':
+            profile.is_locked = True
+            profile.updated_by = request.user
+            profile.save(update_fields=['is_locked', 'updated_by', 'updated_at'])
+            messages.success(request, f'Accès verrouillés pour {target_user.get_full_name()}.')
+            return redirect('user-permissions-admin', pk=target_user.pk)
+
+        if action == 'unlock':
+            profile.is_locked = False
+            profile.updated_by = request.user
+            profile.save(update_fields=['is_locked', 'updated_by', 'updated_at'])
+            messages.success(request, f'Accès déverrouillés pour {target_user.get_full_name()}.')
+            return redirect('user-permissions-admin', pk=target_user.pk)
+
+        if action == 'revoke_all':
+            profile.permissions = {}
+            profile.updated_by = request.user
+            profile.save(update_fields=['permissions', 'updated_by', 'updated_at'])
+            messages.success(request, f'Toutes les permissions ont été retirées pour {target_user.get_full_name()}.')
+            return redirect('user-permissions-admin', pk=target_user.pk)
+
+        # Enregistrer les permissions
+        new_perms = {}
+        for module_key, _ in PERMISSION_MODULES:
+            module_dict = {}
+            for action_key, _ in PERMISSION_ACTIONS:
+                field_name = f'perm__{module_key}__{action_key}'
+                module_dict[action_key] = request.POST.get(field_name) == 'on'
+
+            # Ne stocker que si au moins une action est True
+            if any(module_dict.values()):
+                new_perms[module_key] = module_dict
+
+        profile.permissions = new_perms
+        profile.updated_by = request.user
+        profile.save(update_fields=['permissions', 'updated_by', 'updated_at'])
+        messages.success(request, f'Permissions mises à jour pour {target_user.get_full_name()}.')
+        return redirect('user-management')
+
+    context = {
+        'active_page': 'account',
+        'view': 'user_permissions',
+        'target_user': target_user,
+        'permission_profile': profile,
+        'permission_modules': PERMISSION_MODULES,
+        'permission_actions': PERMISSION_ACTIONS,
+        'current_permissions': current_perms,
+    }
+    return render(request, 'dashboard/account.html', context)

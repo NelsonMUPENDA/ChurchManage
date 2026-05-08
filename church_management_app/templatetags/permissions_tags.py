@@ -2,7 +2,7 @@
 from django import template
 from church_management_app.permissions import (
     can_access_menu, can_create, can_edit, can_delete, can_export,
-    can_manage_users, get_role_display_name, get_user_permissions
+    can_manage_users, get_role_display_name, get_user_permissions, has_permission as has_permission_func
 )
 
 register = template.Library()
@@ -78,6 +78,11 @@ def has_permission(context, permission_name):
     if user.is_superuser:
         return True
     
+    # Compat: si on passe "global.create" ou "menu.members"
+    if isinstance(permission_name, str) and '.' in permission_name:
+        module, action = permission_name.split('.', 1)
+        return has_permission_func(user, module, action)
+
     permissions = get_user_permissions(user)
     return permissions.get(permission_name, False)
 
@@ -87,4 +92,6 @@ def get_item(dictionary, key):
     """Filtre pour récupérer une valeur d'un dictionnaire par clé"""
     if dictionary is None:
         return None
-    return dictionary.get(key)
+    if hasattr(dictionary, 'get'):
+        return dictionary.get(key)
+    return None

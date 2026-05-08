@@ -2,6 +2,7 @@
 from functools import wraps
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.db import transaction
 
 # ============================================================
 # Définition des permissions par rôle
@@ -153,48 +154,107 @@ def get_user_permissions(user):
         return ROLE_PERMISSIONS.get('super_admin', {})
     return ROLE_PERMISSIONS.get(user.role, ROLE_PERMISSIONS.get('visitor', {}))
 
+
+def is_admin_user(user):
+    if not user or not user.is_authenticated:
+        return False
+    return user.is_superuser or user.role in ['admin', 'administrator', 'super_admin']
+
+
+def get_or_create_permission_profile(user):
+    """Récupère ou crée le profil de permissions d'un utilisateur."""
+    # Import local pour éviter les imports circulaires
+    from .models import UserPermissionProfile
+
+    if not user or not user.is_authenticated:
+        return None
+
+    profile = getattr(user, 'permission_profile', None)
+    if profile is not None:
+        return profile
+
+    with transaction.atomic():
+        profile, _ = UserPermissionProfile.objects.get_or_create(user=user)
+    return profile
+
+
+def has_permission(user, module, action):
+    """Vérifie une permission custom par module/action.
+
+    - Les admins (et superuser) ont toujours tout.
+    - Si le profil est verrouillé: aucune permission.
+    - Si le profil n'a pas de permissions définies: fallback sur ROLE_PERMISSIONS.
+    """
+    if is_admin_user(user):
+        return True
+
+    profile = get_or_create_permission_profile(user)
+    if not profile:
+        return False
+    if profile.is_locked:
+        return False
+
+    perms = profile.permissions or {}
+
+    # Fallback: si l'admin n'a pas encore configuré les permissions pour cet utilisateur
+    if not perms:
+        role_perms = get_user_permissions(user)
+        if module == 'menu':
+            return action in role_perms.get('menu', [])
+        if module == 'global':
+            mapping = {
+                'create': 'can_create',
+                'edit': 'can_edit',
+                'delete': 'can_delete',
+                'export': 'can_export',
+                'manage_users': 'can_manage_users',
+                'manage_settings': 'can_manage_settings',
+            }
+            key = mapping.get(action)
+            return bool(role_perms.get(key, False)) if key else False
+        return False
+
+    module_perms = perms.get(module, {})
+    if isinstance(module_perms, dict):
+        return bool(module_perms.get(action, False))
+
+    return False
+
 def can_access_menu(user, menu_name):
     """Vérifie si l'utilisateur peut accéder à un menu"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    allowed_menus = permissions.get('menu', [])
-    return menu_name in allowed_menus
+    return has_permission(user, 'menu', menu_name)
 
 def can_create(user):
     """Vérifie si l'utilisateur peut créer"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    return permissions.get('can_create', False)
+    return has_permission(user, 'global', 'create')
 
 def can_edit(user):
     """Vérifie si l'utilisateur peut modifier"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    return permissions.get('can_edit', False)
+    return has_permission(user, 'global', 'edit')
 
 def can_delete(user):
     """Vérifie si l'utilisateur peut supprimer"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    return permissions.get('can_delete', False)
+    return has_permission(user, 'global', 'delete')
 
 def can_export(user):
     """Vérifie si l'utilisateur peut exporter"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    return permissions.get('can_export', False)
+    return has_permission(user, 'global', 'export')
 
 def can_manage_users(user):
     """Vérifie si l'utilisateur peut gérer les utilisateurs"""
     if user.is_superuser:
         return True
-    permissions = get_user_permissions(user)
-    return permissions.get('can_manage_users', False)
+    return has_permission(user, 'global', 'manage_users')
 
 def get_role_display_name(role):
     """Retourne le nom affiché d'un rôle"""

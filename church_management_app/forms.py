@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.core.exceptions import ValidationError
 from .models import (
     ChurchBiography, ChurchConsistory, Contact,
     Member, Family, HomeGroup, Department, Ministry,
@@ -42,7 +43,7 @@ class LoginForm(AuthenticationForm):
 class UserCreateForm(UserCreationForm):
     """Formulaire de création d'utilisateur"""
     email = forms.EmailField(
-        required=True,
+        required=False,
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
     first_name = forms.CharField(
@@ -77,6 +78,21 @@ class UserCreateForm(UserCreationForm):
     password2 = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
+
+    def clean_password1(self):
+        password1 = self.cleaned_data.get('password1')
+        if password1 and len(password1) < 4:
+            raise ValidationError('Le mot de passe doit contenir au minimum 4 caractères.')
+        return password1
+
+    def _post_clean(self):
+        """Désactive les validateurs globaux de mot de passe Django pour ce formulaire.
+
+        On conserve:
+        - la validation du modèle
+        - la validation password1/password2 (gérée par UserCreationForm.clean_password2)
+        """
+        forms.ModelForm._post_clean(self)
     
     class Meta:
         model = User

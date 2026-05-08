@@ -18,7 +18,7 @@ from .models import (
     LogisticsCategory, LogisticsCondition,
     ChurchBiography, Contact, ChurchSettings, EventAttendanceAggregate,
     BaptismEvent, BaptismCandidate, AuditLogEntry, ApprovalRequest, Notification,
-    ChurchActivity, ChurchService
+    ChurchActivity, ChurchService, EventLogisticsConsumption
 )
 from .forms import (
     MemberForm, FamilyForm, HomeGroupForm, DepartmentForm, MinistryForm,
@@ -2926,6 +2926,210 @@ def logistics_detail(request, pk):
         'logistics_item': item,
         'view': 'logistics_detail'
     })
+
+
+# ============================================================
+# Gestion des ressources logistiques par événement
+# ============================================================
+
+@login_required
+def event_logistics_list(request):
+    """Liste des attributions de ressources logistiques aux événements"""
+    # Filtre par événement si sélectionné
+    event_id = request.GET.get('event')
+    selected_event = None
+    consumptions = EventLogisticsConsumption.objects.select_related('event', 'item').all()
+
+    if event_id:
+        try:
+            selected_event = Event.objects.get(pk=event_id)
+            consumptions = consumptions.filter(event=selected_event)
+        except Event.DoesNotExist:
+            pass
+
+    # Événements à venir et récents (30 derniers jours)
+    today = timezone.now().date()
+    recent_date = today - timezone.timedelta(days=30)
+    events = Event.objects.filter(date__gte=recent_date).order_by('-date', 'time')
+
+    # Récupérer les articles logistiques disponibles pour le formulaire
+    logistics_items = LogisticsItem.objects.filter(is_active=True).order_by('name')
+
+    # Variables pour le template diaconat.html partagé
+    today = timezone.now().date()
+    members = Member.objects.filter(is_active=True).order_by('user__last_name', 'user__first_name')
+    total_members = members.count()
+
+    context = {
+        'events': events,
+        'selected_event': selected_event,
+        'consumptions': consumptions,
+        'logistics_items': logistics_items,
+        'view': 'event_logistics_list',
+        # Variables requises par le template diaconat.html
+        'members': members,
+        'member_attendance': {},
+        'total_members': total_members,
+        'present_count': 0,
+        'absent_count': 0,
+        'not_marked_count': total_members,
+        'attendance_rate': 0,
+        'attendance_offset': 326.73,
+    }
+    return render(request, 'dashboard/diaconat.html', context)
+
+
+@login_required
+def event_logistics_add(request):
+    """Ajouter une ressource logistique à un événement"""
+    if request.method == 'POST':
+        event_id = request.POST.get('event')
+        item_id = request.POST.get('item')
+        quantity_used = request.POST.get('quantity_used', 0)
+
+        try:
+            event = Event.objects.get(pk=event_id)
+            item = LogisticsItem.objects.get(pk=item_id)
+            quantity_used = int(quantity_used)
+
+            # Vérifier que la quantité demandée ne dépasse pas le stock disponible
+            if quantity_used > item.quantity:
+                messages.error(
+                    request,
+                    f'Quantité insuffisante pour "{item.name}". '
+                    f'Stock disponible: {item.quantity}, Demandé: {quantity_used}'
+                )
+                return redirect('event-logistics-list')
+
+            # Vérifier si cette ressource est déjà attribuée à cet événement
+            existing = EventLogisticsConsumption.objects.filter(
+                event=event, item=item
+            ).first()
+
+            if existing:
+                # Mettre à jour la quantité existante
+                new_quantity = existing.quantity_used + quantity_used
+                if new_quantity > item.quantity:
+                    messages.error(
+                        request,
+                        f'Quantité totale dépassée pour "{item.name}". '
+                        f'Stock disponible: {item.quantity}, Déjà attribué: {existing.quantity_used}, Nouveau: {quantity_used}'
+                    )
+                    return redirect('event-logistics-list')
+
+                existing.quantity_used = new_quantity
+                existing.updated_by = request.user
+                existing.save()
+                messages.success(
+                    request,
+                    f'Quantité mise à jour pour "{item.name}" dans l\'événement "{event.title}"'
+                )
+            else:
+                # Créer une nouvelle attribution
+                EventLogisticsConsumption.objects.create(
+                    event=event,
+                    item=item,
+                    quantity_used=quantity_used,
+                    updated_by=request.user
+                )
+                messages.success(
+                    request,
+                    f'Ressource "{item.name}" attribuée à l\'événement "{event.title}" avec succès!'
+                )
+
+            return redirect(f'{reverse("event-logistics-list")}?event={event_id}')
+
+        except Event.DoesNotExist:
+            messages.error(request, 'Événement non trouvé.')
+        except LogisticsItem.DoesNotExist:
+            messages.error(request, 'Article logistique non trouvé.')
+        except ValueError:
+            messages.error(request, 'Quantité invalide.')
+
+    return redirect('event-logistics-list')
+
+
+@login_required
+def event_logistics_edit(request, pk):
+    """Modifier une attribution de ressource logistique"""
+    consumption = get_object_or_404(EventLogisticsConsumption, pk=pk)
+
+    if request.method == 'POST':
+        quantity_used = request.POST.get('quantity_used')
+
+        try:
+            quantity_used = int(quantity_used)
+            item = consumption.item
+
+            # Vérifier que la quantité ne dépasse pas le stock
+            if quantity_used > item.quantity:
+                messages.error(
+                    request,
+                    f'Quantité insuffisante pour "{item.name}". '
+                    f'Stock disponible: {item.quantity}, Demandé: {quantity_used}'
+                )
+                return redirect('event-logistics-list')
+
+            consumption.quantity_used = quantity_used
+            consumption.updated_by = request.user
+            consumption.save()
+
+            messages.success(
+                request,
+                f'Quantité mise à jour pour "{item.name}" dans l\'événement "{consumption.event.title}"'
+            )
+            return redirect(f'{reverse("event-logistics-list")}?event={consumption.event.pk}')
+
+        except ValueError:
+            messages.error(request, 'Quantité invalide.')
+
+    return redirect('event-logistics-list')
+
+
+@login_required
+def event_logistics_delete(request, pk):
+    """Supprimer une attribution de ressource logistique"""
+    consumption = get_object_or_404(EventLogisticsConsumption, pk=pk)
+    event_id = consumption.event.pk
+
+    if request.method == 'POST':
+        consumption.delete()
+        messages.success(
+            request,
+            f'Attribution de "{consumption.item.name}" supprimée de l\'événement "{consumption.event.title}"'
+        )
+        return redirect(f'{reverse("event-logistics-list")}?event={event_id}')
+
+    return redirect('event-logistics-list')
+
+
+@login_required
+def ajax_get_item_quantity(request):
+    """AJAX endpoint pour obtenir la quantité disponible d'un article"""
+    item_id = request.GET.get('item_id')
+
+    if item_id:
+        try:
+            item = LogisticsItem.objects.get(pk=item_id)
+            # Calculer la quantité déjà attribuée à d'autres événements
+            allocated = EventLogisticsConsumption.objects.filter(
+                item=item
+            ).aggregate(total=models.Sum('quantity_used'))['total'] or 0
+
+            available = item.quantity - allocated
+
+            return JsonResponse({
+                'success': True,
+                'item_name': item.name,
+                'total_quantity': item.quantity,
+                'allocated_quantity': allocated,
+                'available_quantity': max(0, available),
+                'unit': item.unit or 'unité(s)'
+            })
+        except LogisticsItem.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Article non trouvé'})
+
+    return JsonResponse({'success': False, 'error': 'ID article requis'})
 
 
 # ============================================================

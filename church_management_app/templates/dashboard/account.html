@@ -656,16 +656,19 @@
                                     <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="bi bi-pause-circle me-1"></i>Inactif</span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    <div class="d-flex gap-1 justify-content-end">
-                                        <a href="{% url 'user-edit-admin' u.pk %}" class="btn btn-sm btn-outline-primary" title="Modifier">
+                                <td class="text-end">
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'user-edit-admin' u.pk %}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'user-permissions-admin' u.pk %}" class="btn btn-sm btn-outline-secondary" title="Permissions">
+                                            <i class="bi bi-shield-lock"></i>
                                         </a>
                                         {% if u != user and not u.is_superuser %}
                                         <a href="{% url 'user-toggle-active' u.pk %}" class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if u.is_active %}Désactiver{% else %}Activer{% endif %}">
                                             <i class="bi {% if u.is_active %}bi-pause{% else %}bi-play{% endif %}"></i>
                                         </a>
-                                        <a href="{% url 'user-delete-admin' u.pk %}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                        <a href="{% url 'user-delete-admin' u.pk %}" class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                         {% endif %}
@@ -683,6 +686,105 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Vue: Gestion des permissions -->
+{% if view == 'user_permissions' %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Permissions utilisateur</h4>
+                <p class="text-muted mb-0">{{ target_user.get_full_name }} (@{{ target_user.username }})</p>
+            </div>
+            <a href="{% url 'user-management' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm card-glass">
+            <div class="card-header bg-white py-4 border-0">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 fw-semibold"><i class="bi bi-shield-lock me-2 text-primary"></i>Configuration des accès</h5>
+                    <div class="d-flex gap-2">
+                        {% if permission_profile.is_locked %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="unlock">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-unlock me-2"></i>Déverrouiller
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="post" class="d-inline" onsubmit="return confirm('Verrouiller cet utilisateur? Il n\'aura plus aucun accès.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="lock">
+                            <button type="submit" class="btn btn-sm btn-warning">
+                                <i class="bi bi-lock me-2"></i>Verrouiller
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <form method="post" class="d-inline" onsubmit="return confirm('Retirer toutes les permissions?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="revoke_all">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-x-circle me-2"></i>Retirer tout
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if permission_profile.is_locked %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Cet utilisateur est <strong>verrouillé</strong>. Il n'a accès à aucune fonctionnalité.
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 220px;">Module</th>
+                                    {% for action_key, action_label in permission_actions %}
+                                    <th class="text-center">{{ action_label }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for module_key, module_label in permission_modules %}
+                                <tr>
+                                    <td class="fw-semibold">{{ module_label }}</td>
+                                    {% for action_key, action_label in permission_actions %}
+                                    <td class="text-center">
+                                        <input type="checkbox"
+                                               class="form-check-input"
+                                               name="perm__{{ module_key }}__{{ action_key }}"
+                                               {% if current_permissions|get_item:module_key and current_permissions|get_item:module_key|get_item:action_key %}checked{% endif %}
+                                               {% if permission_profile.is_locked %}disabled{% endif %}>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary" {% if permission_profile.is_locked %}disabled{% endif %}>
+                            <i class="bi bi-check-lg me-2"></i>Enregistrer
+                        </button>
+                        <a href="{% url 'user-management' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

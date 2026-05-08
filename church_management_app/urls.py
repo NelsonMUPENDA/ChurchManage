@@ -1,7 +1,7 @@
 # church_management_app/urls.py - URLs Django
 from django.urls import path
 from . import views
-from .views_user_management import user_management, user_create_admin, user_created_success, user_edit_admin, user_delete_admin, user_toggle_active
+from .views_user_management import user_management, user_create_admin, user_created_success, user_edit_admin, user_delete_admin, user_toggle_active, user_permissions_admin
 
 urlpatterns = [
     # Page d'accueil
@@ -96,6 +96,13 @@ urlpatterns = [
     path('diaconat/logistics/category/create-ajax/', views.logistics_create_category_ajax, name='logistics-category-ajax'),
     path('diaconat/logistics/condition/create-ajax/', views.logistics_create_condition_ajax, name='logistics-condition-ajax'),
 
+    # Logistique - Attribution aux événements
+    path('diaconat/logistics/event-resources/', views.event_logistics_list, name='event-logistics-list'),
+    path('diaconat/logistics/event-resources/add/', views.event_logistics_add, name='event-logistics-add'),
+    path('diaconat/logistics/event-resources/<int:pk>/edit/', views.event_logistics_edit, name='event-logistics-edit'),
+    path('diaconat/logistics/event-resources/<int:pk>/delete/', views.event_logistics_delete, name='event-logistics-delete'),
+    path('ajax/logistics/item/quantity/', views.ajax_get_item_quantity, name='ajax-get-item-quantity'),
+
     # Logistique - CRUD (URLs originales)
     path('logistics/', views.logistics_list, name='logistics-list'),
     path('logistics/<int:pk>/', views.logistics_detail, name='logistics-detail'),
@@ -140,6 +147,7 @@ urlpatterns = [
     path('account/users/<int:pk>/edit/', user_edit_admin, name='user-edit-admin'),
     path('account/users/<int:pk>/delete/', user_delete_admin, name='user-delete-admin'),
     path('account/users/<int:pk>/toggle/', user_toggle_active, name='user-toggle-active'),
+    path('account/users/<int:pk>/permissions/', user_permissions_admin, name='user-permissions-admin'),
 
     # Baptêmes - CRUD
     path('baptisms/', views.baptism_list, name='baptism-list'),

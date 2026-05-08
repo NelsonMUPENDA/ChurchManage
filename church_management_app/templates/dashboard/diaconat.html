@@ -121,13 +121,18 @@
 <!-- Tabs -->
 <ul class="nav nav-pills mb-4" id="diaconatTabs">
     <li class="nav-item">
-        <a class="nav-link active" href="#pointage" data-bs-toggle="tab">
+        <a class="nav-link {% if view != 'event_logistics_list' %}active{% endif %}" href="#pointage" data-bs-toggle="tab">
             <i class="bi bi-clipboard-check me-2"></i>Pointage
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="#logistique" data-bs-toggle="tab">
             <i class="bi bi-box-seam me-2"></i>Logistique
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if view == 'event_logistics_list' %}active{% endif %}" href="{% url 'event-logistics-list' %}">
+            <i class="bi bi-calendar-check me-2"></i>Ressources par Événement
         </a>
     </li>
 </ul>
@@ -583,6 +588,309 @@
         </div>
     </div>
 </div>
+
+<!-- Event Logistics List View -->
+{% if view == 'event_logistics_list' %}
+<div class="container-fluid">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+            <i class="bi bi-info-circle me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Event Selection -->
+    <div class="card attendance-card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-calendar-event me-2"></i>Sélectionner un événement
+                    </label>
+                    <select name="event" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Choisir un événement --</option>
+                        {% for evt in events %}
+                        <option value="{{ evt.pk }}" {% if selected_event and selected_event.pk == evt.pk %}selected{% endif %}>
+                            {{ evt.title }} - {{ evt.date|date:"d/m/Y" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="{% url 'event-logistics-list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_event %}
+    <!-- Event Info Card -->
+    <div class="card attendance-card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="fw-bold mb-2">{{ selected_event.title }}</h5>
+                    <p class="text-muted mb-2">{{ selected_event.description|truncatewords:30|default:"Aucune description" }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-calendar me-1"></i>{{ selected_event.date|date:"d/m/Y" }}
+                        </span>
+                        <span class="badge bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-clock me-1"></i>{{ selected_event.time|time:"H:i" }}
+                        </span>
+                        {% if selected_event.location %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                            <i class="bi bi-geo-alt me-1"></i>{{ selected_event.location }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                    <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resources List -->
+    <div class="card attendance-card">
+        <div class="card-header bg-white py-3 border-0">
+            <h6 class="mb-0 fw-semibold">
+                <i class="bi bi-box-seam me-2"></i>Ressources attribuées
+                <span class="badge bg-primary ms-2">{{ consumptions|length }}</span>
+            </h6>
+        </div>
+        <div class="card-body pt-0">
+            {% if consumptions %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Article</th>
+                            <th>Catégorie</th>
+                            <th>Quantité attribuée</th>
+                            <th>Stock total</th>
+                            <th>Restant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consumption in consumptions %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-3 p-2 me-3 bg-primary bg-opacity-10">
+                                        <i class="bi bi-box fs-5 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ consumption.item.name }}</h6>
+                                        {% if consumption.item.asset_tag %}
+                                        <small class="text-muted">{{ consumption.item.asset_tag }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ consumption.item.category|default:"Non catégorisé" }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-primary">{{ consumption.quantity_used }} {{ consumption.item.unit|default:"" }}</span>
+                            </td>
+                            <td>{{ consumption.item.quantity }} {{ consumption.item.unit|default:"" }}</td>
+                            <td>
+                                {% with remaining=consumption.item.quantity|add:"-"|add:consumption.quantity_used %}
+                                <span class="badge {% if remaining > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ consumption.item.quantity|add:"-"|add:consumption.quantity_used }} {{ consumption.item.unit|default:"" }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editResourceModal{{ consumption.pk }}">
+                                                <i class="bi bi-pencil me-2"></i>Modifier quantité
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="{% url 'event-logistics-delete' consumption.pk %}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette attribution ?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-box-seam fs-1 text-muted d-block mb-3"></i>
+                <p class="text-muted">Aucune ressource attribuée à cet événement</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                    <i class="bi bi-plus-lg me-2"></i>Attribuer une ressource
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card attendance-card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-calendar-event fs-1 text-muted d-block mb-3"></i>
+            <h5 class="text-muted">Sélectionnez un événement</h5>
+            <p class="text-muted">Choisissez un événement dans la liste ci-dessus pour voir ou attribuer des ressources logistiques.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Resource Modal -->
+{% if selected_event %}
+<div class="modal fade" id="addResourceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Attribuer une ressource</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'event-logistics-add' %}">
+                {% csrf_token %}
+                <input type="hidden" name="event" value="{{ selected_event.pk }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Événement</label>
+                        <input type="text" class="form-control" value="{{ selected_event.title }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Article logistique *</label>
+                        <select class="form-select" name="item" id="resourceItemSelect" required onchange="updateAvailableQuantity()">
+                            <option value="">-- Sélectionner un article --</option>
+                            {% for item in logistics_items %}
+                            <option value="{{ item.pk }}" data-quantity="{{ item.quantity }}" data-unit="{{ item.unit|default:'unité(s)' }}">
+                                {{ item.name }} (Stock: {{ item.quantity }} {{ item.unit|default:"" }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div id="availableQuantityInfo" class="form-text mt-2 d-none">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Quantité disponible: <span id="availableQty" class="fw-bold">0</span> <span id="availableUnit"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantité à utiliser *</label>
+                        <input type="number" class="form-control" name="quantity_used" id="quantityUsed" min="1" required>
+                        <div class="form-text">
+                            <i class="bi bi-exclamation-triangle me-1 text-warning"></i>
+                            La quantité ne peut pas dépasser le stock disponible.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Attribuer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Edit Resource Modals -->
+{% for consumption in consumptions %}
+<div class="modal fade" id="editResourceModal{{ consumption.pk }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Modifier la quantité</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'event-logistics-edit' consumption.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Article</label>
+                        <input type="text" class="form-control" value="{{ consumption.item.name }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Événement</label>
+                        <input type="text" class="form-control" value="{{ consumption.event.title }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantité à utiliser *</label>
+                        <input type="number" class="form-control" name="quantity_used" value="{{ consumption.quantity_used }}" min="1" max="{{ consumption.item.quantity }}" required>
+                        <div class="form-text">
+                            Stock total disponible: <span class="fw-bold">{{ consumption.item.quantity }}</span> {{ consumption.item.unit|default:"" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function updateAvailableQuantity() {
+    const select = document.getElementById('resourceItemSelect');
+    const infoDiv = document.getElementById('availableQuantityInfo');
+    const qtySpan = document.getElementById('availableQty');
+    const unitSpan = document.getElementById('availableUnit');
+    const quantityInput = document.getElementById('quantityUsed');
+
+    if (select.value) {
+        const option = select.options[select.selectedIndex];
+        const quantity = option.getAttribute('data-quantity');
+        const unit = option.getAttribute('data-unit');
+
+        qtySpan.textContent = quantity;
+        unitSpan.textContent = unit;
+        infoDiv.classList.remove('d-none');
+
+        // Mettre à jour le max de l'input
+        quantityInput.max = quantity;
+    } else {
+        infoDiv.classList.add('d-none');
+    }
+}
+
+// Validation avant soumission
+document.querySelector('#addResourceModal form').addEventListener('submit', function(e) {
+    const select = document.getElementById('resourceItemSelect');
+    const quantityInput = document.getElementById('quantityUsed');
+
+    if (select.value) {
+        const option = select.options[select.selectedIndex];
+        const availableQty = parseInt(option.getAttribute('data-quantity'));
+        const requestedQty = parseInt(quantityInput.value);
+
+        if (requestedQty > availableQty) {
+            e.preventDefault();
+            alert('La quantité demandée dépasse le stock disponible (' + availableQty + ' ' + option.getAttribute('data-unit') + ')');
+            return false;
+        }
+    }
+});
+</script>
+{% endif %}
 
 <!-- Add Item Modal -->
     <div class="modal fade" id="addItemModal" tabindex="-1">
