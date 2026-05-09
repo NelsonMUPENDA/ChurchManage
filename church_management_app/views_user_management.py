@@ -55,6 +55,10 @@ PERMISSION_ACTIONS = [
 def user_management(request):
     """Liste et gestion des utilisateurs du système"""
     users = User.objects.all().order_by('-date_joined')
+
+    # SEULEMENT les super-utilisateurs peuvent voir les autres super-utilisateurs
+    if not request.user.is_superuser:
+        users = users.filter(is_superuser=False)
     
     # Recherche
     search = request.GET.get('q', '')
@@ -87,8 +91,9 @@ def user_management(request):
 def user_create_admin(request):
     """Créer un nouvel utilisateur système"""
     if request.method == 'POST':
-        form = UserCreateForm(request.POST, request.FILES)
+        form = UserCreateForm(request.POST, request.FILES, request=request)
         if form.is_valid():
+            # ... (reste identique)
             # Récupérer le mot de passe avant de sauvegarder
             password = form.cleaned_data.get('password1')
             user = form.save()
@@ -98,7 +103,7 @@ def user_create_admin(request):
             messages.success(request, f'Utilisateur {user.get_full_name()} créé avec succès!')
             return redirect('user-created-success')
     else:
-        form = UserCreateForm()
+        form = UserCreateForm(request=request)
     
     context = {
         'form': form,
@@ -143,19 +148,24 @@ def user_edit_admin(request, pk):
     """Modifier un utilisateur système (rôle et statut)"""
     target_user = get_object_or_404(User, pk=pk)
     
+    # SEULEMENT les super-utilisateurs peuvent modifier les autres super-utilisateurs
+    if target_user.is_superuser and not request.user.is_superuser:
+        messages.error(request, 'Accès refusé : vous ne pouvez pas modifier un super administrateur.')
+        return redirect('user-management')
+
     # Empêcher la modification de soi-même via cette vue
     if target_user == request.user:
         messages.warning(request, 'Utilisez "Mon compte" pour modifier votre profil.')
         return redirect('user-management')
     
     if request.method == 'POST':
-        form = UserUpdateForm(request.POST, request.FILES, instance=target_user)
+        form = UserUpdateForm(request.POST, request.FILES, instance=target_user, request=request)
         if form.is_valid():
             form.save()
             messages.success(request, f'Utilisateur {target_user.get_full_name()} modifié avec succès!')
             return redirect('user-management')
     else:
-        form = UserUpdateForm(instance=target_user)
+        form = UserUpdateForm(instance=target_user, request=request)
     
     context = {
         'form': form,
@@ -173,6 +183,11 @@ def user_delete_admin(request, pk):
     """Supprimer un utilisateur système"""
     target_user = get_object_or_404(User, pk=pk)
     
+    # SEULEMENT les super-utilisateurs peuvent supprimer d'autres super-utilisateurs
+    if target_user.is_superuser and not request.user.is_superuser:
+        messages.error(request, 'Accès refusé : vous ne pouvez pas supprimer un super administrateur.')
+        return redirect('user-management')
+
     # Empêcher l'auto-suppression
     if target_user == request.user:
         messages.error(request, 'Vous ne pouvez pas supprimer votre propre compte.')
@@ -203,6 +218,11 @@ def user_toggle_active(request, pk):
     """Activer/Désactiver un utilisateur"""
     target_user = get_object_or_404(User, pk=pk)
     
+    # SEULEMENT les super-utilisateurs peuvent modifier le statut des autres super-utilisateurs
+    if target_user.is_superuser and not request.user.is_superuser:
+        messages.error(request, 'Accès refusé : vous ne pouvez pas modifier le statut d\'un super administrateur.')
+        return redirect('user-management')
+
     if target_user == request.user:
         messages.error(request, 'Vous ne pouvez pas désactiver votre propre compte.')
         return redirect('user-management')
@@ -224,6 +244,11 @@ def user_toggle_active(request, pk):
 def user_permissions_admin(request, pk):
     """Gérer les permissions custom par module/action pour un utilisateur."""
     target_user = get_object_or_404(User, pk=pk)
+
+    # SEULEMENT les super-utilisateurs peuvent gérer les permissions des autres super-utilisateurs
+    if target_user.is_superuser and not request.user.is_superuser:
+        messages.error(request, 'Accès refusé : vous ne pouvez pas gérer les permissions d\'un super administrateur.')
+        return redirect('user-management')
 
     # Empêcher la gestion de ses propres permissions ici (optionnel mais plus safe)
     if target_user == request.user:

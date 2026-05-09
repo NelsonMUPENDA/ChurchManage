@@ -79,6 +79,15 @@ class UserCreateForm(UserCreationForm):
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
     )
 
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        # Restriction du rôle super_admin
+        if self.request and not self.request.user.is_superuser:
+            choices = [c for c in User.ROLE_CHOICES if c[0] != 'super_admin']
+            self.fields['role'].choices = choices
+
     def clean_password1(self):
         password1 = self.cleaned_data.get('password1')
         if password1 and len(password1) < 4:
@@ -135,6 +144,15 @@ class UserUpdateForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        super().__init__(*args, **kwargs)
+        
+        # Restriction du rôle super_admin
+        if self.request and not self.request.user.is_superuser:
+            choices = [c for c in User.ROLE_CHOICES if c[0] != 'super_admin']
+            self.fields['role'].choices = choices
+
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email', 'phone', 'photo', 'role']
