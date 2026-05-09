@@ -466,142 +466,28 @@
     }
 
     function generateReport(type) {
-        // Simuler la génération d'un rapport PDF
-        const btn = event.target.closest('button');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Génération...';
-        btn.disabled = true;
-
-        setTimeout(() => {
-            alert(`Rapport ${type} généré avec succès! (Simulation - intégrer avec votre générateur PDF)`);
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }, 1500);
+        // Rediriger vers l'URL d'export PDF réelle avec les paramètres de date
+        const dateFrom = "{{ date_from|date:'Y-m-d' }}";
+        const dateTo = "{{ date_to|date:'Y-m-d' }}";
+        const url = `/reports/export-pdf/${type}/?date_from=${dateFrom}&date_to=${dateTo}`;
+        window.location.href = url;
     }
 
     function generateCompileReport() {
-        const modal = new bootstrap.Modal(document.getElementById('compileModal'));
-        modal.show();
-
-        // Simuler le chargement des données
-        setTimeout(() => {
-            document.getElementById('compileContent').innerHTML = `
-                <div class="report-preview">
-                    <h5 class="border-bottom pb-2 mb-3">Rapport Compile - Période du {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}</h5>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6>Membres</h6>
-                            <p class="mb-1">Total: {{ stats.members_total }} membres</p>
-                            <p class="mb-1">Nouveaux: {{ stats.members_new }}</p>
-                            <p class="mb-1">Actifs: {{ stats.members_by_status.active }} | Inactifs: {{ stats.members_by_status.inactive }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Finances</h6>
-                            <p class="mb-1">Entrées: {{ stats.finances_in|floatformat:2 }} $</p>
-                            <p class="mb-1">Sorties: {{ stats.finances_out|floatformat:2 }} $</p>
-                            <p class="mb-1">Solde: {{ stats.finances_balance|floatformat:2 }} $</p>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6>Activités</h6>
-                            <p class="mb-1">Événements: {{ stats.events_total }}</p>
-                            <p class="mb-1">Taux de présence: {{ stats.attendance_rate }}%</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Structure</h6>
-                            <p class="mb-1">Familles: {{ stats.families_total }}</p>
-                            <p class="mb-1">Départements: {{ stats.departments_total }}</p>
-                            <p class="mb-1">Groupes: {{ stats.homegroups_total }}</p>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Ce rapport compile toutes les activités de la période sélectionnée.
-                    </div>
-                </div>
-            `;
-        }, 1000);
+        // Le rapport compile est un export PDF global consolidé de la période
+        generateReport('global');
     }
 
     function generateGlobalCompile() {
-        const modal = new bootstrap.Modal(document.getElementById('compileModal'));
-        document.querySelector('#compileModal .modal-title').textContent = 'Global Compile - Rapport Annuel';
-        modal.show();
-
-        setTimeout(() => {
-            document.getElementById('compileContent').innerHTML = `
-                <div class="report-preview">
-                    <h5 class="border-bottom pb-2 mb-3">Rapport Global Annuel {{ date_from|date:"Y" }}</h5>
-
-                    <div class="alert alert-success mb-3">
-                        <i class="bi bi-globe me-2"></i>
-                        <strong>Rapport Global Compile</strong> - Vue d'ensemble complète de l'année
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Catégorie</th>
-                                    <th>Total</th>
-                                    <th>Évolution</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><i class="bi bi-people me-2"></i>Membres</td>
-                                    <td class="fw-bold">{{ stats.members_total }}</td>
-                                    <td><span class="text-success">+{{ stats.members_new }}</span></td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-house-door me-2"></i>Familles</td>
-                                    <td class="fw-bold">{{ stats.families_total }}</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-calendar-event me-2"></i>Événements</td>
-                                    <td class="fw-bold">{{ stats.events_all }}</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-cash-stack me-2"></i>Entrées financières</td>
-                                    <td class="fw-bold text-success">{{ stats.finances_total_in|floatformat:2 }} $</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-cash-stack me-2"></i>Sorties financières</td>
-                                    <td class="fw-bold text-danger">{{ stats.finances_total_out|floatformat:2 }} $</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-heart me-2"></i>Mariages</td>
-                                    <td class="fw-bold">{{ stats.marriages_total }}</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-droplet me-2"></i>Baptêmes</td>
-                                    <td class="fw-bold">{{ stats.baptisms_total }}</td>
-                                    <td>-</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-book me-2"></i>Formations</td>
-                                    <td class="fw-bold">{{ stats.trainings_total }}</td>
-                                    <td>-</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }, 1000);
+        // Global compile sans filtre de date pour tout avoir de manière consolidée
+        window.location.href = "/reports/export-pdf/global/";
     }
 
     function downloadCompileReport() {
-        alert('Téléchargement du rapport PDF... (Intégrer avec votre générateur PDF)');
+        // Utiliser la même logique que generateReport
+        const dateFrom = "{{ date_from|date:'Y-m-d' }}";
+        const dateTo = "{{ date_to|date:'Y-m-d' }}";
+        window.location.href = `/reports/export-pdf/members/?date_from=${dateFrom}&date_to=${dateTo}`;
     }
 </script>
 {% endblock %}

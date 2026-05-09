@@ -2339,9 +2339,12 @@ def report_sacraments_detail(request):
 
 @login_required
 def export_report_pdf(request, report_type):
-    """Export d'un rapport spécifique en PDF avec xhtml2pdf (compatible Windows)"""
-    from xhtml2pdf import pisa
-    from django.template.loader import render_to_string
+    """Export d'un rapport spécifique en PDF avec ReportLab"""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+    from reportlab.lib.units import cm
     from django.http import HttpResponse
     from io import BytesIO
     import os
@@ -2356,105 +2359,337 @@ def export_report_pdf(request, report_type):
 
     # Récupérer les paramètres de l'église
     church_settings = ChurchSettings.objects.first()
+    
+    # Créer le buffer
+    buffer = BytesIO()
+    
+    # Définition de la fonction pour le filigrane et le pied de page
+    def on_page(canvas, doc):
+        canvas.saveState()
+        # Filigrane (Watermark)
+        if church_settings and church_settings.logo:
+            try:
+                logo_path = church_settings.logo.path
+                # Centrer le logo en filigrane
+                width, height = A4
+                canvas.setFillAlpha(0.05)  # Opacité très faible pour le filigrane
+                canvas.drawImage(logo_path, width/2 - 5*cm, height/2 - 5*cm, width=10*cm, height=10*cm, mask='auto')
+                canvas.setFillAlpha(1.0)
+            except Exception:
+                pass
+        
+        # Numérotation des pages
+        canvas.setFont('Helvetica', 9)
+        canvas.drawRightString(A4[0] - 2*cm, 1*cm, f"Page {doc.page}")
+        canvas.restoreState()
 
-    # Préparer le contexte selon le type de rapport
-    context = {
-        'church_settings': church_settings,
-        'date_from': date_from,
-        'date_to': date_to,
-        'now': timezone.now(),
-        'user': request.user,
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4, 
+        rightMargin=2*cm, 
+        leftMargin=2*cm, 
+        topMargin=2*cm, 
+        bottomMargin=2*cm
+    )
+    elements = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        alignment=1,
+        spaceAfter=12,
+        textColor=colors.HexColor('#1e293b')
+    )
+    subtitle_style = ParagraphStyle(
+        'SubtitleStyle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        alignment=1,
+        spaceAfter=10
+    )
+    normal_style = styles['Normal']
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.grey
+    )
+
+    # Construction de l'en-tête professionnelle
+    header_data = []
+    church_info = []
+    
+    # Style centré pour les infos de l'église
+    centered_info_style = ParagraphStyle(
+        'CenteredInfo',
+        parent=styles['Normal'],
+        alignment=1, # Center
+        fontSize=10
+    )
+    centered_name_style = ParagraphStyle(
+        'CenteredName',
+        parent=styles['Heading2'],
+        alignment=1, # Center
+        fontSize=14,
+        spaceAfter=5
+    )
+
+    church_name = church_settings.church_name if church_settings else "Consolation et Paix Divine"
+    church_info.append(Paragraph(f"<b>{church_name.upper()}</b>", centered_name_style))
+    
+    if church_settings:
+        if church_settings.church_slogan:
+            import re
+            clean_slogan = re.sub('<[^<]+?>', '', church_settings.church_slogan)
+            church_info.append(Paragraph(f"<i>{clean_slogan}</i>", centered_info_style))
+        if church_settings.address:
+            church_info.append(Paragraph(church_settings.address, centered_info_style))
+        if church_settings.phone_primary:
+            church_info.append(Paragraph(f"Tél: {church_settings.phone_primary}", centered_info_style))
+        if church_settings.email_primary:
+            church_info.append(Paragraph(f"Email: {church_settings.email_primary}", centered_info_style))
+
+    # Si logo présent, on l'ajoute au-dessus des infos (tout centré)
+    if church_settings and church_settings.logo:
+        try:
+            logo = Image(church_settings.logo.path, width=2.5*cm, height=2.5*cm)
+            header_data = [[logo], [church_info]]
+        except Exception:
+            header_data = [[church_info]]
+    else:
+        header_data = [[church_info]]
+
+    header_table = Table(header_data, colWidths=[17*cm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    elements.append(header_table)
+    
+    # Ligne de séparation
+    from reportlab.platypus import HRFlowable
+    elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#4472C4'), spaceAfter=15))
+
+    # Titre du rapport
+    report_titles = {
+        'members': "RAPPORT DES MEMBRES",
+        'finances': "RAPPORT FINANCIER",
+        'activities': "RAPPORT DES ACTIVITÉS",
+        'attendance': "RAPPORT DES PRÉSENCES",
+        'sacraments': "RAPPORT DES SACREMENTS"
     }
+    elements.append(Paragraph(report_titles.get(report_type, "RAPPORT"), subtitle_style))
+    
+    period_text = f"Période: du {date_from} au {date_to}" if date_from and date_to else "Période: Global"
+    elements.append(Paragraph(period_text, normal_style))
+    elements.append(Paragraph(f"Généré par: {request.user.get_full_name() or request.user.username}", normal_style))
+    elements.append(Paragraph(f"Date de génération: {timezone.now().strftime('%d/%m/%Y %H:%M')}", normal_style))
+    elements.append(Spacer(1, 1*cm))
 
+    # Contenu selon le type de rapport
     if report_type == 'members':
+        # ... (code existant pour members)
         members = Member.objects.all().select_related('family', 'department', 'home_group')
         if date_from and date_to:
             members = members.filter(created_at__date__range=[date_from, date_to])
-        context.update({
-            'members': members,
-            'total': members.count(),
-            'by_gender': {
-                'male': members.filter(gender='male').count(),
-                'female': members.filter(gender='female').count(),
-            },
-            'by_status': {
-                'active': members.filter(is_active=True, inactive_reason__isnull=True).count(),
-                'inactive': members.filter(is_active=False).count(),
-            },
-        })
-        template_name = 'dashboard/report_members_pdf.html'
+        
+        data = [['Nom complet', 'Genre', 'Téléphone', 'Département']]
+        for m in members:
+            data.append([
+                f"{m.user.first_name} {m.user.last_name}",
+                "M" if m.gender == 'M' else "F",
+                m.user.phone or "-",
+                m.department.name if m.department else "-"
+            ])
+        
+        table = Table(data, colWidths=[6*cm, 2*cm, 4*cm, 5*cm])
         filename = f"Rapport_Membres_{timezone.now().strftime('%Y%m%d')}.pdf"
 
-    elif report_type == 'finances':
-        transactions = FinancialTransaction.objects.all().select_related('category', 'member')
+    elif report_type == 'global':
+        # RAPPORT GLOBAL COMPILE - Tous les services
+        filename = f"Global_Compile_{timezone.now().strftime('%Y%m%d')}.pdf"
+        
+        # 1. Résumé Statistiques
+        elements.append(Paragraph("1. RÉSUMÉ DES STATISTIQUES", styles['Heading3']))
+        
+        members_count = Member.objects.count()
+        active_members = Member.objects.filter(is_active=True).count()
+        families_count = Family.objects.count()
+        dept_count = Department.objects.count()
+        
+        summary_data = [
+            ['Indicateur', 'Valeur'],
+            ['Total Membres', str(members_count)],
+            ['Membres Actifs', str(active_members)],
+            ['Total Familles', str(families_count)],
+            ['Total Départements', str(dept_count)]
+        ]
+        summary_table = Table(summary_data, colWidths=[8*cm, 4*cm])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.5*cm))
+
+        # 2. Finances
+        elements.append(Paragraph("2. SITUATION FINANCIÈRE", styles['Heading3']))
+        transactions = FinancialTransaction.objects.all()
         if date_from and date_to:
             transactions = transactions.filter(date__range=[date_from, date_to])
-        context.update({
-            'transactions': transactions,
-            'total_in': transactions.filter(direction='in').aggregate(total=Sum('amount'))['total'] or 0,
-            'total_out': transactions.filter(direction='out').aggregate(total=Sum('amount'))['total'] or 0,
-        })
-        template_name = 'dashboard/report_finances_pdf.html'
+        
+        total_in = transactions.filter(direction='in').aggregate(Sum('amount'))['amount__sum'] or 0
+        total_out = transactions.filter(direction='out').aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        finance_data = [
+            ['Description', 'Montant'],
+            ['Total Entrées', f"{total_in} $"],
+            ['Total Sorties', f"{total_out} $"],
+            ['Solde NET', f"{total_in - total_out} $"]
+        ]
+        finance_table = Table(finance_data, colWidths=[8*cm, 4*cm])
+        finance_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e7d32')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        elements.append(finance_table)
+        elements.append(Spacer(1, 0.5*cm))
+
+        # 3. Activités & Sacrements
+        elements.append(Paragraph("3. ACTIVITÉS & SACREMENTS", styles['Heading3']))
+        events_count = Event.objects.count()
+        marriages_count = MarriageRecord.objects.count()
+        baptisms_count = BaptismEvent.objects.count()
+        
+        sacrament_data = [
+            ['Activité', 'Quantité'],
+            ['Événements organisés', str(events_count)],
+            ['Mariages célébrés', str(marriages_count)],
+            ['Baptêmes administrés', str(baptisms_count)]
+        ]
+        sacrament_table = Table(sacrament_data, colWidths=[8*cm, 4*cm])
+        sacrament_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1565c0')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        elements.append(sacrament_table)
+        
+        # Pour le global, on ne met pas le grand tableau à la fin du bloc if
+        table = None 
+
+    elif report_type == 'finances':
+        transactions = FinancialTransaction.objects.all().select_related('category')
+        if date_from and date_to:
+            transactions = transactions.filter(date__range=[date_from, date_to])
+        
+        data = [['Date', 'Description', 'Catégorie', 'Type', 'Montant']]
+        for t in transactions:
+            data.append([
+                t.date.strftime('%d/%m/%Y'),
+                t.description[:30],
+                t.category.name if t.category else "-",
+                "Entrée" if t.direction == 'in' else "Sortie",
+                f"{t.amount} {t.currency}"
+            ])
+        
+        table = Table(data, colWidths=[2.5*cm, 6*cm, 3.5*cm, 2*cm, 3*cm])
         filename = f"Rapport_Finances_{timezone.now().strftime('%Y%m%d')}.pdf"
 
     elif report_type == 'activities':
-        events = Event.objects.all().prefetch_related('attendances')
+        events = Event.objects.all()
         if date_from and date_to:
             events = events.filter(date__range=[date_from, date_to])
-        context.update({
-            'events': events,
-            'total_events': events.count(),
-        })
-        template_name = 'dashboard/report_activities_pdf.html'
+        
+        data = [['Date', 'Titre', 'Type', 'Lieu']]
+        for e in events:
+            data.append([
+                e.date.strftime('%d/%m/%Y'),
+                e.title[:30],
+                e.get_event_type_display(),
+                e.location or "-"
+            ])
+        
+        table = Table(data, colWidths=[2.5*cm, 7*cm, 3.5*cm, 4*cm])
         filename = f"Rapport_Activites_{timezone.now().strftime('%Y%m%d')}.pdf"
 
     elif report_type == 'attendance':
         attendances = Attendance.objects.all().select_related('event', 'member')
         if date_from and date_to:
             attendances = attendances.filter(event__date__range=[date_from, date_to])
-        total = attendances.count()
-        present = attendances.filter(attended=True).count()
-        rate = round((present / total * 100), 1) if total > 0 else 0
-        context.update({
-            'attendances': attendances,
-            'total': total,
-            'present': present,
-            'rate': rate,
-        })
-        template_name = 'dashboard/report_attendance_pdf.html'
+        
+        data = [['Date', 'Événement', 'Membre', 'Statut']]
+        for a in attendances:
+            data.append([
+                a.event.date.strftime('%d/%m/%Y'),
+                a.event.title[:25],
+                f"{a.member.user.first_name} {a.member.user.last_name}"[:25],
+                "Présent" if a.attended else "Absent"
+            ])
+        
+        table = Table(data, colWidths=[2.5*cm, 5.5*cm, 6*cm, 3*cm])
         filename = f"Rapport_Presences_{timezone.now().strftime('%Y%m%d')}.pdf"
 
     elif report_type == 'sacraments':
-        marriages = MarriageRecord.objects.all().select_related('groom', 'bride')
-        baptisms = BaptismEvent.objects.all().prefetch_related('candidates')
-        context.update({
-            'marriages': marriages,
-            'baptisms': baptisms,
-            'marriages_count': marriages.count(),
-            'baptisms_count': baptisms.count(),
-        })
-        template_name = 'dashboard/report_sacraments_pdf.html'
+        marriages = MarriageRecord.objects.all()
+        data = [['Date', 'Époux', 'Épouse', 'Lieu']]
+        for m in marriages:
+            groom_name = f"{m.groom.user.first_name} {m.groom.user.last_name}" if m.groom else m.groom_full_name
+            bride_name = f"{m.bride.user.first_name} {m.bride.user.last_name}" if m.bride else m.bride_full_name
+            data.append([
+                m.planned_date.strftime('%d/%m/%Y'),
+                groom_name or "-",
+                bride_name or "-",
+                m.location or "-"
+            ])
+        
+        table = Table(data, colWidths=[2.5*cm, 6*cm, 6*cm, 2.5*cm])
         filename = f"Rapport_Sacrements_{timezone.now().strftime('%Y%m%d')}.pdf"
-
+    
     else:
         messages.error(request, 'Type de rapport invalide')
         return redirect('reports')
 
-    # Rendre le template HTML
-    html_string = render_to_string(template_name, context)
+    # Appliquer le style au tableau s'il existe (pour les rapports simples)
+    if table:
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ])
+        table.setStyle(style)
+        elements.append(table)
+    
+    # Pied de page
+    elements.append(Spacer(1, 2*cm))
+    elements.append(Paragraph(f"Signature du Pasteur & Sceau de l'Église: ___________________________", normal_style))
 
-    # Créer le PDF avec xhtml2pdf
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html_string.encode('UTF-8')), result)
-
-    if not pdf.err:
-        # Créer la réponse HTTP
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        return response
-    else:
-        messages.error(request, f'Erreur lors de la génération du PDF')
-        return redirect('reports')
+    # Générer le PDF avec les fonctions de rappel pour le filigrane
+    doc.build(elements, onFirstPage=on_page, onLaterPages=on_page)
+    
+    # Retourner la réponse
+    pdf_content = buffer.getvalue()
+    buffer.close()
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.write(pdf_content)
+    return response
 
 
 @login_required
