@@ -70,9 +70,9 @@ ASGI_APPLICATION = 'church_management.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'db_consolation_et_paix_divine',
-        'USER': 'root',
-        'PASSWORD': '',
+        'NAME': 'consolat_db_consolation_et_paix_divine',
+        'USER': 'consolat_NelsonMupenda',
+        'PASSWORD': 'MtnR#+cpq6WJ&m)3',
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
